@@ -39,49 +39,7 @@ export function serializeInteger(x: number | bigint): Uint8Array {
         }
     }
 
-     if (typeof x === "bigint") {
-        console.log("serializing 64-bit integer", x);
-        // let bigX = BigInt(x);
-
-        if (x < MAX_64_BIT) {
-            console.log("serializing inside 64-bit integer", x);
-        
-            // Determine the optimal l based on x's value
-            const l = calculateL(x); // This function needs to accurately determine l
-            console.log("l after calculation is:", l);
-
-            // Compute the Base Value part of the prefix
-            const baseValue = 256 - (1 << (8 - l)); // baseValue represents is 2^8 - 2^(8-l)
-            console.log("Base Value (256 - 2^(8-l)):", baseValue);
-
-            // Compute the high bits addition part of the prefix
-            const highBits = Number((x >> BigInt(8 * l)) & 0xFFn);
-            console.log("High Bits (x >> 8l) & 0xFF:", highBits);
-
-            // Combine the parts to form the prefix
-            let prefix = (baseValue + highBits) % 256;
-            console.log("Combined Prefix before modulo:", baseValue + highBits);
-            console.log("Final Prefix (mod 256):", prefix);
-
-            // Setup bytes array
-            const bytesNeeded = l + 1; // Including one byte for the prefix
-            const bytes = new Uint8Array(bytesNeeded);
-            console.log("new array of Bytes Needed:", bytes);
-            bytes[0] = prefix;
-
-            // Fill in the bytes from the most significant to the least significant
-            for (let i = 0; i < l; i++) {
-                bytes[i + 1] = Number((x >> BigInt(8 * (l - 1 - i))) & 0xFFn);
-            }
-
-            console.log("Serialized Output:", bytes);
-            return bytes;
-
-        } else {
-            console.log("INVALID: out of range for 64-bit serialization", x);
-            throw new Error("INVALID: out of range for 64-bit serialization");
-        }
-    }
+    
     console.error("INVALID: Value is out of the allowed range or type", x);
     throw new Error("INVALID: Value is out of the allowed range or type");
 }
@@ -110,7 +68,7 @@ export function deserializeInteger(data: Uint8Array): number | bigint {
         const r = ((firstByte & 0x1F) << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
         console.log("result of 29-bit integer", r, "(" + r.toString(2).padStart(32, '0') + " in binary)");
         return r;
-    } else if ((firstByte & 0b11111111) === 0b11111111 && length === 9) { // 64-bit integer for 9-byte
+    } else if ((firstByte & 0b11111111) === 0b11111111 && length > 4) { // 64-bit integer for 9-byte
         console.log("deserializing 64-bit integer", data);
         const byte1 = BigInt(firstByte & 0xFF) 
         const byte2 = BigInt(data[1]) << 56n;
@@ -125,7 +83,7 @@ export function deserializeInteger(data: Uint8Array): number | bigint {
         const result = byte1 | byte2 | byte3 | byte4 | byte5 | byte6 | byte7 | byte8 | byte9;
         console.log("result of 64-bit integer", { byte1, byte2, byte3, byte4, byte5, byte6, byte7, byte8 }, result.toString());
         return result;
-    } else if (firstByte & ) {
+    } else {
         console.log("invalid integer", firstByte);
         throw new Error("Invalid integer encoding");
     }
