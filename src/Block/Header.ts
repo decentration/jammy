@@ -1,43 +1,47 @@
-import { Codec, Struct, Vector, str, u32, Bytes, Option, StringRecord} from 'scale-ts';
+
+
+
+import { Struct, Vector, u32, Bytes, Option } from 'scale-ts';
 
 export interface EpochMarker {
-  nextRandomness1: Uint8Array; // η1'
-  nextRandomness2: Uint8Array; // η2'
-  validatorKeys: Uint8Array[]; // [kb | k ∈ γk']
+  entropy: Uint8Array; // η1'
+  tickets_entropy: Uint8Array; // η2'
+  validators: Uint8Array[]; // [kb | k ∈ γk']
 }
 
 export const EpochMarkerCodec = Struct({
-  nextRandomness1: Bytes(32),
-  nextRandomness2: Bytes(32),
-  validatorKeys: Vector(Bytes(32)),
+  entropy: Bytes(32),
+  tickets_entropy: Bytes(32),
+  validators: Vector(Bytes(32)),
 });
 
 
 
+
 export interface Header {
-  parentHash: Uint8Array;             // Hp: Parent hash
-  priorStateRoot: Uint8Array;         // Hr: Prior state root
-  extrinsicHash: Uint8Array;          // Hx: Extrinsic hash
-  timeSlotIndex: number;          // Ht: Time-slot index
-  epochMarker?: EpochMarker;                // He: Epoch marker
-  winningTickets?: Uint8Array[];    // Hw: Winning-tickets
-  offenders: Uint8Array[];            // Ho: Offenders
-  blockAuthorIndex: number;       // Hi: Bandersnatch block author index
-  vrfSignature: Uint8Array;           // Hv: Entropy-yielding VRF signature
-  blockSeal?: Uint8Array;              // Hs: Block seal
+  parent: Uint8Array;             // Hp: Parent hash
+  parent_state_root: Uint8Array;         // Hr: Prior state root
+  extrinsic_hash: Uint8Array;          // Hx: Extrinsic hash
+  slot: number;          // Ht: Time-slot index
+  epoch_mark: EpochMarker | null;                // He: Epoch marker
+  tickets_mark: Uint8Array[] | null;    // Hw: Winning-tickets
+  offenders_mark: Uint8Array[];            // Ho: Offenders
+  author_index: number;       // Hi: Bandersnatch block author index
+  entropy_source: Uint8Array;           // Hv: Entropy-yielding VRF signature
+  seal: Uint8Array | null;              // Hs: Block seal
 }
 
 export const HeaderCodec = Struct({
-  parentHash: Bytes(32),
-  priorStateRoot: Bytes(32),
-  extrinsicHash: Bytes(32),
-  timeSlotIndex: u32,
-  epochMarker: Option(EpochMarkerCodec),  
-  winningTickets: Option(Vector(Bytes(32))), 
-  offenders: Vector(Bytes(32)),
-  blockAuthorIndex: u32,
-  vrfSignature: Bytes(64),
-  blockSeal: Option(Bytes(64)),             
+  parent: Bytes(32),
+  parent_state_root: Bytes(32),
+  extrinsic_hash: Bytes(32),
+  slot: u32,
+  epoch_mark: Option(EpochMarkerCodec),
+  tickets_mark: Option(Vector(Bytes(32))),
+  offenders_mark: Vector(Bytes(32)),
+  author_index: u32,
+  entropy_source: Bytes(96),
+  seal: Option(Bytes(96)),
 });
 
 
@@ -46,20 +50,28 @@ export const HeaderCodec = Struct({
 export function serializeHeader(header: Header): Uint8Array {
   return HeaderCodec.enc({
     ...header,
-    epochMarker: header.epochMarker || undefined,
-    winningTickets: header.winningTickets || undefined, 
-    blockSeal: header.blockSeal || undefined, 
+    epoch_mark: header.epoch_mark ? header.epoch_mark : undefined,   
+    tickets_mark: header.tickets_mark ? header.tickets_mark : undefined,
+    seal: header.seal ? header.seal : undefined,
+    parent: header.parent,
+    
   });
 }
 
 //  without Seal
 export function serializeHeaderWithoutSeal(header: Header): Uint8Array {
-  const { blockSeal, ...headerWithoutSeal } = header;
+  const { ...headerWithoutSeal } = header;
   return HeaderCodec.enc({
-    ...headerWithoutSeal,
-    epochMarker: header.epochMarker || undefined,
-    winningTickets: header.winningTickets || undefined,
-    blockSeal: header.blockSeal || undefined,
+    parent: headerWithoutSeal.parent,
+    parent_state_root: headerWithoutSeal.parent_state_root,
+    extrinsic_hash: headerWithoutSeal.extrinsic_hash,
+    slot: headerWithoutSeal.slot,
+    epoch_mark: headerWithoutSeal.epoch_mark ? headerWithoutSeal.epoch_mark : undefined,
+    tickets_mark: headerWithoutSeal.tickets_mark ? headerWithoutSeal.tickets_mark : undefined,
+    offenders_mark: headerWithoutSeal.offenders_mark || [],
+    author_index: headerWithoutSeal.author_index,
+    entropy_source: headerWithoutSeal.entropy_source,
+    seal: undefined,
   });
 }
 
@@ -68,7 +80,9 @@ export function deserializeHeader(data: Uint8Array): Header {
 
   return {
     ...decoded,
-    epochMarker: decoded.epochMarker || undefined,
-    winningTickets: decoded.winningTickets || undefined,
+    epoch_mark: decoded.epoch_mark !== undefined ? decoded.epoch_mark : null,
+    tickets_mark: decoded.tickets_mark !== undefined ? decoded.tickets_mark : null,
+    offenders_mark: decoded.offenders_mark || [], 
+    seal: decoded.seal !== undefined ? decoded.seal : null,
   };
-}
+};
