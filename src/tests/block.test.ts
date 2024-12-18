@@ -1,6 +1,6 @@
-import { Block, serializeBlock, deserializeBlock } from '../models/block';
-import { BlockHeader } from '../models/header';
-import { ExtrinsicData } from '../models/extrinsicData';
+import { Block, serializeBlock, deserializeBlock } from '../Block/Block';
+import { BlockHeader } from '../Block/Header';
+import { ExtrinsicData } from '../Block/ExtrinsicData/types';
 
 describe('Block serialization and deserialization', () => {
     it('should serialize and deserialize the block correctly', () => {
