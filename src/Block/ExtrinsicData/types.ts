@@ -1,14 +1,20 @@
 import { Struct, u8, u32,  Bytes, Vector, Enum, Codec,  bool, _void} from 'scale-ts';
 
 
+const BandersnatchSignatureCodec = Bytes(64); 
+const Ed25519SignatureCodec = Bytes(64); 
+
+type BandersnatchSignature = Uint8Array; // 64 bytes
+type Ed25519Signature = Uint8Array; // "
+
 export interface Ticket {
   attempt: number; // u32
-  signature: Uint8Array;   
+  signature: BandersnatchSignature; // bandersnatch signature under context XT;   
 }
 
 export const TicketCodec = Struct({
   attempt: u32,
-  signature: Bytes(),
+  signature: BandersnatchSignatureCodec, // $jam_ticket_seal (XT)
 });
 
 export interface Preimage {
@@ -25,7 +31,7 @@ export interface Assurance {
   anchor: Uint8Array; // Bytes(32)
   bitfield: Uint8Array;
   validator_index: number; // u32
-  signature: Uint8Array;
+  signature: Ed25519Signature; // Ed25519 signature under context XA
 }
 
 const bitfieldLength = 1; // understanding GP 11.2.1 
@@ -34,7 +40,8 @@ export const AssuranceCodec = Struct({
   anchor: Bytes(32),
   bitfield: Bytes(bitfieldLength),  
   validator_index: u32,
-  signature: Bytes(),
+  // Context: $jam_available (XA)
+  signature: Ed25519SignatureCodec,
 });
 
 export interface Result {
@@ -117,14 +124,16 @@ export const ReportCodec = Struct({
   segment_root_lookup: Vector(Bytes(32)),
   results: Vector(ResultCodec),
 });
+
 export interface Signature {
   validator_index: number; // u32
-  signature: Uint8Array;
+  signature: Ed25519Signature; // Ed25519 signature under context XG
 }
 
 export const SignatureCodec = Struct({
   validator_index: u32,
-  signature: Bytes(),
+  signature: Ed25519SignatureCodec, // Context: $jam_guarantee (XG)
+
 });
 export interface Guarantee {
   report: Report;
@@ -146,13 +155,14 @@ export interface Verdict {
 export interface Vote {
   vote: boolean;
   index: number; // u32
-  signature: Uint8Array;
+  signature: Ed25519Signature; // Ed25519 signature under context X⊺ or X depending on vote
 }
 
 export const VoteCodec = Struct({
   vote: bool, // 0 or 1
   index: u32,
-  signature: Bytes(),
+  // Context: $jam_valid (X⊺) if vote is true, $jam_invalid (X) if vote is false
+  signature: Ed25519SignatureCodec,
 });
 
 export const VerdictCodec = Struct({
@@ -161,31 +171,34 @@ export const VerdictCodec = Struct({
   votes: Vector(VoteCodec),
 })
 
+// Updated Culprit interface and codec
 export interface Culprit {
   target: Uint8Array; // Bytes(32)
   key: Uint8Array; // Bytes(32)
-  signature: Uint8Array;
+  signature: BandersnatchSignature; // Bandersnatch signature under context XU
 }
 
 export const CulpritCodec = Struct({
   target: Bytes(32),
   key: Bytes(32),
-  signature: Bytes(),
+  // Context: $jam_audit (XU)
+  signature: BandersnatchSignatureCodec,
 });
 
+// Updated Fault interface and codec
 export interface Fault {
   target: Uint8Array; // Bytes(32)
   vote: boolean;
   key: Uint8Array; // Bytes(32)
-  signature: Uint8Array;
+  signature: Ed25519Signature; // Ed25519 signature under context XG
 }
-
 
 export const FaultCodec = Struct({
   target: Bytes(32),
   vote: bool, 
   key: Bytes(32),
-  signature: Bytes(),
+  // Context: $jam_guarantee (XG)
+  signature: Ed25519SignatureCodec,
 });
 
 export interface Disputes {
@@ -199,3 +212,16 @@ export const DisputesCodec = Struct({
   culprits: Vector(CulpritCodec),
   faults: Vector(FaultCodec),
 });
+
+// The signing contexts are:
+
+// - **XA** = `$jam_available`: **Ed25519** for availability assurances.
+// - **XB** = `$jam_beefy`: **BLS** for accumulate-result-root-MMR commitment.
+// - **XE** = `$jam_entropy`: On-chain entropy generation.
+// - **XF** = `$jam_fallback_seal`: **Bandersnatch** for fallback block seal.
+// - **XG** = `$jam_guarantee`: **Ed25519** for guarantee statements.
+// - **XI** = `$jam_announce`: **Ed25519** for audit announcement statements.
+// - **XT** = `$jam_ticket_seal`: **Bandersnatch** for RingVRF ticket generation and regular block seal.
+// - **XU** = `$jam_audit`: **Bandersnatch** for audit selection entropy.
+// - **X⊺** = `$jam_valid`: **Ed25519** for judgments of valid work reports.
+// - **X** = `$jam_invalid`: **Ed25519** for judgments of invalid work reports.
