@@ -50,11 +50,9 @@ export const HeaderCodec = Struct({
 export function serializeHeader(header: Header): Uint8Array {
   return HeaderCodec.enc({
     ...header,
-    epoch_mark: header.epoch_mark ? header.epoch_mark : undefined,   
-    tickets_mark: header.tickets_mark ? header.tickets_mark : undefined,
-    seal: header.seal ? header.seal : undefined,
-    parent: header.parent,
-    
+    epoch_mark: header.epoch_mark !== null ? header.epoch_mark : undefined,
+    tickets_mark: header.tickets_mark !== null ? header.tickets_mark : undefined,
+    seal: header.seal !== null ? header.seal : undefined,
   });
 }
 
