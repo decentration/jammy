@@ -44,10 +44,9 @@ export interface Result {
 }
 
 // the result value is an enum with variants.
-export interface ResultValue {
-  ok: Uint8Array;
-  panic: undefined;
-}
+export type ResultValue =
+  | { tag: 'ok'; value: Uint8Array }
+  | { tag: 'panic'; value: undefined };
 
 export const ResultValueCodec = Enum({
   ok: Bytes(),
@@ -179,9 +178,10 @@ export interface Fault {
   signature: Uint8Array;
 }
 
+
 export const FaultCodec = Struct({
   target: Bytes(32),
-  vote: u8, // 0 or 1
+  vote: bool, 
   key: Bytes(32),
   signature: Bytes(),
 });
