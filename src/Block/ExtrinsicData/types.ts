@@ -28,9 +28,11 @@ export interface Assurance {
   signature: Uint8Array;
 }
 
+const bitfieldLength = 1; // understanding GP 11.2.1 
+
 export const AssuranceCodec = Struct({
   anchor: Bytes(32),
-  bitfield: Bytes(),
+  bitfield: Bytes(bitfieldLength),  
   validator_index: u32,
   signature: Bytes(),
 });
