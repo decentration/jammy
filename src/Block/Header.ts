@@ -15,9 +15,6 @@ export const EpochMarkerCodec = Struct({
   validators: Vector(Bytes(32)),
 });
 
-
-
-
 export interface Header {
   parent: Uint8Array;             // Hp: Parent hash
   parent_state_root: Uint8Array;         // Hr: Prior state root

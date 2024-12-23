@@ -1,4 +1,4 @@
-import { Struct, u8, u32,  Bytes, Vector, Enum, Codec,  bool, _void} from 'scale-ts';
+import { Struct, u8, u16, u32,  Bytes, Vector, Enum, Codec,  bool, _void} from 'scale-ts';
 
 
 const BandersnatchSignatureCodec = Bytes(64); 
@@ -39,7 +39,7 @@ const bitfieldLength = 1; // understanding GP 11.2.1
 export const AssuranceCodec = Struct({
   anchor: Bytes(32),
   bitfield: Bytes(bitfieldLength),  
-  validator_index: u32,
+  validator_index: u16,
   // Context: $jam_available (XA)
   signature: Ed25519SignatureCodec,
 });

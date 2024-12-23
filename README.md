@@ -25,3 +25,8 @@ From 4.1:
 - **preimages:** Static data which is presently being requested to be available for workloads to be able to fetch on demand. This is denoted EP. 
 - **availability:** Assurances by each validator concerning which of the input data of workloads they have correctly received and are storing locally. This is denoted EA. 
 - **reports:** Reports of newly completed workloads whose accuracy is guaranteed by specific validators. This is denoted EG.
+
+
+Notes 
+
+use npx tsx ./src/... to run script in the command line. 
