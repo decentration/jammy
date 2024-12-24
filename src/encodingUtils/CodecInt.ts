@@ -4,9 +4,14 @@
  * Returns single byte if x < 128,i.e. 0..127 => 0x00..0x7F.
  */
 export function encodeProtocolInt(x: number): Uint8Array {
+  console.log(`encodeProtocolInt called with x=${x}`);
+
     if (x < 0) {
       throw new Error(`encodeProtocolInt: cannot encode negative value ${x}`);
     }
+  if (x === 0) {
+    return Uint8Array.of(0);
+  }
     if (x < 128) {
       // Single-byte for small x
       return Uint8Array.of(x);

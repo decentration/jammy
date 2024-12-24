@@ -1,0 +1,27 @@
+[
+    {
+        "vote": false,
+        "index": 0,
+        "signature": "0xcb0d510da863ab88970035c564818ed98b1a3243e2ea7de5f3f9b91e8379296746d96d19de9e4f536170c9fcea20bb325472d44b922a34ad7a27743631bfd024"
+    },
+    {
+        "vote": false,
+        "index": 1,
+        "signature": "0x1a509d06dad9740f09a2c3fea342a172167708819b731c0df4df8a6b890def37b2d9a6c05e044d169e32dfbece42c74f2271fed95592f4c2b36aa23da8896882"
+    },
+    {
+        "vote": false,
+        "index": 2,
+        "signature": "0x0fe8a4cd86dd6d4e1fa6c9ed4baa11cdd793f0af31b177d17337cd11e2e91a15c0a098cabd79911c2572896500ce82a98519c4f937e462feb80e01f182b0a8cb"
+    },
+    {
+        "vote": false,
+        "index": 3,
+        "signature": "0xbac9cf0c23a6bca795a71cc4f7432e41eeab1e864176c2dd499c547e6c501e490fe0ad051e7c165b4264ae6c167ef85ebf1191d664f7f1c53fa53c6c798bc6cb"
+    },
+    {
+        "vote": false,
+        "index": 4,
+        "signature": "0xb47e1f3145a2f4a6221f5072197cb87316d38e44bc8363272cac8b87397629bac5092bbae7c4738079cecc2b2468e23b281e5c833435ed5918c3b0aa15047236"
+    }
+]

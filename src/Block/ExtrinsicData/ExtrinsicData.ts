@@ -1,6 +1,6 @@
 import { Vector, Struct } from 'scale-ts';
-import { Ticket, Disputes, Preimage, Guarantee, Assurance } from '../types';
-import { TicketCodec, DisputesCodec, PreimageCodec, GuaranteeCodec, AssuranceCodec } from '../types';
+import { Ticket, Dispute, Preimage, Guarantee, Assurance } from '../types';
+import { TicketCodec, DisputeCodec, PreimageCodec, GuaranteeCodec, AssuranceCodec } from '../types';
 import { SequenceCodec } from '../../encodingUtils/SequenceCodec';
 
 const AssuranceSequenceCodec = SequenceCodec(AssuranceCodec);
@@ -9,15 +9,15 @@ export interface ExtrinsicData {
   preimages: Preimage[];
   guarantees: Guarantee[];
   assurances: Assurance[];
-  disputes: Disputes;
+  disputes: Dispute;
 }
 
 export const ExtrinsicDataCodec = Struct({
-  tickets: Vector(TicketCodec),
-  preimages: Vector(PreimageCodec),
-  guarantees: Vector(GuaranteeCodec),
-  assurances: AssuranceSequenceCodec,
-  disputes: DisputesCodec,
+  tickets:    SequenceCodec(TicketCodec),
+  preimages:  SequenceCodec(PreimageCodec),
+  guarantees: SequenceCodec(GuaranteeCodec),
+  assurances: SequenceCodec(AssuranceCodec),
+  disputes: DisputeCodec,
 });
 
 export function serializeExtrinsicData(data: ExtrinsicData): Uint8Array {

@@ -1,4 +1,5 @@
 import { Struct, u8, u16, u32,  Bytes, Vector, Enum, Codec,  bool, _void} from 'scale-ts';
+import { SequenceCodec } from '../encodingUtils/SequenceCodec';
 
 
 const BandersnatchSignatureCodec = Bytes(64); 
@@ -160,15 +161,15 @@ export interface Vote {
 
 export const VoteCodec = Struct({
   vote: bool, // 0 or 1
-  index: u32,
+  index: u16,
   // Context: $jam_valid (X⊺) if vote is true, $jam_invalid (X) if vote is false
   signature: Ed25519SignatureCodec,
 });
 
 export const VerdictCodec = Struct({
   target: Bytes(32),
-  age: u32,
-  votes: Vector(VoteCodec),
+  age: u32, // fixed 4 byte length little endian integer
+  votes: VoteCodec,
 })
 
 // Updated Culprit interface and codec
@@ -185,7 +186,6 @@ export const CulpritCodec = Struct({
   signature: BandersnatchSignatureCodec,
 });
 
-// Updated Fault interface and codec
 export interface Fault {
   target: Uint8Array; // Bytes(32)
   vote: boolean;
@@ -201,16 +201,16 @@ export const FaultCodec = Struct({
   signature: Ed25519SignatureCodec,
 });
 
-export interface Disputes {
+export interface Dispute {
   verdicts: Verdict[];
   culprits: Culprit[];
   faults: Fault[];
 }
 
-export const DisputesCodec = Struct({
-  verdicts: Vector(VerdictCodec),
-  culprits: Vector(CulpritCodec),
-  faults: Vector(FaultCodec),
+export const DisputeCodec = Struct({
+  verdicts: SequenceCodec(VerdictCodec),
+  culprits: SequenceCodec(CulpritCodec),
+  faults: SequenceCodec(FaultCodec),
 });
 
 // The signing contexts are:

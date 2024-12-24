@@ -25,7 +25,7 @@ export function SequenceCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
       out.set(buf, offset)
       offset += buf.length
     }
-
+    console.log('codec out:', out);
     return out
   }
 
@@ -63,7 +63,7 @@ export function SequenceCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
 
       items.push(item)
     }
-
+    console.log('codec items:', items);
     return items
   }
 
