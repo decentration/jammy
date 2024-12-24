@@ -3,12 +3,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { Assurance, AssuranceCodec } from '../block/types';
-import { SequenceCodec } from './SequenceCodec';
+import { DiscriminatorCodec } from './DiscriminatorCodec';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const [AssuranceSequenceEnc, AssuranceSequenceDec] = SequenceCodec(AssuranceCodec);
+const [AssuranceSequenceEnc, AssuranceSequenceDec] = DiscriminatorCodec(AssuranceCodec);
 
 const assurancesJsonPath = path.resolve(__dirname, '../data/assurances_extrinsic.json');
 const assurancesJson = JSON.parse(readFileSync(assurancesJsonPath, 'utf-8'));

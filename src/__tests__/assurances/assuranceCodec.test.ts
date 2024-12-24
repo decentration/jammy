@@ -2,9 +2,9 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { AssuranceCodec } from '../../block/types';
 import { Assurance } from '../../block/types';
-import { SequenceCodec } from '../../encodingUtils/SequenceCodec';
+import { DiscriminatorCodec } from '../../encodingUtils/DiscriminatorCodec';
 
-const AssuranceSequenceCodec = SequenceCodec(AssuranceCodec);
+const AssuranceDiscriminatorCodec = DiscriminatorCodec(AssuranceCodec);
 
 describe('Decoding assurances_extrinsic (protocol doc approach)', () => {
   const binPath = path.resolve(__dirname, '../../data/assurances_extrinsic.bin');
@@ -17,7 +17,7 @@ describe('Decoding assurances_extrinsic (protocol doc approach)', () => {
     // 2) decode
     let decoded: Assurance[];
     try {
-      decoded = AssuranceSequenceCodec.dec(encoded);
+      decoded = AssuranceDiscriminatorCodec.dec(encoded);
     } catch (err) {
       console.error('Decoding failed:', err);
       throw err;

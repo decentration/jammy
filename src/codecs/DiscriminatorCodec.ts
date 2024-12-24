@@ -1,11 +1,11 @@
 import { Codec, Encoder, Decoder } from "scale-ts"
-import { encodeProtocolInt, decodeProtocolInt } from "./CodecInt"
+import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec"
 
 /**
- * SequenceCodec: Creates a compatible codec for a sequence of items,
+ * DiscriminatorCodec: Creates a compatible codec for a sequence of items,
 
  */
-export function SequenceCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
+export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
   // 1) The encoder function
   const encode: Encoder<T[]> = (items: T[]): Uint8Array => {
     // Encode the length prefix
@@ -58,7 +58,7 @@ export function SequenceCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
       offset += reencoded.length
 
       if (offset > uint8Data.length) {
-        throw new Error(`SequenceCodec: out-of-bounds decoding item #${i}`)
+        throw new Error(`DiscriminatorCodec: out-of-bounds decoding item #${i}`)
       }
 
       items.push(item)

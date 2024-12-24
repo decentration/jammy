@@ -1,5 +1,5 @@
 import { Struct, u8, u16, u32,  Bytes, Vector, Enum, Codec,  bool, _void} from 'scale-ts';
-import { SequenceCodec } from '../encodingUtils/SequenceCodec';
+import { DiscriminatorCodec, SetCodec } from '../codecs';
 
 
 const BandersnatchSignatureCodec = Bytes(64); 
@@ -169,8 +169,9 @@ export const VoteCodec = Struct({
 export const VerdictCodec = Struct({
   target: Bytes(32),
   age: u32, // fixed 4 byte length little endian integer
-  votes: VoteCodec,
+  votes: SetCodec(VoteCodec, 67),
 })
+
 
 // Updated Culprit interface and codec
 export interface Culprit {
@@ -208,9 +209,9 @@ export interface Dispute {
 }
 
 export const DisputeCodec = Struct({
-  verdicts: SequenceCodec(VerdictCodec),
-  culprits: SequenceCodec(CulpritCodec),
-  faults: SequenceCodec(FaultCodec),
+  verdicts: DiscriminatorCodec(VerdictCodec),
+  culprits: DiscriminatorCodec(CulpritCodec),
+  faults: DiscriminatorCodec(FaultCodec),
 });
 
 // The signing contexts are:

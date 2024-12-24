@@ -52,3 +52,5 @@ describe('VoteCodec (encode/decode votes) tests', () => {
     console.log('Encoded votes (no prefix) hex dump:', hexDump);
   });
 });
+
+
