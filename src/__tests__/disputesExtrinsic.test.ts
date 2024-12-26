@@ -1,4 +1,3 @@
-// disputes_extrinsic.test.ts
 import { readFileSync } from 'fs';
 import path from 'path';
 import { Dispute } from '../block/types';

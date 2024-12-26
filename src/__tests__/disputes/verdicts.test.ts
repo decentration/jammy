@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { Verdict } from '../../block/types'; 
-import { VerdictCodec } from '../../block/codecs';
+import { VerdictCodec } from '../../block/types';
 import { DiscriminatorCodec } from '../../codecs';
 
 const VerdictsDiscriminatorCodec = DiscriminatorCodec(VerdictCodec);

@@ -1,9 +1,9 @@
 import { Vector, Struct } from 'scale-ts';
 import { Ticket, Dispute, Preimage, Guarantee, Assurance } from '../types';
 import { TicketCodec, DisputeCodec, PreimageCodec, GuaranteeCodec, AssuranceCodec } from '../types';
-import { SequenceCodec } from '../../encodingUtils/SequenceCodec';
+import { DiscriminatorCodec } from '../../codecs/DiscriminatorCodec';
 
-const AssuranceSequenceCodec = SequenceCodec(AssuranceCodec);
+const AssuranceDiscriminatorCodec = DiscriminatorCodec(AssuranceCodec);
 export interface ExtrinsicData {
   tickets: Ticket[];
   preimages: Preimage[];
@@ -13,10 +13,10 @@ export interface ExtrinsicData {
 }
 
 export const ExtrinsicDataCodec = Struct({
-  tickets:    SequenceCodec(TicketCodec),
-  preimages:  SequenceCodec(PreimageCodec),
-  guarantees: SequenceCodec(GuaranteeCodec),
-  assurances: SequenceCodec(AssuranceCodec),
+  tickets:    DiscriminatorCodec(TicketCodec),
+  preimages:  DiscriminatorCodec(PreimageCodec),
+  guarantees: DiscriminatorCodec(GuaranteeCodec),
+  assurances: DiscriminatorCodec(AssuranceCodec),
   disputes: DisputeCodec,
 });
 

@@ -2,11 +2,11 @@ import { Struct, u8, u16, u32,  Bytes, Vector, Enum, Codec,  bool, _void} from '
 import { DiscriminatorCodec, SetCodec } from '../codecs';
 
 
-const BandersnatchSignatureCodec = Bytes(64); 
-const Ed25519SignatureCodec = Bytes(64); 
+export const BandersnatchSignatureCodec = Bytes(64); 
+export const Ed25519SignatureCodec = Bytes(64); 
 
-type BandersnatchSignature = Uint8Array; // 64 bytes
-type Ed25519Signature = Uint8Array; // "
+export type BandersnatchSignature = Uint8Array; // 64 bytes
+export type Ed25519Signature = Uint8Array; // "
 
 export interface Ticket {
   attempt: number; // u32
@@ -155,7 +155,7 @@ export interface Verdict {
 
 export interface Vote {
   vote: boolean;
-  index: number; // u32
+  index: number; // u16
   signature: Ed25519Signature; // Ed25519 signature under context X⊺ or X depending on vote
 }
 
@@ -167,6 +167,7 @@ export const VoteCodec = Struct({
 });
 
 export const VerdictCodec = Struct({
+  
   target: Bytes(32),
   age: u32, // fixed 4 byte length little endian integer
   votes: SetCodec(VoteCodec, 67),
@@ -203,16 +204,19 @@ export const FaultCodec = Struct({
 });
 
 export interface Dispute {
+
+
+  // verdicts 
   verdicts: Verdict[];
   culprits: Culprit[];
   faults: Fault[];
 }
 
-export const DisputeCodec = Struct({
-  verdicts: DiscriminatorCodec(VerdictCodec),
-  culprits: DiscriminatorCodec(CulpritCodec),
-  faults: DiscriminatorCodec(FaultCodec),
-});
+// export const DisputeCodec = Struct({
+//   verdicts: DiscriminatorCodec(VerdictCodec),
+//   culprits: DiscriminatorCodec(CulpritCodec),
+//   faults: DiscriminatorCodec(FaultCodec),
+// });
 
 // The signing contexts are:
 

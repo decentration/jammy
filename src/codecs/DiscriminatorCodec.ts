@@ -64,12 +64,12 @@ export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
       items.push(item)
     }
     console.log('codec items:', items);
-    return items
+    return items;
   }
 
   // 3) Combine them into the scale-ts Codec shape:
   //    an array `[encode, decode]` with enc/dec properties, all merged.
-  const codec = [encode, decode] as Codec<T[]>
+  const codec = [encode, decode] as unknown as Codec<T[]>
   codec.enc = encode
   codec.dec = decode
   return codec

@@ -2,7 +2,7 @@ import { Codec } from 'scale-ts';
 import { Vote, VoteCodec, Verdict } from '../types';
 import { SetCodec } from '../../codecs';
 
-const VotesCodec = SetCodec(VoteCodec, 67); // 1 + 2 + 64
+
 
 const VERDICT_TARGET_SIZE = 32;
 const VERDICT_AGE_SIZE = 4;
@@ -25,6 +25,11 @@ export const VerdictCodec: Codec<Verdict> = [
     const encodedVotes = verdict.votes.map((v) => VoteCodec.enc(v));
     const votesTotalLen = encodedVotes.reduce((acc, e) => acc + e.length, 0);
     console.log('votesTotalLen:', votesTotalLen);
+    
+    if (votesTotalLen % VOTE_SIZE !== 0) {
+      console.error(`Votes total length mismatch: ${votesTotalLen}, Expected: ${VOTE_SIZE}`);
+    }
+    
     // total out
     const out = new Uint8Array(VERDICT_TARGET_SIZE + VERDICT_AGE_SIZE + votesTotalLen);
 
@@ -45,7 +50,7 @@ export const VerdictCodec: Codec<Verdict> = [
   },
 
   // dec
-  (data: Uint8Array | ArrayBuffer | string) => {
+  (data: ArrayBuffer) => {
     const uint8 =
       data instanceof Uint8Array
         ? data
