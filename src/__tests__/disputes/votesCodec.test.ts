@@ -29,6 +29,6 @@ describe('VotesCodec (set encoding) tests', () => {
     expect(decoded).toStrictEqual(votes);
 
     // 6) Hex dump
-    console.log('VotesCodec hex (no prefix):', Buffer.from(encoded).toString('hex'));
+    // console.log('VotesCodec hex (no prefix):', Buffer.from(encoded).toString('hex'));
   });
 });

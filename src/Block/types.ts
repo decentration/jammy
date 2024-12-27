@@ -1,5 +1,7 @@
-import { Struct, u8, u16, u32,  Bytes, Vector, Enum, Codec,  bool, _void} from 'scale-ts';
+import { Struct, u8, u16, u32, u64,  Bytes, Vector, Enum, Codec,  bool, _void} from 'scale-ts';
 import { DiscriminatorCodec, SetCodec } from '../codecs';
+import { SingleByteLenCodec } from '../codecs/SingleByteLenCodec';
+import { ResultValueCodec, ReportCodec } from './codecs';
 
 
 export const BandersnatchSignatureCodec = Bytes(64); 
@@ -31,7 +33,7 @@ export const PreimageCodec = Struct({
 export interface Assurance {
   anchor: Uint8Array; // Bytes(32)
   bitfield: Uint8Array;
-  validator_index: number; // u32
+  validator_index: number; // u16
   signature: Ed25519Signature; // Ed25519 signature under context XA
 }
 
@@ -46,7 +48,7 @@ export const AssuranceCodec = Struct({
 });
 
 export interface Result {
-  service_id: number; // u32
+  service_id: number; // 
   code_hash: Uint8Array; // Bytes(32)
   payload_hash: Uint8Array; // Bytes(32)
   accumulate_gas: number; // u32
@@ -55,37 +57,39 @@ export interface Result {
 
 // the result value is an enum with variants.
 export type ResultValue =
-  | { tag: 'ok'; value: Uint8Array }
-  | { tag: 'panic'; value: undefined };
+| { ok: Uint8Array }
+| { panic: null }
+| { placeholder: null }
 
-export const ResultValueCodec = Enum({
-  ok: Bytes(),
-  panic: _void,
-});
+// export const ResultValueCodec = Enum({
+//   ok: SingleByteLenCodec,
+//   placeholder: _void, // not sure what else goes as enums. adding placeholder. 
+//   panic: _void,
+// });
 
 
-export const ResultCodec = Struct({
-  service_id: u32,
-  code_hash: Bytes(32),
-  payload_hash: Bytes(32),
-  accumulate_gas: u32,
-  result: ResultValueCodec,
-});
+// export const ResultCodec = Struct({
+//   service_id: u32,
+//   code_hash: Bytes(32),
+//   payload_hash: Bytes(32),
+//   accumulate_gas: u32, // 4 byte little endian integer
+//   result: ResultValueCodec,
+// });
 
 export interface PackageSpec {
   hash: Uint8Array; // Bytes(32)
   length: number; // u32
   erasure_root: Uint8Array; // Bytes(32)
   exports_root: Uint8Array; // Bytes(32)
-  exports_count: number; // u32
+  exports_count: number; // u16
 }
 
 export const PackageSpecCodec = Struct({
   hash: Bytes(32),
-  length: u32,
+  length: u32, // 4 bytes
   erasure_root: Bytes(32),
   exports_root: Bytes(32),
-  exports_count: u32,
+  exports_count: u16,
 });
 
 export interface Context {
@@ -116,37 +120,38 @@ export interface Report {
   results: Result[];
 }
 
-export const ReportCodec = Struct({
-  package_spec: PackageSpecCodec,
-  context: ContextCodec,
-  core_index: u32,
-  authorizer_hash: Bytes(32),
-  auth_output: Bytes(), // Variable length
-  segment_root_lookup: Vector(Bytes(32)),
-  results: Vector(ResultCodec),
-});
+// export const ReportCodec = Struct({
+//   package_spec: PackageSpecCodec,
+//   context: ContextCodec,
+//   core_index: u16,
+//   authorizer_hash: Bytes(32),
+//   auth_output: SingleByteLenCodec,
+//   segment_root_lookup: Vector(Bytes(32)),
+//   results: DiscriminatorCodec(ResultCodec),
+// });
 
 export interface Signature {
-  validator_index: number; // u32
+  validator_index: number; // u16
   signature: Ed25519Signature; // Ed25519 signature under context XG
 }
 
 export const SignatureCodec = Struct({
-  validator_index: u32,
+  validator_index: u16,
   signature: Ed25519SignatureCodec, // Context: $jam_guarantee (XG)
-
 });
+
 export interface Guarantee {
   report: Report;
   slot: number; // u32
   signatures: Signature[];
 }
 
-export const GuaranteeCodec = Struct({
-  report: ReportCodec,
-  slot: u32,
-  signatures: Vector(SignatureCodec),
-});
+// export const GuaranteeCodec = Struct({
+//   report: ReportCodec,
+//   slot: u32,
+//   signatures: DiscriminatorCodec(SignatureCodec),
+// });
+
 export interface Verdict {
   target: Uint8Array; // Bytes(32)
   age: number; // u32
@@ -166,12 +171,12 @@ export const VoteCodec = Struct({
   signature: Ed25519SignatureCodec,
 });
 
-export const VerdictCodec = Struct({
+// export const VerdictCodec = Struct({
   
-  target: Bytes(32),
-  age: u32, // fixed 4 byte length little endian integer
-  votes: SetCodec(VoteCodec, 67),
-})
+//   target: Bytes(32),
+//   age: u32, // fixed 4 byte length little endian integer
+//   votes: SetCodec(VoteCodec, 67),
+// })
 
 
 // Updated Culprit interface and codec

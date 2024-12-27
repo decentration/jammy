@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { Dispute } from '../block/types';
-import { DisputeCodec } from '../block/types';
+import { DisputeCodec } from '../block/codecs';
 
 describe('DisputesCodec with DiscriminatorCodec (conformance tests)', () => {
   it('round-trip test with a mock Disputes object', () => {
@@ -54,11 +54,11 @@ describe('DisputesCodec with DiscriminatorCodec (conformance tests)', () => {
 
   it('matches conformance test vectors (disputes_extrinsic.bin / .json)', () => {
     // 1) Read the binary file
-    const binPath = path.resolve(__dirname, '../data/disputes_extrinsic.bin');
+    const binPath = path.resolve(__dirname, '../data/disputes/disputes_extrinsic.bin');
     const encodedBin = new Uint8Array(readFileSync(binPath));
 
     // 2) Read the JSON file
-    const jsonPath = path.resolve(__dirname, '../data/disputes_extrinsic.json');
+    const jsonPath = path.resolve(__dirname, '../data/disputes/disputes_extrinsic.json');
     const rawJson = JSON.parse(readFileSync(jsonPath, 'utf-8'));
 
     // 3) Build the expected "Disputes" object from JSON
@@ -68,7 +68,7 @@ describe('DisputesCodec with DiscriminatorCodec (conformance tests)', () => {
     //      "culprits": [ ... ],
     //      "faults":   [ ... ]
     //    }
-    const expected: Disputes = {
+    const expected: Dispute = {
       verdicts: rawJson.verdicts.map((v: any) => ({
         target: Uint8Array.from(Buffer.from(v.target.slice(2), 'hex')),
         age: v.age,

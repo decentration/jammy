@@ -33,7 +33,7 @@ export const CulpritCodec: Codec<Culprit> = [
 
     // copy signature
     out.set(encodedSig, CULPRIT_TARGET_SIZE + CULPRIT_KEY_SIZE);
-console.log('culrpit encoded out:', out);
+// console.log('culrpit encoded out:', out);
     return out;
   },
 
@@ -48,7 +48,7 @@ console.log('culrpit encoded out:', out);
 
     // must have at least 32 + 32 = 64 bytes before signature
     if (uint8.length < CULPRIT_TARGET_SIZE + CULPRIT_KEY_SIZE) {
-        console.log('uint8:', uint8);
+        // console.log('uint8:', uint8);
       throw new Error(`CulpritCodec dec: not enough data for target+key (need 64, got ${uint8.length})`);
     }
 

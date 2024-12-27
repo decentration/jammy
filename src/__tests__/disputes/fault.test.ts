@@ -29,6 +29,6 @@ describe("FaultCodec tests", () => {
     // 6) Check round-trip
     expect(decoded).toStrictEqual(faults);
 
-    console.log("Encoded faults hex:", Buffer.from(encoded).toString("hex"));
+    // console.log("Encoded faults hex:", Buffer.from(encoded).toString("hex"));
   });
 });

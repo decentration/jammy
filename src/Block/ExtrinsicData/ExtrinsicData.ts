@@ -1,7 +1,8 @@
 import { Vector, Struct } from 'scale-ts';
 import { Ticket, Dispute, Preimage, Guarantee, Assurance } from '../types';
-import { TicketCodec, DisputeCodec, PreimageCodec, GuaranteeCodec, AssuranceCodec } from '../types';
-import { DiscriminatorCodec } from '../../codecs/DiscriminatorCodec';
+import { TicketCodec, PreimageCodec, GuaranteeCodec, AssuranceCodec } from '../types';
+import { DiscriminatorCodec } from '../../codecs';
+import { DisputeCodec } from '../codecs';
 
 const AssuranceDiscriminatorCodec = DiscriminatorCodec(AssuranceCodec);
 export interface ExtrinsicData {

@@ -29,6 +29,6 @@ describe("CulpritCodec tests", () => {
     // 6) Check round-trip
     expect(decoded).toStrictEqual(culprits);
 
-    console.log("Encoded culprits hex:", Buffer.from(encoded).toString("hex"));
+    // console.log("Encoded culprits hex:", Buffer.from(encoded).toString("hex"));
   });
 });

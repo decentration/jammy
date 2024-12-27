@@ -49,7 +49,7 @@ describe('VoteCodec (encode/decode votes) tests', () => {
 
     // 6) Hex dump for debugging or conformance
     const hexDump = Buffer.from(encoded).toString('hex');
-    console.log('Encoded votes (no prefix) hex dump:', hexDump);
+    // console.log('Encoded votes (no prefix) hex dump:', hexDump);
   });
 });
 

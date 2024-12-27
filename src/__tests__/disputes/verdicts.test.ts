@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
 import { Verdict } from '../../block/types'; 
-import { VerdictCodec } from '../../block/types';
+import { VerdictCodec } from '../../block/codecs';
 import { DiscriminatorCodec } from '../../codecs';
 
 const VerdictsDiscriminatorCodec = DiscriminatorCodec(VerdictCodec);
@@ -33,6 +33,6 @@ describe('VerdictCodec with index-increment logic', () => {
     expect(decoded).toStrictEqual(verdicts);
 
     console.log('Encoded verdicts with index-based votes detection:', Buffer.from(encoded).toString('hex'));
-    console.log('Decoded verdicts:', decoded);
+    // console.log('Decoded verdicts:', decoded);
   });
 });

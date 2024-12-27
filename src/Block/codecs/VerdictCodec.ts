@@ -24,7 +24,7 @@ export const VerdictCodec: Codec<Verdict> = [
     // 3) votes... rely on index increments on decode.
     const encodedVotes = verdict.votes.map((v) => VoteCodec.enc(v));
     const votesTotalLen = encodedVotes.reduce((acc, e) => acc + e.length, 0);
-    console.log('votesTotalLen:', votesTotalLen);
+    // console.log('votesTotalLen:', votesTotalLen);
     
     if (votesTotalLen % VOTE_SIZE !== 0) {
       console.error(`Votes total length mismatch: ${votesTotalLen}, Expected: ${VOTE_SIZE}`);
@@ -41,7 +41,7 @@ export const VerdictCodec: Codec<Verdict> = [
     // copy votes
     let offset = VERDICT_TARGET_SIZE + VERDICT_AGE_SIZE;
     for (const ev of encodedVotes) {
-      console.log('ev:', ev);
+      // console.log('ev:', ev);
       out.set(ev, offset);
       offset += ev.length;
     }

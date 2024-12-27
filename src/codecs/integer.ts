@@ -125,7 +125,7 @@ export function deserializeInteger(data: Uint8Array): number | bigint {
         const result = byte1 | byte2 | byte3 | byte4 | byte5 | byte6 | byte7 | byte8 | byte9;
         console.log("result of 64-bit integer", { byte1, byte2, byte3, byte4, byte5, byte6, byte7, byte8 }, result.toString());
         return result;
-    } else if (firstByte & ) {
+    } else {
         console.log("invalid integer", firstByte);
         throw new Error("Invalid integer encoding");
     }

@@ -25,7 +25,7 @@ export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
       out.set(buf, offset)
       offset += buf.length
     }
-    console.log('codec out:', out);
+    // console.log('discriminator codec out:', Buffer.from(out).toString('hex'));
     return out
   }
 
@@ -63,7 +63,7 @@ export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
 
       items.push(item)
     }
-    console.log('codec items:', items);
+    // console.log('codec items:', items);
     return items;
   }
 
