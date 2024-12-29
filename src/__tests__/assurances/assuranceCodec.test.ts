@@ -2,13 +2,13 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { AssuranceCodec } from '../../block/types';
 import { Assurance } from '../../block/types';
-import { DiscriminatorCodec } from '../../encodingUtils/DiscriminatorCodec';
+import { DiscriminatorCodec } from '../../codecs';
 
 const AssuranceDiscriminatorCodec = DiscriminatorCodec(AssuranceCodec);
 
 describe('Decoding assurances_extrinsic (protocol doc approach)', () => {
-  const binPath = path.resolve(__dirname, '../../data/assurances_extrinsic.bin');
-  const jsonPath = path.resolve(__dirname, '../../data/assurances_extrinsic.json');
+  const binPath = path.resolve(__dirname, '../../data/assurances/assurances_extrinsic.bin');
+  const jsonPath = path.resolve(__dirname, '../../data/assurances/assurances_extrinsic.json');
 
   it('should decode the file as a sequence of assurances, with 0x02 prefix for length=2', () => {
     // 1) read binary

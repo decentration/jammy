@@ -37,7 +37,7 @@ export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
       : typeof data === "string"
       ? new TextEncoder().encode(data)
       : new Uint8Array(data)
-
+console.log('discriminator codec in decoder:', Buffer.from(uint8Data).toString('hex'));
     // Decode the length prefix
     const { value: length, bytesRead } = decodeProtocolInt(uint8Data)
     if (length === 0) {
@@ -47,7 +47,7 @@ export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
     // Decode each item
     const items: T[] = []
     let offset = bytesRead
-
+// console.log('discriminator codec in:', Buffer.from(uint8Data).toString('hex'));
     for (let i = 0; i < length; i++) {
       // Decode item from slice
       const item = itemCodec.dec(uint8Data.slice(offset))

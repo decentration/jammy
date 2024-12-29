@@ -5,4 +5,5 @@ export * from './FaultCodec';
 export * from './GuaranteeCodec';
 export * from './ResultValueCodec';
 export * from './ReportCodec';
-export * from './ResultCodec'
+export * from './ResultCodec';
+export * from './PreimageCodec';

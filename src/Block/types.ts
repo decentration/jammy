@@ -4,19 +4,19 @@ import { SingleByteLenCodec } from '../codecs/SingleByteLenCodec';
 import { ResultValueCodec, ReportCodec } from './codecs';
 
 
-export const BandersnatchSignatureCodec = Bytes(64); 
+export const BandersnatchSignatureCodec = Bytes(784); 
 export const Ed25519SignatureCodec = Bytes(64); 
 
-export type BandersnatchSignature = Uint8Array; // 64 bytes
+export type BandersnatchSignature = Uint8Array; // 784 bytes
 export type Ed25519Signature = Uint8Array; // "
 
 export interface Ticket {
-  attempt: number; // u32
+  attempt: number; // u8
   signature: BandersnatchSignature; // bandersnatch signature under context XT;   
 }
 
 export const TicketCodec = Struct({
-  attempt: u32,
+  attempt: u8,
   signature: BandersnatchSignatureCodec, // $jam_ticket_seal (XT)
 });
 
@@ -27,7 +27,7 @@ export interface Preimage {
 
 export const PreimageCodec = Struct({
   requester: u32,
-  blob: Bytes(),
+  blob: SingleByteLenCodec,
 });
 
 export interface Assurance {
@@ -181,16 +181,16 @@ export const VoteCodec = Struct({
 
 // Updated Culprit interface and codec
 export interface Culprit {
-  target: Uint8Array; // Bytes(32)
+  target: Uint8Array; // Bytes(32) Work Report Hash
   key: Uint8Array; // Bytes(32)
-  signature: BandersnatchSignature; // Bandersnatch signature under context XU
+  signature: Ed25519Signature; // Bandersnatch signature under context XU
 }
 
 export const CulpritCodec = Struct({
   target: Bytes(32),
   key: Bytes(32),
   // Context: $jam_audit (XU)
-  signature: BandersnatchSignatureCodec,
+  signature: Ed25519SignatureCodec,
 });
 
 export interface Fault {

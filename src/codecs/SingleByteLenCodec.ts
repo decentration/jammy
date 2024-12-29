@@ -30,7 +30,7 @@ export const SingleByteLenCodec: Codec<Uint8Array> = createCodec(
         : typeof data === 'string'
         ? new TextEncoder().encode(data)
         : new Uint8Array(data)
-
+console.log('SingleByteLenCodec:', uint8);
 
         // if the length byte is zero, return an empty array
     if (uint8.length === 1 && uint8[0] === 0) {
@@ -46,7 +46,7 @@ export const SingleByteLenCodec: Codec<Uint8Array> = createCodec(
         `SingleByteLenBytes: not enough bytes; declared len=${len}, actual=${uint8.length - 1}`
       )
     }
-
+    console.log('SingleByteLenCodec:', uint8.slice(1, 1 + len));
     return uint8.slice(1, 1 + len)
   }
 )

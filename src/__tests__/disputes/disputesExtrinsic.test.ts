@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
-import { Dispute } from '../block/types';
-import { DisputeCodec } from '../block/codecs';
+import { Dispute } from '../../block/types';
+import { DisputeCodec } from '../../block/codecs';
 
 describe('DisputesCodec with DiscriminatorCodec (conformance tests)', () => {
   it('round-trip test with a mock Disputes object', () => {

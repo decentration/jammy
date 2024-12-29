@@ -1,5 +1,5 @@
 import { Codec } from 'scale-ts';
-import { Culprit, BandersnatchSignature, BandersnatchSignatureCodec } from '../types';
+import { Culprit, BandersnatchSignature, Ed25519SignatureCodec } from '../types';
 
 const CULPRIT_TARGET_SIZE = 32;
 const CULPRIT_KEY_SIZE = 32;
@@ -8,7 +8,7 @@ const CULPRIT_KEY_SIZE = 32;
  * We assume:
  *   - target: 32 bytes
  *   - key: 32 bytes
- *   - signature: exactly 64 bytes from BandersnatchSignatureCodec
+ *   - signature: exactly 64 bytes from Ed25519SignatureCodec
  */
 export const CulpritCodec: Codec<Culprit> = [
   // enc
@@ -21,7 +21,7 @@ export const CulpritCodec: Codec<Culprit> = [
     }
 
     // Encode the bandersnatch signature (should be 64 bytes, but let's let that codec do the job)
-    const encodedSig = BandersnatchSignatureCodec.enc(culprit.signature);
+    const encodedSig = Ed25519SignatureCodec.enc(culprit.signature);
 
     const out = new Uint8Array(CULPRIT_TARGET_SIZE + CULPRIT_KEY_SIZE + encodedSig.length);
 
@@ -48,7 +48,7 @@ export const CulpritCodec: Codec<Culprit> = [
 
     // must have at least 32 + 32 = 64 bytes before signature
     if (uint8.length < CULPRIT_TARGET_SIZE + CULPRIT_KEY_SIZE) {
-        // console.log('uint8:', uint8);
+        console.log('culrpit dec data:', data);
       throw new Error(`CulpritCodec dec: not enough data for target+key (need 64, got ${uint8.length})`);
     }
 
@@ -57,14 +57,14 @@ export const CulpritCodec: Codec<Culprit> = [
 
     const sigData = uint8.slice(CULPRIT_TARGET_SIZE + CULPRIT_KEY_SIZE);
 
-    // let the BandersnatchSignatureCodec handle the signature portion
-    const signature = BandersnatchSignatureCodec.dec(sigData);
+    // let the Ed25519SignatureCodec handle the signature portion
+    const signature = Ed25519SignatureCodec.dec(sigData);
 
     // return the structured culprit
     return { target, key, signature };
   },
 ] as unknown as Codec<Culprit>;
 
-// So you can do:
+
 CulpritCodec.enc = CulpritCodec[0];
 CulpritCodec.dec = CulpritCodec[1];
