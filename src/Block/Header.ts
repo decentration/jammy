@@ -1,7 +1,7 @@
 
 
 
-import { Struct, Vector, u32, Bytes, Option } from 'scale-ts';
+import { Struct, Vector, u32, u16, Bytes, Option } from 'scale-ts';
 
 export interface EpochMarker {
   entropy: Uint8Array; // η1'
@@ -36,13 +36,11 @@ export const HeaderCodec = Struct({
   epoch_mark: Option(EpochMarkerCodec),
   tickets_mark: Option(Vector(Bytes(32))),
   offenders_mark: Vector(Bytes(32)),
-  author_index: u32,
+  author_index: u16,
   entropy_source: Bytes(96),
   seal: Option(Bytes(96)),
 });
 
-
-      
 // with seal
 export function serializeHeader(header: Header): Uint8Array {
   return HeaderCodec.enc({

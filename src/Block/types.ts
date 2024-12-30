@@ -6,9 +6,38 @@ import { ResultValueCodec, ReportCodec } from './codecs';
 
 export const BandersnatchSignatureCodec = Bytes(784); 
 export const Ed25519SignatureCodec = Bytes(64); 
+export const BandersnatchPublicKeyCodec = Bytes(32);
 
 export type BandersnatchSignature = Uint8Array; // 784 bytes
-export type Ed25519Signature = Uint8Array; // "
+export type Ed25519Signature = Uint8Array; // 64 bytes
+export type BandersnatchPublicKey = Uint8Array; // 32 bytes
+
+export interface Validators {
+  public_key: BandersnatchPublicKey; // 32 bytes
+  stake: number; // u64
+}
+export interface EpochMarker {
+  entropy: Uint8Array; // η1'
+  tickets_entropy: Uint8Array; // η2'
+  validators: Uint8Array[]; // [kb | k ∈ γk']
+}
+
+export interface TicketMark {
+  id: Uint8Array; // Bytes(32)
+  attempt: number; // u8
+}
+export interface Header {
+  parent: Uint8Array;             // Hp: Parent hash
+  parent_state_root: Uint8Array;         // Hr: Prior state root
+  extrinsic_hash: Uint8Array;          // Hx: Extrinsic hash
+  slot: number;          // Ht: Time-slot index
+  epoch_mark: EpochMarker | null;                // He: Epoch marker 
+  tickets_mark: TicketMark[] | null;    // Hw: Winning-tickets apparent when epoch mark is null
+  offenders_mark: Uint8Array[];            // Ho: Offenders
+  author_index: number;       // Hi: Bandersnatch block author index u16
+  entropy_source: Uint8Array;           // Hv: Entropy-yielding VRF signature
+  seal: Uint8Array | null;              // Hs: Block seal
+}
 
 export interface Ticket {
   attempt: number; // u8

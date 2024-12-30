@@ -7,3 +7,5 @@ export * from './ResultValueCodec';
 export * from './ReportCodec';
 export * from './ResultCodec';
 export * from './PreimageCodec';
+export * from './EpochMarkerCodec';
+export * from './HeaderCodec';

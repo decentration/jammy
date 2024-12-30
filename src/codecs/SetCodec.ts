@@ -44,17 +44,18 @@ export function SetCodec<T>(itemCodec: Codec<T>, itemSize: number): Codec<T[]> {
     const items: T[] = [];
 
     for (let i = 0; i < itemCount; i++) {
-        console.log('uint8Data:', itemCount, items, Buffer.from(uint8Data).toString('hex'));
+        // console.log('SetCodec uint8Data:', itemCount, items, Buffer.from(uint8Data).toString('hex'));
         const slice = uint8Data.slice(i * itemSize, (i + 1) * itemSize);
       
         if (!(slice instanceof Uint8Array)) {
           throw new Error(`SetCodec: Expected Uint8Array, got ${typeof slice}`);
         }
-      
+        console.log(`SetCodec: Decoding slice ${i + 1}/${itemCount}:`, Buffer.from(slice).toString('hex'));
+
         const item = itemCodec.dec(slice);
         items.push(item);
       }
-
+      console.log('SetCodec:', items);
     return items;
   };
 

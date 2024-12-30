@@ -22,14 +22,18 @@ export function encodeProtocolInt(x: number): Uint8Array {
   
 
   export function decodeProtocolInt(data: Uint8Array): { value: number; bytesRead: number } {
+    // log string hex
+    console.log(`decodeProtocolInt called with data=${Buffer.from(data).toString('hex')}`);
     if (data.length === 0) {
       throw new Error('decodeProtocolInt: no data to decode');
     }
   
     const x = data[0];
     if (x >= 128) {
+      console.log(`decodeProtocolInt: x=${x} >= 128`);
       throw new Error(`decodeProtocolInt: not implemented for x >= 128`);
     }
+    
     return { value: x, bytesRead: 1 };
   }
   
