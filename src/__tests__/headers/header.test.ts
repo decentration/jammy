@@ -2,29 +2,11 @@ import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 import { Header } from "../../block/types";
 import { HeaderCodec } from "../../block/codecs";
-
-function toHex(uint8: Uint8Array): string {
-  return "0x" + Buffer.from(uint8).toString("hex");
-}
-
-function convertToReadableFormat(obj: any): any {
-  if (obj instanceof Uint8Array) {
-    return toHex(obj);
-  } else if (Array.isArray(obj)) {
-    return obj.map(convertToReadableFormat);
-  } else if (typeof obj === "object" && obj !== null) {
-    const result: any = {};
-    for (const [k, v] of Object.entries(obj)) {
-      result[k] = convertToReadableFormat(v);
-    }
-    return result;
-  }
-  return obj;
-}
+import { toHex, convertToReadableFormat } from "../../utils";
 
 describe("HeaderCodec test", () => {
   it("encodes/decodes entire header data from JSON", () => {
-    const jsonPath = path.resolve(__dirname, "../../data/headers/header_1.json");
+    const jsonPath = path.resolve(__dirname, "../../data/headers/header_0.json");
     const raw = JSON.parse(readFileSync(jsonPath, "utf-8"));
 
     const header: Header = {
@@ -82,7 +64,7 @@ describe("HeaderCodec test", () => {
 });
 
   it("decodes header.bin from conformance data", () => {
-    const binPath = path.resolve(__dirname, "../../data/headers/header_1.bin");
+    const binPath = path.resolve(__dirname, "../../data/headers/header_0.bin");
     const binary = new Uint8Array(readFileSync(binPath));
 
     console.log('header 2 binary decoded in bin comparison:', toHex(binary));

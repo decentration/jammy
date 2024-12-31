@@ -21,14 +21,16 @@ export const HeaderCodec: Codec<Header> = [
     if (header.epoch_mark === null) {
       // 0x00 = "None"
       encEpoch = Uint8Array.of(0x00);
+      console.log('HeaderCodec enc epoch_mark:', header.epoch_mark, 'encEpoch:', Buffer.from(encEpoch).toString('hex'));
     } else {
       // 0x01 = "Some"
       const encMarker = EpochMarkerCodec.enc(header.epoch_mark);
+      console.log('HeaderCodec epoch_mark encMarker:', Buffer.from(encMarker).toString('hex'));
       encEpoch = new Uint8Array(1 + encMarker.length);
       encEpoch[0] = 0x01;
       encEpoch.set(encMarker, 1);
     }
-
+    
     // 4) tickets_mark => Option(DiscriminatorCodec(Bytes(32)))
     let encTickets: Uint8Array;
     if (header.tickets_mark === null) {
@@ -109,7 +111,7 @@ export const HeaderCodec: Codec<Header> = [
         : new Uint8Array(input);
 
     let offset = 0;
-    console.log('HeaderCodec dec input:', input, 'uint8 hex:', Buffer.from(uint8).toString('hex'));
+    console.log('HeaderCodec dec uint8 hex:', Buffer.from(uint8).toString('hex'));
 
     // 1) parent(32), parent_state_root(32), extrinsic_hash(32)
     if (offset + 32 > uint8.length) throw new Error("HeaderCodec: not enough data for parent");
@@ -132,20 +134,49 @@ export const HeaderCodec: Codec<Header> = [
 
     // 3) epoch_mark => Option(EpochMarkerCodec)
     let epoch_mark: EpochMarker | null = null;
-    if (offset >= uint8.length) throw new Error("HeaderCodec: not enough data for epoch_mark presence byte");
-    const epochByte = uint8[offset++];
-    if (epochByte === 0x01) {
-      // Some => decode epoch marker
-      const slice = uint8.slice(offset);
-      const { value: markVal, bytesUsed } = decodeWithBytesUsed(EpochMarkerCodec, slice);
-      offset += bytesUsed;
-      epoch_mark = markVal;
-    } else if (epochByte !== 0x00) {
-      throw new Error(`HeaderCodec: invalid epoch_mark option tag: ${epochByte}`);
+
+    if (offset >= uint8.length) {
+        throw new Error("HeaderCodec: not enough data for epoch_mark presence byte");
     }
+
+    // Read the presence byte
+    const epochByte = uint8[offset++];
+    console.log('HeaderCodec epoch_mark presence byte:', epochByte);
+
+    if (epochByte === 0x01) {
+        // "Some" => Decode using EpochMarkerCodec
+        if (offset >= uint8.length) {
+            throw new Error("HeaderCodec: not enough data for epoch_mark after presence byte");
+        }
+
+        // Pass the remaining slice directly to EpochMarkerCodec
+        const remainingSlice = uint8.slice(offset);
+        console.log('HeaderCodec epoch_mark slice before decoding:', Buffer.from(remainingSlice).toString('hex'));
+
+        // Decode using EpochMarkerCodec
+        epoch_mark = EpochMarkerCodec.dec(remainingSlice);
+
+        // Calculate bytes used as the length of the encoded EpochMarker
+        const bytesUsed = 64 + epoch_mark.validators.length * 32;
+        offset += bytesUsed;
+
+        console.log('HeaderCodec decoded epoch_mark validators:', epoch_mark.validators.map((v) => Buffer.from(v).toString('hex')));
+        console.log('HeaderCodec epoch_mark offset after decoding:', offset, 'epoch_mark:', epoch_mark);
+
+    } else if (epochByte === 0x00) {
+        // "None" => Null epoch_mark
+        epoch_mark = null;
+        console.log('HeaderCodec epoch_mark is null');
+
+    } else {
+        // Invalid tag
+        throw new Error(`HeaderCodec: invalid epoch_mark option tag: ${epochByte}`);
+    }
+
 
     // 4) tickets_mark 
     const ticketsByte = uint8[offset++];
+    console.log('HeaderCodec ticketsByte:', ticketsByte);
     let tickets_mark: TicketMark[] | null = null;
 
     if (ticketsByte === 0x01) {
@@ -153,13 +184,12 @@ export const HeaderCodec: Codec<Header> = [
     while (offset + 33 <= uint8.length) {
         // Check for stop condition
         if (uint8[offset] === 0x00 && offset + 3 <= uint8.length) {
-        const potentialStop = new DataView(uint8.buffer, uint8.byteOffset + offset, 3);
-        const u16Value = potentialStop.getUint16(1, true); // Little-endian u16
-
-        if (u16Value > 0) {
-            // Valid stop condition
-            break;
-        }
+          const potentialStop = new DataView(uint8.buffer, uint8.byteOffset + offset, 3);
+          const u16Value = potentialStop.getUint16(1, true); // Little-endian u16
+          if (u16Value > 0) {
+              // Valid stop condition
+              break;
+          }
         }
 
         // Decode a single ticket
@@ -169,11 +199,12 @@ export const HeaderCodec: Codec<Header> = [
 
         offset += 33;
     }
-
         tickets_mark = tickets;
     } else if (ticketsByte === 0x00) {
         tickets_mark = null;
     } else {
+        console.error("HeaderCodec: tickets_mark decoding failed. Invalid tag:", ticketsByte);
+        console.error("Remaining data slice:", uint8.slice(offset));
         throw new Error(`Invalid option tag for tickets_mark: ${ticketsByte}`);
     }
 
@@ -189,6 +220,7 @@ export const HeaderCodec: Codec<Header> = [
       var offenders_mark = offendersVal;
     }
     console.log('HeaderCodec offenders_mark:', offenders_mark, 'Offset:', offset, input);
+    
     // 6) author_index => 2 bytes
     if (offset + 2 > uint8.length) {
         throw new Error("HeaderCodec: not enough data for author_index");

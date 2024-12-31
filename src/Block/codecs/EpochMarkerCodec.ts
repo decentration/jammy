@@ -5,15 +5,25 @@ import { EpochMarker } from "../types";
 export const EpochMarkerCodec: Codec<EpochMarker> = [
   // ENCODER
   (mark: EpochMarker) => {
+    console.log('EpochMarkerCodec: mark:', mark);
     const encEntropy = Bytes(32).enc(mark.entropy);
     const encTicketsEntropy = Bytes(32).enc(mark.tickets_entropy);
     const encValidators = new Uint8Array(mark.validators.length * 32);
+    console.log('EpochMarkerCodec: validators before encoding:', mark.validators);
+
     for (let i = 0; i < mark.validators.length; i++) {
-      if (mark.validators[i].length !== 32) {
-        throw new Error(`Validator #${i} is not 32 bytes`);
+      const validator = mark.validators[i];
+      console.log('EpochMarkerCodec: validator:', i, validator);
+      if (!validator || validator.length !== 32) {
+        // count how many bytes the validator is
+        // console.log('EpochMarkerCodec: validator:', i, validator);
+        throw new Error(`Validator #${i} is not 32 bytes: got ${validator ? validator.length : 'undefined'}`);
+
       }
-      encValidators.set(mark.validators[i], i * 32);
+      encValidators.set(validator, i * 32);
+      console.log('EpochMarkerCodec: encValidators length:', i, validator.length, Buffer.from(encValidators).toString('hex'));
     }
+ 
 
     const out = new Uint8Array(encEntropy.length + encTicketsEntropy.length + encValidators.length);
     out.set(encEntropy, 0);                   // first 32
@@ -46,7 +56,7 @@ export const EpochMarkerCodec: Codec<EpochMarker> = [
     const tickets_entropy = uint8.slice(offset, offset + 32);
     offset += 32;
 
-    // read validators until we see 0x00 0x01
+    // read validators until we see 0x00
     const slice = uint8.slice(offset);
     const { validators, bytesUsed } = decodeValidatorsUntilTerminated(slice);
     offset += bytesUsed;
@@ -59,28 +69,26 @@ EpochMarkerCodec.enc = EpochMarkerCodec[0];
 EpochMarkerCodec.dec = EpochMarkerCodec[1];
 
 
-function decodeValidatorsUntilTerminated(data: Uint8Array): {
-    validators: Uint8Array[];
-    bytesUsed: number;
-  } {
-    let offset = 0;
-    const validators: Uint8Array[] = [];
-  
-    while (true) {
-      if (offset + 33 > data.length) {
-        break;
-      }
+function decodeValidatorsUntilTerminated(
+  data: Uint8Array
+): { validators: Uint8Array[]; bytesUsed: number } {
+  let offset = 0;
+  const validators: Uint8Array[] = [];
 
-      const nextByte = data.slice(offset + 32, offset + 33);
-      if (nextByte[0] === 0x00) {
+  while (offset + 32 <= data.length) {
+    const validator = data.slice(offset, offset + 32);
+
+    offset += 32;
+
+    validators.push(validator);
+
+    if (offset < data.length) {
+      if (data[offset] === 0x00) {
+        console.log("Terminating validators at offset", offset, "since next byte = 0x00");
         break;
       }
-  
-      const validator = data.slice(offset, offset + 32);
-      validators.push(validator);
-      offset += 32;
     }
-  
-    return { validators, bytesUsed: offset };
   }
-  
+
+  return { validators, bytesUsed: offset };
+}
