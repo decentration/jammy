@@ -1,28 +1,9 @@
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 
-import { ExtrinsicData } from "../../block/ExtrinsicData/ExtrinsicData";
+import { ExtrinsicData } from "../../block/types";
 import { ExtrinsicDataCodec } from "../../block/ExtrinsicData/ExtrinsicData";
-
-function toHex(uint8: Uint8Array): string {
-  return "0x" + Buffer.from(uint8).toString("hex");
-}
-
-// Recursively convert all Uint8Arrays -> hex (for debugging)
-function convertToReadableFormat(obj: any): any {
-  if (obj instanceof Uint8Array) {
-    return toHex(obj);
-  } else if (Array.isArray(obj)) {
-    return obj.map(convertToReadableFormat);
-  } else if (typeof obj === 'object' && obj !== null) {
-    const result: any = {};
-    for (const [k, v] of Object.entries(obj)) {
-      result[k] = convertToReadableFormat(v);
-    }
-    return result;
-  }
-  return obj;
-}
+import { convertToReadableFormat, toHex } from "../../utils";
 
 describe("ExtrinsicDataCodec test", () => {
   it("encodes/decodes entire extrinsic data from JSON", () => {

@@ -6,7 +6,7 @@ import { toHex, convertToReadableFormat } from "../../utils";
 
 describe("HeaderCodec test", () => {
   it("encodes/decodes entire header data from JSON", () => {
-    const jsonPath = path.resolve(__dirname, "../../data/headers/header_0.json");
+    const jsonPath = path.resolve(__dirname, "../../data/headers/header_1.json");
     const raw = JSON.parse(readFileSync(jsonPath, "utf-8"));
 
     const header: Header = {
@@ -64,7 +64,7 @@ describe("HeaderCodec test", () => {
 });
 
   it("decodes header.bin from conformance data", () => {
-    const binPath = path.resolve(__dirname, "../../data/headers/header_0.bin");
+    const binPath = path.resolve(__dirname, "../../data/headers/header_1.bin");
     const binary = new Uint8Array(readFileSync(binPath));
 
     console.log('header 2 binary decoded in bin comparison:', toHex(binary));

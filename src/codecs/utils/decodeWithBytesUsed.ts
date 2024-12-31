@@ -5,6 +5,9 @@ import { Codec } from "scale-ts";
  *   A helper that calls codec.dec(...) and then 
  *   measures how many bytes that value consumed 
  *   by re‑encoding it.
+ * 
+ *  TEMPORARY helper as its performance is O(2n)
+ *  wheras manual slicing is is O(1)
  */
 export function decodeWithBytesUsed<T>(
     codec: Codec<T>,

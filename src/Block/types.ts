@@ -12,6 +12,10 @@ export type BandersnatchSignature = Uint8Array; // 784 bytes
 export type Ed25519Signature = Uint8Array; // 64 bytes
 export type BandersnatchPublicKey = Uint8Array; // 32 bytes
 
+
+
+
+
 export interface Validators {
   public_key: BandersnatchPublicKey; // 32 bytes
   stake: number; // u64
@@ -80,7 +84,7 @@ export interface Result {
   service_id: number; // 
   code_hash: Uint8Array; // Bytes(32)
   payload_hash: Uint8Array; // Bytes(32)
-  accumulate_gas: number; // u32
+  accumulate_gas: number; // u64
   result: ResultValue;
 }
 
@@ -238,12 +242,22 @@ export const FaultCodec = Struct({
 });
 
 export interface Dispute {
-
-
   // verdicts 
   verdicts: Verdict[];
   culprits: Culprit[];
   faults: Fault[];
+}
+
+export interface ExtrinsicData {
+  tickets: Ticket[];
+  preimages: Preimage[];
+  guarantees: Guarantee[];
+  assurances: Assurance[];
+  disputes: Dispute;
+}
+export interface Block {
+  header: Header;
+  extrinsic: ExtrinsicData;
 }
 
 // export const DisputeCodec = Struct({
