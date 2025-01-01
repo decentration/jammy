@@ -4,8 +4,6 @@ import { TicketCodec, AssuranceCodec } from '../types';
 import { GuaranteeCodec, DisputeCodec, PreimageCodec } from '../codecs';
 import { DiscriminatorCodec, decodeWithBytesUsed } from '../../codecs';
 
-
-
 export const ExtrinsicDataCodec: Codec<ExtrinsicData> = [
   // 1) ENCODER
   (data: ExtrinsicData): Uint8Array => {

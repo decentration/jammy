@@ -3,7 +3,6 @@ import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec"
 
 /**
  * DiscriminatorCodec: Creates a compatible codec for a sequence of items,
-
  */
 export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
   // 1) The encoder function
@@ -11,6 +10,7 @@ export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
     // Encode the length prefix
     const lengthBuf = encodeProtocolInt(items.length)
 
+    console.log('discriminator codec in encoder:', itemCodec, items.map(item => Buffer.from(itemCodec.enc(item)).toString('hex')), Buffer.from(lengthBuf).toString('hex'));
     // Encode each item
     const encodedItems = items.map((item) => itemCodec.enc(item))
 
@@ -49,11 +49,10 @@ console.log('discriminator codec in decoder:', Buffer.from(uint8Data).toString('
     let offset = bytesRead
 // console.log('discriminator codec in:', Buffer.from(uint8Data).toString('hex'));
     for (let i = 0; i < length; i++) {
+      console.log('discriminator codec in:', Buffer.from(uint8Data).toString('hex'));
       // Decode item from slice
       const item = itemCodec.dec(uint8Data.slice(offset))
 
-      // To find how many bytes were consumed, we can re-encode the item
-      // or if it's fixed-size, we know the length directly.
       const reencoded = itemCodec.enc(item)
       offset += reencoded.length
 
