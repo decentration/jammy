@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
-import { Vote } from '../../block/types';
-import { VoteCodec } from '../../block/types'; 
+import { Vote } from '../../types/types';
+import { VoteCodec } from '../../types/types'; 
 
 describe('VoteCodec (encode/decode votes) tests', () => {
   it('encodes/decodes an array of votes (no length prefix) from JSON, then hex dumps', () => {

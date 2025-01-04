@@ -1,9 +1,7 @@
-export * from './HistoryCodec';
-export * from './MMRPeakCodec';
-export * from './HistoryCodec';
-export * from './WorkPackageCodec';
+export * from '../../../codecs/WorkPackageCodec';
 export * from './HistoryInputCodec';
-export * from './BetaItemCodec';
-export * from './MMRCodec';
+export * from '../../../codecs/BetaItemCodec';
+export * from '../../../codecs/MMRCodec';
 export * from './PreAndPostStateCodec';
+export * from './HistoryCodec';
 

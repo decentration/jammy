@@ -1,7 +1,7 @@
 import { Codec } from "scale-ts";
-import { MMR } from "../../types";
-import { decodeWithBytesUsed } from "../../../codecs";
-import { DiscriminatorCodec } from "../../../codecs/DiscriminatorCodec";
+import { MMR } from "../stf/types";
+import { decodeWithBytesUsed } from ".";
+import { DiscriminatorCodec } from "./DiscriminatorCodec";
 import { MMRPeakCodec } from "./MMRPeakCodec";
 
 /**

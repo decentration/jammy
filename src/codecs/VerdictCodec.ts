@@ -1,6 +1,6 @@
 import { Codec } from 'scale-ts';
-import { Vote, VoteCodec, Verdict } from '../types';
-import { SetCodec } from '../../codecs';
+import { Vote, VoteCodec, Verdict } from '../types/types';
+import { SetCodec } from '.';
 
 
 

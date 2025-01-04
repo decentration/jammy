@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 
-import { ExtrinsicData } from "../../block/types";
+import { ExtrinsicData } from "../../types/types";
 import { ExtrinsicDataCodec } from "../../block/ExtrinsicData/ExtrinsicData";
 import { convertToReadableFormat, toHex } from "../../utils";
 

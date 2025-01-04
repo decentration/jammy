@@ -1,23 +1,29 @@
-import { Struct, u8, u16, u32, u64,  Bytes, Vector, Enum, Codec,  bool, _void} from 'scale-ts';
-import { DiscriminatorCodec, SetCodec } from '../codecs';
+import { Struct, u8, u16, u32, Bytes, Vector, bool, _void} from 'scale-ts';
 import { SingleByteLenCodec } from '../codecs/SingleByteLenCodec';
-import { ResultValueCodec, ReportCodec } from './codecs';
 
+export const BandersnatchRingVrfSignatureCodec = Bytes(784); 
+export const BandersnatchVrfSignaturesCodec = Bytes(96);
+export const BandersnatchPublicCodec = Bytes(32);
 
-export const BandersnatchSignatureCodec = Bytes(784); 
+export const BlsPublicCodec = Bytes(144);
+
 export const Ed25519SignatureCodec = Bytes(64); 
-export const BandersnatchPublicKeyCodec = Bytes(32);
+export const Ed25519PublicCodec = Bytes(32);
 
-export type BandersnatchSignature = Uint8Array; // 784 bytes
+export const ValidatorMetadataCodec = Bytes(128)
+
+export type BandersnatchRingVrfSignature = Uint8Array; // 784 byte
+export type BandersnatchVrfSignatures = Uint8Array; // 96 Bytes
+export type BandersnatchPublic = Uint8Array; // 32 bytes
+export type BlsPublic = Uint8Array; // 144 bytes
+
 export type Ed25519Signature = Uint8Array; // 64 bytes
-export type BandersnatchPublicKey = Uint8Array; // 32 bytes
+export type Ed25519Public = Uint8Array; // 32 bytes
 
-
-
-
+export type ValidatorMetadata = Uint8Array; // 128 bytes  
 
 export interface Validators {
-  public_key: BandersnatchPublicKey; // 32 bytes
+  public_key: BandersnatchPublic; // 32 bytes
   stake: number; // u64
 }
 export interface EpochMarker {
@@ -45,12 +51,12 @@ export interface Header {
 
 export interface Ticket {
   attempt: number; // u8
-  signature: BandersnatchSignature; // bandersnatch signature under context XT;   
+  signature: BandersnatchRingVrfSignature; // bandersnatch signature under context XT;   
 }
 
 export const TicketCodec = Struct({
   attempt: u8,
-  signature: BandersnatchSignatureCodec, // $jam_ticket_seal (XT)
+  signature: BandersnatchRingVrfSignatureCodec, // $jam_ticket_seal (XT)
 });
 
 export interface Preimage {
@@ -93,21 +99,6 @@ export type ResultValue =
 | { ok: Uint8Array }
 | { panic: null }
 | { placeholder: null }
-
-// export const ResultValueCodec = Enum({
-//   ok: SingleByteLenCodec,
-//   placeholder: _void, // not sure what else goes as enums. adding placeholder. 
-//   panic: _void,
-// });
-
-
-// export const ResultCodec = Struct({
-//   service_id: u32,
-//   code_hash: Bytes(32),
-//   payload_hash: Bytes(32),
-//   accumulate_gas: u32, // 4 byte little endian integer
-//   result: ResultValueCodec,
-// });
 
 export interface PackageSpec {
   hash: Uint8Array; // Bytes(32)
@@ -153,16 +144,6 @@ export interface Report {
   results: Result[];
 }
 
-// export const ReportCodec = Struct({
-//   package_spec: PackageSpecCodec,
-//   context: ContextCodec,
-//   core_index: u16,
-//   authorizer_hash: Bytes(32),
-//   auth_output: SingleByteLenCodec,
-//   segment_root_lookup: Vector(Bytes(32)),
-//   results: DiscriminatorCodec(ResultCodec),
-// });
-
 export interface Signature {
   validator_index: number; // u16
   signature: Ed25519Signature; // Ed25519 signature under context XG
@@ -178,12 +159,6 @@ export interface Guarantee {
   slot: number; // u32
   signatures: Signature[];
 }
-
-// export const GuaranteeCodec = Struct({
-//   report: ReportCodec,
-//   slot: u32,
-//   signatures: DiscriminatorCodec(SignatureCodec),
-// });
 
 export interface Verdict {
   target: Uint8Array; // Bytes(32)
@@ -203,13 +178,6 @@ export const VoteCodec = Struct({
   // Context: $jam_valid (X⊺) if vote is true, $jam_invalid (X) if vote is false
   signature: Ed25519SignatureCodec,
 });
-
-// export const VerdictCodec = Struct({
-  
-//   target: Bytes(32),
-//   age: u32, // fixed 4 byte length little endian integer
-//   votes: SetCodec(VoteCodec, 67),
-// })
 
 
 // Updated Culprit interface and codec
@@ -259,12 +227,6 @@ export interface Block {
   header: Header;
   extrinsic: ExtrinsicData;
 }
-
-// export const DisputeCodec = Struct({
-//   verdicts: DiscriminatorCodec(VerdictCodec),
-//   culprits: DiscriminatorCodec(CulpritCodec),
-//   faults: DiscriminatorCodec(FaultCodec),
-// });
 
 // The signing contexts are:
 

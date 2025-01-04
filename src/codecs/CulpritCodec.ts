@@ -1,5 +1,5 @@
 import { Codec } from 'scale-ts';
-import { Culprit, BandersnatchSignature, Ed25519SignatureCodec } from '../types';
+import { Culprit, BandersnatchRingVrfSignature, Ed25519SignatureCodec } from '../types/types';
 
 const CULPRIT_TARGET_SIZE = 32;
 const CULPRIT_KEY_SIZE = 32;

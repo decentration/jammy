@@ -1,6 +1,6 @@
 import { Codec } from 'scale-ts';
 import { BetaItem } from '../../types'; // Adjust the path for BetaItem type
-import { BetaItemCodec } from './BetaItemCodec'; // Adjust the path for BetaItemCodec
+import { BetaItemCodec } from '../../../codecs/BetaItemCodec'; // Adjust the path for BetaItemCodec
 import { DiscriminatorCodec, decodeWithBytesUsed } from '../../../codecs';
 
 /**

@@ -1,7 +1,7 @@
 import { readFileSync } from "fs";
 import path from "path";
-import { Culprit } from "../../block/types";
-import { CulpritCodec } from "../../block/codecs";
+import { Culprit } from "../../types/types";
+import { CulpritCodec } from "../../codecs";
 import { DiscriminatorCodec } from "../../codecs/DiscriminatorCodec";
 
 describe("CulpritCodec tests", () => {

@@ -1,7 +1,7 @@
 import { Codec } from 'scale-ts';
 import { decodeWithBytesUsed } from '../../../codecs';
 import { History, OutputCodec } from '../../types';
-import { HistoryInputCodec, PreAndPostStateCodec } from './';
+import { HistoryInputCodec, PreAndPostStateCodec } from '../codecs';
 
 export const HistoryCodec: Codec<History> = [
   // ENCODER

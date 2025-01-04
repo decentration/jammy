@@ -2,8 +2,8 @@
 
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
-import { Report } from "../../block/types";  
-import { ReportCodec } from "../../block/codecs";  
+import { Report } from "../../types/types";  
+import { ReportCodec } from "../../codecs";  
 
 function toHex(uint8: Uint8Array): string {
   return "0x" + Buffer.from(uint8).toString("hex");

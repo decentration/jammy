@@ -1,7 +1,7 @@
 import { Codec, u32 } from "scale-ts"
-import { SignatureCodec, Guarantee } from "../types"
+import { SignatureCodec, Guarantee } from "../types/types"
 import { ReportCodec } from "../codecs"
-import { DiscriminatorCodec, decodeWithBytesUsed } from "../../codecs"
+import { DiscriminatorCodec, decodeWithBytesUsed } from "."
 
 export const GuaranteeCodec: Codec<Guarantee> = [
     // ENCODER

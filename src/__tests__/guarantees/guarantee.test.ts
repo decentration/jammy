@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
-import { Guarantee } from "../../block/types";  
-import { GuaranteeCodec } from "../../block/codecs";
+import { Guarantee } from "../../types/types";  
+import { GuaranteeCodec } from "../../codecs";
 
 function toHex(uint8: Uint8Array): string {
   return "0x" + Buffer.from(uint8).toString("hex");

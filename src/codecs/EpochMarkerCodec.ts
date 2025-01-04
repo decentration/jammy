@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { Bytes } from "scale-ts";
-import { EpochMarker } from "../types";
+import { EpochMarker } from "../types/types";
 
 export const EpochMarkerCodec: Codec<EpochMarker> = [
   // ENCODER

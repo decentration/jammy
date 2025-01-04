@@ -1,9 +1,9 @@
 import { Codec } from "scale-ts";
-import { decodeWithBytesUsed, DiscriminatorCodec, SetCodec } from "../../codecs";
+import { decodeWithBytesUsed, DiscriminatorCodec, SetCodec } from ".";
 import { Bytes, u32 } from "scale-ts";
 import { EpochMarkerCodec } from "./EpochMarkerCodec"; 
 import { TicketMarkCodec } from "./TicketMarkCodec";
-import { Header, EpochMarker, TicketMark } from "../types";
+import { Header, EpochMarker, TicketMark } from "../types/types";
 
 export const HeaderCodec: Codec<Header> = [
   // ENCODER

@@ -1,4 +1,4 @@
-import { PackageSpec, PackageSpecCodec } from "../../block/types";
+import { PackageSpec, PackageSpecCodec } from "../../types/types";
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 

@@ -1,7 +1,7 @@
 import { Codec } from 'scale-ts';
-import { BetaItem, MMR } from '../../types'; // Update paths as necessary
-import { MMRCodec, WorkPackagesCodec } from './'; 
-import { decodeWithBytesUsed } from '../../../codecs';   
+import { BetaItem, MMR } from '../stf/types'; // Update paths as necessary
+import { MMRCodec, WorkPackagesCodec } from '../stf/history/codecs'; 
+import { decodeWithBytesUsed } from '.';   
 
 export const BetaItemCodec: Codec<BetaItem> = [
   // ENCODER

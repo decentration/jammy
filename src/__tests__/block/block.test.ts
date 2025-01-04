@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 
-import { Block } from "../../block/types";
+import { Block } from "../../types/types";
 import { BlockCodec } from "../../block/BlockCodec";
 import { convertToReadableFormat, toHex } from "../../utils";
 

@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import path from "path";
-import { Fault, FaultCodec} from "../../block/types";
+import { Fault, FaultCodec} from "../../types/types";
 import { DiscriminatorCodec } from "../../codecs";
 
 describe("FaultCodec tests", () => {

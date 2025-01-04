@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
-import { Result } from "../types";
-import { decodeWithBytesUsed } from "../../codecs/utils/decodeWithBytesUsed";
+import { Result } from "../types/types";
+import { decodeWithBytesUsed } from "./utils/decodeWithBytesUsed";
 import { ResultValueCodec } from "./ResultValueCodec";
 import { u32, u64, Bytes } from "scale-ts";
 

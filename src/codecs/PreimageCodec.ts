@@ -1,6 +1,7 @@
 import { Codec } from "scale-ts";
-import { Preimage } from "../types";
-import { SingleByteLenCodec, decodeWithBytesUsed } from "../../codecs";
+import { Preimage } from "../types/types";
+import { SingleByteLenCodec, decodeWithBytesUsed } from ".";
+
 
 export const PreimageCodec: Codec<Preimage> = [
     // 1) ENCODER
@@ -47,7 +48,7 @@ export const PreimageCodec: Codec<Preimage> = [
   
      
       // if (4 + bytesUsed !== uint8.length) {
-      //   console.warn(`PreimageCodec: leftover bytes after decoding blob?`);
+      //   console.warn(`PreimageCodec: leftover bytes after decoding blob`);
       // }
   
       return { requester, blob };

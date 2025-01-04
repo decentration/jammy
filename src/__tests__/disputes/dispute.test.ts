@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
-import { Dispute } from "../../block/types";
-import { DisputeCodec } from "../../block/codecs";
+import { Dispute } from "../../types/types";
+import { DisputeCodec } from "../../codecs";
 
 // Helper function to convert Uint8Array to hex string
 const toHex = (uint8: Uint8Array): string =>

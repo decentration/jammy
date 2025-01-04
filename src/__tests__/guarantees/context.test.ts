@@ -1,4 +1,4 @@
-import { Context, ContextCodec } from "../../block/types";
+import { Context, ContextCodec } from "../../types/types";
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 

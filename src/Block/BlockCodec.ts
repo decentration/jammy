@@ -1,7 +1,7 @@
 import { Codec } from "scale-ts";
-import { HeaderCodec } from "./codecs/HeaderCodec";
+import { HeaderCodec } from "../codecs/HeaderCodec";
 import { ExtrinsicDataCodec } from "./ExtrinsicData/ExtrinsicData";
-import { Block } from "./types";
+import { Block } from "../types/types";
 import { decodeWithBytesUsed } from "../codecs";
 
 

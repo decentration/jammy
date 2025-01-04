@@ -15,8 +15,8 @@
   "homepage": "https://github.com/decentration/jammy#readme",
   "scripts": {
     "build": "tsc",
-    "test": "jest",
-    "encode:assurance": "node --loader ts-node/esm --no-warnings ./src/encodingUtils/encodeAssurances.ts"
+    "test": "jest"
+
   },
   "devDependencies": {
     "@types/jest": "^27.5.2",

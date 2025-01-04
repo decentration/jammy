@@ -1,6 +1,6 @@
 import { Codec } from 'scale-ts';
-import { WorkPackage } from '../../types';
-import { DiscriminatorCodec } from '../../../codecs/DiscriminatorCodec';
+import { WorkPackage } from '../stf/types';
+import { DiscriminatorCodec } from './DiscriminatorCodec';
 
 export const WorkPackageCodec: Codec<WorkPackage> = [
   // ENCODER

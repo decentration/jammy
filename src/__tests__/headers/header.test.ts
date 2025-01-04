@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
-import { Header } from "../../block/types";
-import { HeaderCodec } from "../../block/codecs";
+import { Header } from "../../types/types";
+import { HeaderCodec } from "../../codecs";
 import { toHex, convertToReadableFormat } from "../../utils";
 
 describe("HeaderCodec test", () => {

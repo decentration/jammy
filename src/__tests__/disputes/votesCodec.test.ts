@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import path from 'path';
-import { Vote } from '../../block/types';
-import { VoteCodec } from '../../block/types'; // The one with `SetCodec(VoteCodec, 67)`
+import { Vote } from '../../types/types';
+import { VoteCodec } from '../../types/types'; // The one with `SetCodec(VoteCodec, 67)`
 import { SetCodec } from '../../codecs';
 
 describe('VotesCodec (set encoding) tests', () => {

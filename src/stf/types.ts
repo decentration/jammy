@@ -1,4 +1,5 @@
 import { Struct, Bytes, u32, Codec, _void } from 'scale-ts';
+import { Report, Assurance, BandersnatchPublic, Ed25519Public, BlsPublic, ValidatorMetadata} from '../types/types';
 export interface WorkPackage {
   hash: Uint8Array;        // Bytes(32)
   exports_root: Uint8Array; // Bytes(32)
@@ -45,3 +46,34 @@ export interface History {
   post_state: PostState;
 }
 
+export interface ValidatorInfo {
+    bandersnatch: BandersnatchPublic; // Bytes(32)
+    ed25519: Ed25519Public;     // Bytes(32)
+    bls: BlsPublic;         // Bytes(144)
+    metadata: ValidatorMetadata;    // Bytes(128)
+ }
+
+export interface AvailAssignment {
+    report: Report;
+    timeout: number; // 4 bytes
+  }
+  
+
+
+  export interface Input {
+    assurances: Assurance[];     // No length prefix, strict order
+    slot: number;                // 4 bytes, LE
+    parent: Uint8Array;          // 32 bytes
+  } 
+
+  export interface Output {
+    status: number;      // e.g. 1 => err, 0 => ok
+    subcode: number;     // e.g. 3 => bad_signature
+  }
+
+  export interface Assurances {
+    input: Input;            
+    pre_state: AvailAssignment[] | null;
+    output: Output | null;              
+    post_state: AvailAssignment[] | null; 
+  }

@@ -1,7 +1,7 @@
 import { Codec, Encoder, Decoder } from "scale-ts";
-import { Verdict, Culprit, Dispute, Fault } from '../types';
-import { VerdictCodec, CulpritCodec, FaultCodec } from "../../block/codecs";
-import { DiscriminatorCodec, decodeWithBytesUsed } from "../../codecs";
+import { Verdict, Culprit, Dispute, Fault } from '../types/types';
+import { VerdictCodec, CulpritCodec, FaultCodec } from "./index";
+import { DiscriminatorCodec, decodeWithBytesUsed } from ".";
 
 
 

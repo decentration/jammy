@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs';
 import * as path from 'path';
 import { DiscriminatorCodec } from '../../codecs';
-import { AssuranceCodec } from '../../block/types';
-import { Assurance } from '../../block/types';
+import { AssuranceCodec } from '../../types/types';
+import { Assurance } from '../../types/types';
 
 describe('DiscriminatorCodec(AssuranceCodec)', () => {
   const assuranceDiscriminatorCodec = DiscriminatorCodec(AssuranceCodec);

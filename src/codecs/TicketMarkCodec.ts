@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { Bytes, u8, u16 } from "scale-ts";
-import { TicketMark } from "../types";
+import { TicketMark } from "../types/types";
 
 export const TicketMarkCodec: Codec<TicketMark> = [
   // Encoder

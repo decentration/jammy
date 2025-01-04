@@ -1,5 +1,5 @@
 import { Codec } from 'scale-ts';
-import { Fault, Ed25519Signature, Ed25519SignatureCodec} from '../types';
+import { Fault, Ed25519Signature, Ed25519SignatureCodec} from '../types/types';
 
 const FAULT_TARGET_SIZE = 32;
 const FAULT_KEY_SIZE = 32;
@@ -71,7 +71,6 @@ export const FaultCodec: Codec<Fault> = [
     const keyStart = FAULT_TARGET_SIZE + FAULT_BOOL_SIZE;
     const key = uint8.slice(keyStart, keyStart + FAULT_KEY_SIZE);
 
-    // rest is signature
     const sigData = uint8.slice(keyStart + FAULT_KEY_SIZE);
 
     const signature = Ed25519SignatureCodec.dec(sigData);
@@ -80,6 +79,6 @@ export const FaultCodec: Codec<Fault> = [
   },
 ] as unknown as Codec<Fault>;
 
-// So you can do:
+
 FaultCodec.enc = FaultCodec[0];
 FaultCodec.dec = FaultCodec[1];

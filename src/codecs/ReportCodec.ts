@@ -1,13 +1,13 @@
 import { Codec } from "scale-ts";
-import { Report } from "../types";
-import { PackageSpecCodec } from "../types";
-import { ContextCodec } from "../types";
+import { Report } from "../types/types";
+import { PackageSpecCodec } from "../types/types";
+import { ContextCodec } from "../types/types";
 import { ResultCodec } from "./ResultCodec";
-import { SingleByteLenCodec, DiscriminatorCodec, decodeWithBytesUsed } from "../../codecs";
-import { Bytes, Vector, u16 } from "scale-ts";
+import { SingleByteLenCodec, DiscriminatorCodec, decodeWithBytesUsed } from ".";
+import { Bytes, Vector } from "scale-ts";
 
 /**
- * We assume `Report` has:
+ * `Report` has:
  *  - package_spec: PackageSpec
  *  - context: Context
  *  - core_index: number (u16)
