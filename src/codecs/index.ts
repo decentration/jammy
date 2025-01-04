@@ -13,7 +13,7 @@ export * from './DiscriminatorCodec';
 export * from './SetCodec';
 export * from './utils';
 export * from './MMRPeakCodec';
-
+export * from './SegmentLookupItemCodec'
 export * from './WorkPackageCodec';
 export * from '../stf/history/codecs/HistoryInputCodec';
 export * from './BetaItemCodec';

@@ -140,7 +140,7 @@ export interface Report {
   core_index: number; // u32
   authorizer_hash: Uint8Array; // Bytes(32)
   auth_output: Uint8Array;
-  segment_root_lookup: Uint8Array[]; // Array of Bytes(32)
+  segment_root_lookup: SegmentLookupItem[]; // Array of Bytes(32)
   results: Result[];
 }
 
@@ -227,6 +227,14 @@ export interface Block {
   header: Header;
   extrinsic: ExtrinsicData;
 }
+
+
+
+export interface SegmentLookupItem {
+  work_package_hash: Uint8Array;  // Bytes(32)
+  segment_tree_root: Uint8Array;  // Bytes(32)
+}
+
 
 // The signing contexts are:
 

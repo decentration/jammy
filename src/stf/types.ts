@@ -1,5 +1,6 @@
 import { Struct, Bytes, u32, Codec, _void } from 'scale-ts';
 import { Report, Assurance, BandersnatchPublic, Ed25519Public, BlsPublic, ValidatorMetadata} from '../types/types';
+import { PreAndPostState } from './assurances/types';
 export interface WorkPackage {
   hash: Uint8Array;        // Bytes(32)
   exports_root: Uint8Array; // Bytes(32)
@@ -67,13 +68,27 @@ export interface AvailAssignment {
   } 
 
   export interface Output {
-    status: number;      // e.g. 1 => err, 0 => ok
-    subcode: number;     // e.g. 3 => bad_signature
+    status: number;
+    subcode: ErrorCode;
   }
-
   export interface Assurances {
     input: Input;            
-    pre_state: AvailAssignment[] | null;
+    pre_state: PreAndPostState;
     output: Output | null;              
-    post_state: AvailAssignment[] | null; 
+    post_state: PreAndPostState; 
+  }
+
+
+  export enum ErrorCode {
+    BAD_ATTESTATION_PARENT = 0,
+    BAD_VALIDATOR_INDEX = 1,
+    CORE_NOT_ENGAGED = 2,
+    BAD_SIGNATURE = 3,
+    NOT_SORTED_OR_UNIQUE_ASSURERS = 4,
+  }
+
+
+  export enum subcode {
+    OK = 0,
+    ERR = 1,
   }

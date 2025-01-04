@@ -1,10 +1,17 @@
 import { Codec } from "scale-ts";
 import { Report } from "../types/types";
 import { PackageSpecCodec } from "../types/types";
-import { ContextCodec } from "../types/types";
+// import { ContextCodec } from "../types/types"; // replace this with new ContextCodec
 import { ResultCodec } from "./ResultCodec";
-import { SingleByteLenCodec, DiscriminatorCodec, decodeWithBytesUsed } from ".";
+
+import { DiscriminatorCodec } from "../codecs/DiscriminatorCodec";  // direct path
+import { SegmentLookupItemCodec } from "./SegmentLookupItemCodec";
+import { ContextCodec } from "./ContextCodec";
+import { SingleByteLenCodec, decodeWithBytesUsed } from "./index";
 import { Bytes, Vector } from "scale-ts";
+
+
+export const SegmentLookupArrayCodec = DiscriminatorCodec(SegmentLookupItemCodec);
 
 /**
  * `Report` has:
@@ -35,9 +42,13 @@ export const ReportCodec: Codec<Report> = [
     // 5) encode auth_output with SingleByteLenCodec
     const encAuthOutput = SingleByteLenCodec.enc(report.auth_output);
 
-    // 6) encode segment_root_lookup with Vector(Bytes(32))
-    const encSegRoot = Vector(Bytes(32)).enc(report.segment_root_lookup);
 
+    console.log("encAuthOutput", encAuthOutput);
+    // 6) encode segment_root_lookup with Vector(Bytes(32))
+
+    const encSegLookup = DiscriminatorCodec(SegmentLookupItemCodec).enc(report.segment_root_lookup);
+    // log string hex
+console.log("encSegLookup", Buffer.from(encSegLookup).toString("hex"));
     // 7) encode results with DiscriminatorCodec(ResultCodec)
     const encResults = DiscriminatorCodec(ResultCodec).enc(report.results);
 
@@ -48,7 +59,7 @@ export const ReportCodec: Codec<Report> = [
       2 + // for core_index (u16)
       encAuthHash.length +
       encAuthOutput.length +
-      encSegRoot.length +
+      encSegLookup.length +
       encResults.length;
 
     const out = new Uint8Array(totalSize);
@@ -69,8 +80,8 @@ export const ReportCodec: Codec<Report> = [
     out.set(encAuthOutput, offset);
     offset += encAuthOutput.length;
 
-    out.set(encSegRoot, offset);
-    offset += encSegRoot.length;
+    out.set(encSegLookup, offset);
+    offset += encSegLookup.length;
 
     out.set(encResults, offset);
 
@@ -133,15 +144,17 @@ export const ReportCodec: Codec<Report> = [
       var auth_output = authOutputVal;
     }
 
-    // 6) decode segment_root_lookup with Vector(Bytes(32))
+
+    // 6) decode segment_root_lookup => SegmentLookupArrayCodec
     {
-      const { value: segRootVal, bytesUsed } = decodeWithBytesUsed(
-        Vector(Bytes(32)),
+      const { value: segLookup, bytesUsed } = decodeWithBytesUsed(
+        SegmentLookupArrayCodec,
         uint8.slice(offset)
       );
       offset += bytesUsed;
-      var segment_root_lookup = segRootVal;
+      var segment_root_lookup = segLookup;
     }
+
 
     // 7) decode results with DiscriminatorCodec(ResultCodec)
     {

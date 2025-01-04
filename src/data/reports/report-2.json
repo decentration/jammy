@@ -1,0 +1,49 @@
+{
+    "package_spec": {
+        "hash": "0xc7e675b7e3450cf70d436172644faef291c2aa905b1fe81c068785cd6e1e44e5",
+        "length": 12345,
+        "erasure_root": "0x093a290c71d39876d2c5bf3cb8815defc25444166d989459cddf0ac3f90f37df",
+        "exports_root": "0x2b9b9bc0fceabf4a91373a8a333d7a6d59e2151a9ccc020e418ce226f4977fb3",
+        "exports_count": 3
+    },
+    "context": {
+        "anchor": "0xc0564c5e0de0942589df4343ad1956da66797240e2a2f2d6f8116b5047768986",
+        "state_root": "0xf6967658df626fa39cbfb6014b50196d23bc2cfbfa71a7591ca7715472dd2b48",
+        "beefy_root": "0x9329de635d4bbb8c47cdccbbc1285e48bf9dbad365af44b205343e99dea298f3",
+        "lookup_anchor": "0x168490e085497fcb6cbe3b220e2fa32456f30c1570412edd76ccb93be9254fef",
+        "lookup_anchor_slot": 4,
+        "prerequisites": []
+    },
+    "core_index": 0,
+    "authorizer_hash": "0x9a3a97d1950356ef6d3c20acb5ab6699be454b1498ecd513bdc6d849497e42eb",
+    "auth_output": "0x",
+    "segment_root_lookup": [
+        {
+            "work_package_hash": "0xdd617fe182fbb860f962c8c83e2deca27a34ed57b6215ddfb10301f55b55e072",
+            "segment_tree_root": "0xcad6ce73c424aed4b55542937ba6eb156996cfff5535c9a695d4cef609b0efd7"
+        },
+        {
+            "work_package_hash": "0xe3907e21bc6023f2752f5fcb8088ec0e7dd1fc897fd01695af96125b6cf8bc3d",
+            "segment_tree_root": "0xf0bb29c512270199282b4a76bec3e9ccbfbf1ce45cffa2fc7b1aa032d33bd0f4"
+        },
+        {
+            "work_package_hash": "0xf4169e1abfa4e5b58db032ad757937cf193b117e43b323e0658402c925ef9818",
+            "segment_tree_root": "0xa71d5fcac4ee1f29225f9f50428019f4a3aed380c07bd892b7afc1026fdb2f6a"
+        },
+        {
+            "work_package_hash": "0xf698e876e09902ec0426639ade10a7b02f29d3b7abdc2f7ae3de1c781ba30074",
+            "segment_tree_root": "0x9378f1aa57572b682db11498c12b79f834cccdab54df30827e88a72f422b162e"
+        }
+    ],
+    "results": [
+        {
+            "service_id": 42,
+            "code_hash": "0x6470fd21983eae8d706f1edd5e2dc5afe095980f8fb7bd4ebfd33550d8730246",
+            "payload_hash": "0x3cf2d09da453bbdd6b68d8a1acd5f15ba23ba46d4ff087592b3d319432500a50",
+            "accumulate_gas": 10000,
+            "result": {
+                "ok": "0x64756d6d792d726573756c74"
+            }
+        }
+    ]
+}
