@@ -1,5 +1,5 @@
 import { Codec } from "scale-ts";
-import { Result } from "../types/types";
+import { Result, ServiceIdCodec } from "../types/types";
 import { decodeWithBytesUsed } from "./utils/decodeWithBytesUsed";
 import { ResultValueCodec } from "./ResultValueCodec";
 import { u32, u64, Bytes } from "scale-ts";
@@ -8,7 +8,7 @@ export const ResultCodec: Codec<Result> = [
   // ENCODER
   (r: Result): Uint8Array => {
     // 1) encode service_id (u32 -> 4 bytes LE)
-    const encServiceId = u32.enc(r.service_id);
+    const encServiceId = ServiceIdCodec.enc(r.service_id);
 
     // 2) encode code_hash (32 bytes)
     const encCodeHash = Bytes(32).enc(r.code_hash);

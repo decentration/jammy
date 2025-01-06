@@ -13,6 +13,8 @@ export const Ed25519PublicCodec = Bytes(32);
 
 export const ValidatorMetadataCodec = Bytes(128)
 
+export const ServiceIdCodec = u32;
+
 export type BandersnatchRingVrfSignature = Uint8Array; // 784 byte
 export type BandersnatchVrfSignatures = Uint8Array; // 96 Bytes
 export type BandersnatchPublic = Uint8Array; // 32 bytes
@@ -22,6 +24,8 @@ export type Ed25519Signature = Uint8Array; // 64 bytes
 export type Ed25519Public = Uint8Array; // 32 bytes
 
 export type ValidatorMetadata = Uint8Array; // 128 bytes  
+
+export type ServiceId = number; // u32  
 
 export interface Validators {
   public_key: BandersnatchPublic; // 32 bytes
@@ -235,6 +239,43 @@ export interface SegmentLookupItem {
   work_package_hash: Uint8Array;  // Bytes(32)
   segment_tree_root: Uint8Array;  // Bytes(32)
 }
+
+export type Gas = number; // u64 
+                         
+export interface ImportSpec {
+  tree_root: Uint8Array;  // 32 bytes
+  index: number;          // u16
+}
+
+export interface ExtrinsicSpec {
+  hash: Uint8Array; // 32 bytes
+  len: number;      // u32
+}
+
+export interface WorkItem {
+  service: number;                // u32
+  code_hash: Uint8Array;          // 32 bytes
+  payload: Uint8Array;            // single-byte-len-encoded
+  refine_gas_limit: number;       // u64
+  accumulate_gas_limit: number;   // u64
+  import_segments: ImportSpec[];  // single-byte-len array
+  extrinsic: ExtrinsicSpec[];     // single-byte-len array
+  export_count: number;           // u16
+}
+
+export interface Authorizer {
+  code_hash: Uint8Array; // 32 bytes
+  params: Uint8Array;    // single-byte-len encoded
+}
+
+export interface WorkPackage {
+  authorization: Uint8Array;  // single-byte-len encoded
+  auth_code_host: number;     // u32
+  authorizer: Authorizer;
+  context: Context;          
+  items: WorkItem[];          // single-byte-len array (size 1..4)
+}
+
 
 
 // The signing contexts are:
