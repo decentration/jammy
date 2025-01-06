@@ -66,7 +66,7 @@ export interface AvailAssignment {
   } 
 
 
-  export type Output = { err: ErrorCode }| { ok: OkData };
+  export type Output = { err: ErrorCode }| { ok: OkData } | null;
   
 
   export interface OkData {

@@ -14,6 +14,11 @@ import { OkDataCodec } from "./OkDataCodec";
 export const OutputCodec: Codec<Output> = [
   // ENCODER
   (out: Output): Uint8Array => {
+
+    if (out === null) {
+      return new Uint8Array([0x00]); 
+    }
+
     if ("err" in out) {
       const errCode = out.err as ErrorCode;
       if (errCode < 0 || errCode > 0xff) {
@@ -24,7 +29,7 @@ export const OutputCodec: Codec<Output> = [
 
     if ("ok" in out) {
       const prefix = new Uint8Array([0x02]);
-      const encodedOk = OkDataCodec.enc(out.ok);
+      const encodedOk = OkDataCodec.enc(out.ok as OkData);
       const outBuf = new Uint8Array(prefix.length + encodedOk.length);
       outBuf.set(prefix, 0);
       outBuf.set(encodedOk, prefix.length);
