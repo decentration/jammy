@@ -1,5 +1,6 @@
 import { Struct, u8, u16, u32, Bytes, Vector, bool, _void} from 'scale-ts';
 import { SingleByteLenCodec } from '../codecs/SingleByteLenCodec';
+import { BITFIELD_LENGTH } from '../consts/tiny';
 
 export const BandersnatchRingVrfSignatureCodec = Bytes(784); 
 export const BandersnatchVrfSignaturesCodec = Bytes(96);
@@ -76,11 +77,11 @@ export interface Assurance {
   signature: Ed25519Signature; // Ed25519 signature under context XA
 }
 
-const bitfieldLength = 1; // understanding GP 11.2.1 
+
 
 export const AssuranceCodec = Struct({
   anchor: Bytes(32),
-  bitfield: Bytes(bitfieldLength),  
+  bitfield: Bytes(BITFIELD_LENGTH), // understanding GP 11.2.1  
   validator_index: u16,
   // Context: $jam_available (XA)
   signature: Ed25519SignatureCodec,

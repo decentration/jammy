@@ -1,6 +1,6 @@
 import { Struct, Bytes, u32, Codec, _void } from 'scale-ts';
 import { Report, Assurance, BandersnatchPublic, Ed25519Public, BlsPublic, ValidatorMetadata} from '../types/types';
-import { PreAndPostState } from './assurances/types';
+
 export interface WorkPackage {
   hash: Uint8Array;        // Bytes(32)
   exports_root: Uint8Array; // Bytes(32)
@@ -25,10 +25,7 @@ export interface BetaItem {
     reported: WorkPackage[]; 
 }
 
-export interface PreState {
-  beta: BetaItem[];
-}
-export interface PostState {
+export interface State {
   beta: BetaItem[];
 }
 
@@ -42,9 +39,9 @@ OutputCodec.dec = () => null;
 
 export interface History {
   input: HistoryInput;
-  pre_state: PreState;
+  pre_state: State;
   output: null;       
-  post_state: PostState;
+  post_state: State;
 }
 
 export interface ValidatorInfo {
@@ -59,24 +56,23 @@ export interface AvailAssignment {
     timeout: number; // 4 bytes
   }
   
+  export type AssurancesExtrinsic = Assurance[];
 
 
-  export interface Input {
-    assurances: Assurance[];     // No length prefix, strict order
+  export interface AssurancesInput {
+    assurances: AssurancesExtrinsic;  // Sequence of Assurance
     slot: number;                // 4 bytes, LE
     parent: Uint8Array;          // 32 bytes
   } 
 
-  export interface Output {
-    status: number;
-    subcode: ErrorCode;
+
+  export type Output = { err: ErrorCode }| { ok: OkData };
+  
+
+  export interface OkData {
+    reported: Report[];
   }
-  export interface Assurances {
-    input: Input;            
-    pre_state: PreAndPostState;
-    output: Output | null;              
-    post_state: PreAndPostState; 
-  }
+
 
 
   export enum ErrorCode {
@@ -88,7 +84,7 @@ export interface AvailAssignment {
   }
 
 
-  export enum subcode {
+  export enum Status {
     OK = 0,
     ERR = 1,
   }

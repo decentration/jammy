@@ -1,7 +1,7 @@
 import { Codec } from "scale-ts";
-import { AvailAssignment } from "../../types";
-import { ReportCodec } from "../../../codecs";
-import { decodeWithBytesUsed } from "../../../codecs";
+import { AvailAssignment } from "../../../types";
+import { ReportCodec } from "../../../../codecs";
+import { decodeWithBytesUsed } from "../../../../codecs";
 
 /**
  * AvailAssignment has:
@@ -20,7 +20,7 @@ export const AvailAssignmentCodec: Codec<AvailAssignment> = [
     }
     const encReport = ReportCodec.enc(data.report);
 
-    // 2) Encode `timeout` (4 bytes)
+    // 2) Encode 
     const timeBuf = new Uint8Array(4);
     new DataView(timeBuf.buffer).setUint32(0, data.timeout, true);
 
@@ -73,10 +73,10 @@ export const OptionalAvailAssignmentCodec: Codec<AvailAssignment | null> = [
   // ENCODER
   (assignment: AvailAssignment | null): Uint8Array => {
     if (!assignment) {
-      // entire item is null => [0x00]
+      // entire item is null 
       return new Uint8Array([0x00]);
     }
-    // item is present => prefix 0x01 + AvailAssignment data
+    // item present
     const encItem = AvailAssignmentCodec.enc(assignment);
     const out = new Uint8Array(1 + encItem.length);
     out[0] = 0x01;
@@ -99,10 +99,10 @@ export const OptionalAvailAssignmentCodec: Codec<AvailAssignment | null> = [
 
     const tag = uint8[0];
     if (tag === 0x00) {
-      return null; // entire item is null
+      return null; // item null
     }
     if (tag === 0x01) {
-      // decode AvailAssignment
+      // decode 
       const slice = uint8.slice(1);
       return AvailAssignmentCodec.dec(slice);
     }

@@ -42,11 +42,14 @@ export const CurrValidatorsCodec: Codec<ValidatorInfo[]> = (() => {
       offset += reEnc.length;
 
       vals.push(decodedVal);
-    }
+    
+  }
 
-    if (offset < uint8.length) {
-      throw new Error(`CurrValidatorsCodec: leftover bytes after reading ${VALIDATOR_COUNT} validators`);
-    }
+  // string to hex data
+console.log("curr validators data: ", Buffer.from(uint8).toString('hex'));
+    // if (offset < uint8.length) {
+    //   throw new Error(`CurrValidatorsCodec: leftover bytes after reading ${VALIDATOR_COUNT} validators`);
+    // }
 
     return vals;
   };

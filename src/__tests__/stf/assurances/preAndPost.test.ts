@@ -1,10 +1,10 @@
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
-import { PreAndPostState } from "../../../stf/assurances/types";
-import { PreAndPostStateCodec } from "../../../stf/assurances/codecs/PreAndPostStateCodec";
+
+import { StateCodec } from "../../../stf/assurances/codecs/StateCodec";
 import { toHex, convertToReadableFormat } from "../../../utils";
 
-describe("PreAndPostStateCodec test", () => {
+describe("StateCodec test", () => {
     it("encodes/decodes pre_state data from JSON", () => {
       const jsonPath = path.resolve(__dirname, "../../../stf/assurances/data/pre_state-1.json");
       const raw = JSON.parse(readFileSync(jsonPath, "utf-8"));
@@ -75,10 +75,10 @@ describe("PreAndPostStateCodec test", () => {
         })),
       };
   
-      const encoded = PreAndPostStateCodec.enc(preState);
+      const encoded = StateCodec.enc(preState);
       console.log("Encoded PreAndPostState (hex):", toHex(encoded));
   
-      const decoded = PreAndPostStateCodec.dec(encoded);
+      const decoded = StateCodec.dec(encoded);
   
       const readableEncoded = toHex(encoded);
       const readableDecoded = convertToReadableFormat(decoded);

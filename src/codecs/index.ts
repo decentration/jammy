@@ -19,7 +19,5 @@ export * from '../stf/history/codecs/HistoryInputCodec';
 export * from './BetaItemCodec';
 export * from './MMRCodec';
 export * from '../stf/history/codecs/PreAndPostStateCodec';
-export * from './SingleByteLenCodec';
-
-
+export * from './SingleByteLenCodec'
 export * from './utils/OptionCodec';
