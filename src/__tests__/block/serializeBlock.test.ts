@@ -1,5 +1,5 @@
 // __tests__/block/serializeBlock.test.ts
-import { serializeBlock, generateBlockHash } from "../../block/SerializeBlock";
+import { serializeBlock, generateBlockHash } from "../../block/serializeBlock";
 import { Block } from "../../types/types";
 
 describe("serializeBlock tests", () => {
@@ -47,7 +47,7 @@ describe("serializeBlock tests", () => {
     console.log("Block hash (unsigned):", blockHash);
     expect(typeof blockHash).toBe("string");
     console.log("Block hash length (unsigned):", blockHash.length);
-    expect(blockHash.length).toBe(66); // 64 + 2 for 0x
+    expect(blockHash.length).toBe(64); // 32 bytes in hex without 0x
   });
 
   it("handles no seal gracefully", () => {
