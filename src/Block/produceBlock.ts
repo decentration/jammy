@@ -1,5 +1,6 @@
-import { Block } from "../types/types";
+import { Block, ExtrinsicData } from "../types/types";
 import { generateBlockHash } from "./serializeBlock";
+import { computeExtrinsicsMerkleRoot } from "./ExtrinsicData/computeExtrinsicsMerkleRoot";
 
 /**
  * Produce a minimal child block from a given parent block.
@@ -7,7 +8,7 @@ import { generateBlockHash } from "./serializeBlock";
  * - Increments the slot.
  * - TODO handle placeholders.
  */
-export function produceBlock(parentBlock: Block): Block {
+export function produceBlock(parentBlock: Block, extrinsicsData: ExtrinsicData): Block {
   // 1) Compute parent hash (w/o seal)
   const parentHash = generateBlockHash(parentBlock);
 
@@ -18,7 +19,7 @@ export function produceBlock(parentBlock: Block): Block {
     header: {
       parent: Uint8Array.from(Buffer.from(parentHash, "hex")),
       parent_state_root: parentBlock.header.parent_state_root, // or dummy for now
-      extrinsic_hash: new Uint8Array(),       // or recompute if needed
+      extrinsic_hash: computeExtrinsicsMerkleRoot(extrinsicsData),       // still a placehodler
       slot: parentBlock.header.slot + 1,                       // increment
       epoch_mark: null,               // TODOplaceholder
       tickets_mark: null,           // TODO placeholder
@@ -40,5 +41,7 @@ export function produceBlock(parentBlock: Block): Block {
       },
     };
 
+
   return childBlock;
 }
+

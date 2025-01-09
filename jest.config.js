@@ -8,5 +8,8 @@ module.exports = {
     'node_modules/(?!node-fetch)',
   ],
   extensionsToTreatAsEsm: ['.ts'],
+    moduleNameMapper: {
+    '^@noble/hashes/(.*)$': '<rootDir>/node_modules/@noble/hashes/sha256.js',
+  },
 };
  
