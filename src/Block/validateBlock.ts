@@ -1,7 +1,7 @@
 import { generateBlockHash } from "./serializeBlock";
 import { Block } from "../types/types";
 import { toHexToggle } from "../utils";
-import { computeExtrinsicsMerkleRoot } from "./ExtrinsicData/computeExtrinsicsMerkleRoot";
+import { computeExtrinsicsMerkleRoot } from "./merkle/computeExtrinsicsMerkleRoot";
 
 export function validateBlock(child: Block, parent: Block): void {
   // 1 - Validate parent hash

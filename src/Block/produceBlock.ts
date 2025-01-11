@@ -1,6 +1,6 @@
 import { Block, ExtrinsicData } from "../types/types";
 import { generateBlockHash } from "./serializeBlock";
-import { computeExtrinsicsMerkleRoot } from "./ExtrinsicData/computeExtrinsicsMerkleRoot";
+import { computeExtrinsicsMerkleRoot } from "./merkle/computeExtrinsicsMerkleRoot";
 
 /**
  * Produce a minimal child block from a given parent block.
@@ -14,12 +14,15 @@ export function produceBlock(parentBlock: Block, extrinsicsData: ExtrinsicData):
 
   console.log("Parent hash:", parentHash);
 
+  const extrinsicHash = computeExtrinsicsMerkleRoot(extrinsicsData);
+    console.log("Extrinsic hash:", extrinsicHash);
+
   // 2) Create new block with updated fields
   const childBlock: Block = {
     header: {
       parent: Uint8Array.from(Buffer.from(parentHash, "hex")),
       parent_state_root: parentBlock.header.parent_state_root, // or dummy for now
-      extrinsic_hash: computeExtrinsicsMerkleRoot(extrinsicsData),       // still a placehodler
+      extrinsic_hash: extrinsicHash,       // still a placehodler
       slot: parentBlock.header.slot + 1,                       // increment
       epoch_mark: null,               // TODOplaceholder
       tickets_mark: null,           // TODO placeholder
@@ -28,17 +31,7 @@ export function produceBlock(parentBlock: Block, extrinsicsData: ExtrinsicData):
       entropy_source: new Uint8Array(),       // TODO placeholder
       seal: parentBlock.header.seal,                           // or null 
     },
-    extrinsic: {
-        tickets: [],
-        preimages: [],
-        guarantees: [],
-        assurances: [],
-        disputes: {
-          verdicts: [],
-          culprits: [],
-          faults: [],
-        },
-      },
+    extrinsic: extrinsicsData,
     };
 
 
