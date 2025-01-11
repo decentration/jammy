@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { Assurance, AssuranceCodec } from '../block/types';
+import { Assurance, AssuranceCodec } from '../types/types';
 import { DiscriminatorCodec } from './DiscriminatorCodec';
 
 const __filename = fileURLToPath(import.meta.url);

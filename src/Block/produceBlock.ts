@@ -1,6 +1,7 @@
 import { Block, ExtrinsicData } from "../types/types";
 import { generateBlockHash } from "./serializeBlock";
 import { computeExtrinsicsMerkleRoot } from "./merkle/computeExtrinsicsMerkleRoot";
+import { isEpochBoundary, produceEpochMarker } from "./produceEpochMarker";
 
 /**
  * Produce a minimal child block from a given parent block.
@@ -9,13 +10,12 @@ import { computeExtrinsicsMerkleRoot } from "./merkle/computeExtrinsicsMerkleRoo
  * - TODO handle placeholders.
  */
 export function produceBlock(parentBlock: Block, extrinsicsData: ExtrinsicData): Block {
-  // 1) Compute parent hash (w/o seal)
-  const parentHash = generateBlockHash(parentBlock);
+  const parentHash = generateBlockHash(parentBlock); // 1) Compute parent hash (w/o seal)
+  const newSlot = parentBlock.header.slot + 1; // 2) Increment slot
+  const epoch_mark = isEpochBoundary(newSlot) ? produceEpochMarker() : null; // 3) Epoch marker
+  console.log("epoch_mark", epoch_mark);
+  const extrinsicHash = computeExtrinsicsMerkleRoot(extrinsicsData); // 4) Compute extrinsic hash
 
-  console.log("Parent hash:", parentHash);
-
-  const extrinsicHash = computeExtrinsicsMerkleRoot(extrinsicsData);
-    console.log("Extrinsic hash:", extrinsicHash);
 
   // 2) Create new block with updated fields
   const childBlock: Block = {
@@ -23,8 +23,8 @@ export function produceBlock(parentBlock: Block, extrinsicsData: ExtrinsicData):
       parent: Uint8Array.from(Buffer.from(parentHash, "hex")),
       parent_state_root: parentBlock.header.parent_state_root, // or dummy for now
       extrinsic_hash: extrinsicHash,       // still a placehodler
-      slot: parentBlock.header.slot + 1,                       // increment
-      epoch_mark: null,               // TODOplaceholder
+      slot: newSlot,                       // increment
+      epoch_mark: epoch_mark,               // TODOplaceholder
       tickets_mark: null,           // TODO placeholder
       offenders_mark: [],       // TODO placeholder
       author_index: 0,           // TODO placeholder

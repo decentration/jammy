@@ -34,7 +34,7 @@ export interface Validators {
 export interface EpochMarker {
   entropy: Uint8Array; // η1'
   tickets_entropy: Uint8Array; // η2'
-  validators: Uint8Array[]; // [kb | k ∈ γk']
+  validators: Uint8Array[]; // [kb | k ∈ γk'] // 32 bytes bandersnatch public keys
 }
 
 export interface TicketMark {
