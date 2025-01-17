@@ -5,49 +5,45 @@ import { BITFIELD_LENGTH } from '../consts/tiny';
 export const BandersnatchRingVrfSignatureCodec = Bytes(784); 
 export const BandersnatchVrfSignaturesCodec = Bytes(96);
 export const BandersnatchPublicCodec = Bytes(32);
-
+export const OpaqueHashCodec = Bytes(32);
 export const BlsPublicCodec = Bytes(144);
-
 export const Ed25519SignatureCodec = Bytes(64); 
 export const Ed25519PublicCodec = Bytes(32);
-
 export const ValidatorMetadataCodec = Bytes(128)
-
 export const ServiceIdCodec = u32;
 
+export type OpaqueHash = Uint8Array; // 32 bytes  
 export type BandersnatchRingVrfSignature = Uint8Array; // 784 byte
 export type BandersnatchVrfSignatures = Uint8Array; // 96 Bytes
 export type BandersnatchPublic = Uint8Array; // 32 bytes
 export type BlsPublic = Uint8Array; // 144 bytes
-
 export type Ed25519Signature = Uint8Array; // 64 bytes
 export type Ed25519Public = Uint8Array; // 32 bytes
-
 export type ValidatorMetadata = Uint8Array; // 128 bytes  
-
 export type ServiceId = number; // u32  
 
 export interface Validators {
   public_key: BandersnatchPublic; // 32 bytes
   stake: number; // u64
 }
-export interface EpochMarker {
+export interface EpochMark {
   entropy: Uint8Array; // η1'
   tickets_entropy: Uint8Array; // η2'
   validators: Uint8Array[]; // [kb | k ∈ γk'] // 32 bytes bandersnatch public keys
 }
 
-export interface TicketMark {
+export interface TicketsMark {
   id: Uint8Array; // Bytes(32)
   attempt: number; // u8
 }
+
 export interface Header {
   parent: Uint8Array;             // Hp: Parent hash
   parent_state_root: Uint8Array;         // Hr: Prior state root
   extrinsic_hash: Uint8Array;          // Hx: Extrinsic hash
   slot: number;          // Ht: Time-slot index
-  epoch_mark: EpochMarker | null;                // He: Epoch marker 
-  tickets_mark: TicketMark[] | null;    // Hw: Winning-tickets apparent when epoch mark is null
+  epoch_mark: EpochMark | null;                // He: Epoch marker 
+  tickets_mark: TicketsMark[] | null;    // Hw: Winning-tickets apparent when epoch mark is null
   offenders_mark: Uint8Array[];            // Ho: Offenders
   author_index: number;       // Hi: Bandersnatch block author index u16
   entropy_source: Uint8Array;           // Hv: Entropy-yielding VRF signature

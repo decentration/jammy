@@ -1,4 +1,4 @@
-import { EpochMarker } from "../types/types";
+import { EpochMark } from "../types/types";
 import { EPOCH_LENGTH } from "../consts/tiny";
 
 /** Returns true if the given slot is the first block of a new epoch. */
@@ -11,8 +11,8 @@ export function isEpochBoundary(slot: number): boolean {
 }
 
 /** produce an epoch marker. */
-export function produceEpochMarker(): EpochMarker {
-    console.log('produceEpochMarker' );
+export function produceEpochMark(): EpochMark {
+    console.log('produceEpochMark' );
   // TODO get “currentEntropy”, “nextEpochEntropy” and the new epoch’s validator keys...
   return {
     // 32 bytes for “entropy” placeholder

@@ -123,3 +123,5 @@ console.log('ExtrinsicDataCodec before a:');
 
 ExtrinsicDataCodec.enc = ExtrinsicDataCodec[0];
 ExtrinsicDataCodec.dec = ExtrinsicDataCodec[1];
+
+export { ExtrinsicData } from '../../types/types';

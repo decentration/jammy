@@ -1,9 +1,9 @@
 import { Codec } from "scale-ts";
 import { decodeWithBytesUsed, DiscriminatorCodec, SetCodec } from ".";
 import { Bytes, u32 } from "scale-ts";
-import { EpochMarkerCodec } from "./EpochMarkerCodec"; 
-import { TicketMarkCodec } from "./TicketMarkCodec";
-import { Header, EpochMarker, TicketMark } from "../types/types";
+import { EpochMarkCodec } from "./EpochMarkCodec"; 
+import { TicketsMarkCodec } from "./TicketsMarkCodec";
+import { Header, EpochMark, TicketsMark } from "../types/types";
 
 export const HeaderCodec: Codec<Header> = [
   // ENCODER
@@ -16,7 +16,7 @@ export const HeaderCodec: Codec<Header> = [
     const slotBuf = new Uint8Array(4);
     new DataView(slotBuf.buffer).setUint32(0, header.slot, true);
 
-    // 3) epoch_mark => Option(EpochMarkerCodec)
+    // 3) epoch_mark => Option(EpochMarkCodec)
     let encEpoch: Uint8Array;
     if (header.epoch_mark === null) {
       // 0x00 = "None"
@@ -24,7 +24,7 @@ export const HeaderCodec: Codec<Header> = [
       console.log('HeaderCodec enc epoch_mark:', header.epoch_mark, 'encEpoch:', Buffer.from(encEpoch).toString('hex'));
     } else {
       // 0x01 = "Some"
-      const encMarker = EpochMarkerCodec.enc(header.epoch_mark);
+      const encMarker = EpochMarkCodec.enc(header.epoch_mark);
       console.log('HeaderCodec epoch_mark encMarker:', Buffer.from(encMarker).toString('hex'));
       encEpoch = new Uint8Array(1 + encMarker.length);
       encEpoch[0] = 0x01;
@@ -37,7 +37,7 @@ export const HeaderCodec: Codec<Header> = [
       encTickets = Uint8Array.of(0x00); // None
     } else {
     console.log('HeaderCodec tickets_mark:', header.tickets_mark);
-      const setEnc = SetCodec(TicketMarkCodec, 33).enc(header.tickets_mark);
+      const setEnc = SetCodec(TicketsMarkCodec, 33).enc([header.tickets_mark]);
       encTickets = new Uint8Array(1 + setEnc.length);
       encTickets[0] = 0x01; // Some
       encTickets.set(setEnc, 1);
@@ -132,8 +132,8 @@ export const HeaderCodec: Codec<Header> = [
     const slot = slotView.getUint32(0, true);
     offset += 4;
 
-    // 3) epoch_mark => Option(EpochMarkerCodec)
-    let epoch_mark: EpochMarker | null = null;
+    // 3) epoch_mark => Option(EpochMarkCodec)
+    let epoch_mark: EpochMark | null = null;
 
     if (offset >= uint8.length) {
         throw new Error("HeaderCodec: not enough data for epoch_mark presence byte");
@@ -144,19 +144,19 @@ export const HeaderCodec: Codec<Header> = [
     console.log('HeaderCodec epoch_mark presence byte:', epochByte);
 
     if (epochByte === 0x01) {
-        // "Some" => Decode using EpochMarkerCodec
+        // "Some" => Decode using EpochMarkCodec
         if (offset >= uint8.length) {
             throw new Error("HeaderCodec: not enough data for epoch_mark after presence byte");
         }
 
-        // Pass the remaining slice directly to EpochMarkerCodec
+        // Pass the remaining slice directly to EpochMarkCodec
         const remainingSlice = uint8.slice(offset);
         console.log('HeaderCodec epoch_mark slice before decoding:', Buffer.from(remainingSlice).toString('hex'));
 
-        // Decode using EpochMarkerCodec
-        epoch_mark = EpochMarkerCodec.dec(remainingSlice);
+        // Decode using EpochMarkCodec
+        epoch_mark = EpochMarkCodec.dec(remainingSlice);
 
-        // Calculate bytes used as the length of the encoded EpochMarker
+        // Calculate bytes used as the length of the encoded EpochMark
         const bytesUsed = 64 + epoch_mark.validators.length * 32;
         offset += bytesUsed;
 
@@ -177,10 +177,10 @@ export const HeaderCodec: Codec<Header> = [
     // 4) tickets_mark 
     const ticketsByte = uint8[offset++];
     console.log('HeaderCodec ticketsByte:', ticketsByte);
-    let tickets_mark: TicketMark[] | null = null;
+    let tickets_mark: TicketsMark[] | null = null;
 
     if (ticketsByte === 0x01) {
-    const tickets: TicketMark[] = [];
+    const tickets: TicketsMark[] = [];
     while (offset + 33 <= uint8.length) {
         // Check for stop condition
         if (uint8[offset] === 0x00 && offset + 3 <= uint8.length) {

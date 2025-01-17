@@ -1,7 +1,7 @@
 import { Block, ExtrinsicData } from "../types/types";
 import { generateBlockHash } from "./serializeBlock";
 import { computeExtrinsicsMerkleRoot } from "./merkle/computeExtrinsicsMerkleRoot";
-import { isEpochBoundary, produceEpochMarker } from "./produceEpochMarker";
+import { isEpochBoundary, produceEpochMark } from "./produceEpochMarker";
 
 /**
  * Produce a minimal child block from a given parent block.
@@ -12,7 +12,7 @@ import { isEpochBoundary, produceEpochMarker } from "./produceEpochMarker";
 export function produceBlock(parentBlock: Block, extrinsicsData: ExtrinsicData): Block {
   const parentHash = generateBlockHash(parentBlock); // 1) Compute parent hash (w/o seal)
   const newSlot = parentBlock.header.slot + 1; // 2) Increment slot
-  const epoch_mark = isEpochBoundary(newSlot) ? produceEpochMarker() : null; // 3) Epoch marker
+  const epoch_mark = isEpochBoundary(newSlot) ? produceEpochMark() : null; // 3) Epoch marker
   console.log("epoch_mark", epoch_mark);
   const extrinsicHash = computeExtrinsicsMerkleRoot(extrinsicsData); // 4) Compute extrinsic hash
 
