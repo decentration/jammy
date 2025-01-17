@@ -4,13 +4,24 @@ import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec"
 /**
  * DiscriminatorCodec: Creates a compatible codec for a sequence of items,
  */
-export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
+export function DiscriminatorCodec<T>(
+  itemCodec: Codec<T>,
+  options?: { maxSize?: number }
+
+): Codec<T[]> {
   // 1) The encoder function
   const encode: Encoder<T[]> = (items: T[]): Uint8Array => {
+
+    if (options?.maxSize !== undefined && items.length > options.maxSize) {
+      throw new Error(
+        `DiscriminatorCodec: too many items (got=${items.length}, max=${options.maxSize})`
+      );
+    }
+
     // Encode the length prefix
     const lengthBuf = encodeProtocolInt(items.length)
 
-    console.log('discriminator codec in encoder:', itemCodec, items.map(item => Buffer.from(itemCodec.enc(item)).toString('hex')), Buffer.from(lengthBuf).toString('hex'));
+    // console.log('discriminator codec in encoder:', itemCodec, items.map(item => Buffer.from(itemCodec.enc(item)).toString('hex')), Buffer.from(lengthBuf).toString('hex'));
     // Encode each item
     const encodedItems = items.map((item) => itemCodec.enc(item))
 
@@ -37,7 +48,7 @@ export function DiscriminatorCodec<T>(itemCodec: Codec<T>): Codec<T[]> {
       : typeof data === "string"
       ? new TextEncoder().encode(data)
       : new Uint8Array(data)
-console.log('discriminator codec in decoder:', Buffer.from(uint8Data).toString('hex'));
+// console.log('discriminator codec in decoder:', Buffer.from(uint8Data).toString('hex'));
     // Decode the length prefix
     const { value: length, bytesRead } = decodeProtocolInt(uint8Data)
     if (length === 0) {
@@ -49,7 +60,7 @@ console.log('discriminator codec in decoder:', Buffer.from(uint8Data).toString('
     let offset = bytesRead
 // console.log('discriminator codec in:', Buffer.from(uint8Data).toString('hex'));
     for (let i = 0; i < length; i++) {
-      console.log('discriminator codec in:', Buffer.from(uint8Data).toString('hex'));
+      // console.log('discriminator codec in:', Buffer.from(uint8Data).toString('hex'));
       // Decode item from slice
       const item = itemCodec.dec(uint8Data.slice(offset))
 

@@ -7,7 +7,7 @@ export * from './ResultValueCodec';
 export * from './ReportCodec';
 export * from './ResultCodec';
 export * from './PreimageCodec';
-export * from './EpochMarkerCodec';
+export * from './EpochMarkCodec';
 export * from './HeaderCodec';
 export * from './DiscriminatorCodec';
 export * from './SetCodec';
@@ -18,3 +18,5 @@ export * from './BetaItemCodec';
 export * from './MMRCodec';
 export * from './SingleByteLenCodec'
 export * from './utils/OptionCodec';
+export * from './TicketsMarkCodec';
+export * from './TicketBodyCodec';

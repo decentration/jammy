@@ -1,5 +1,5 @@
 import { Codec } from "scale-ts";
-import { ValidatorInfo } from "../../types"; 
+import { ValidatorInfo } from "../stf/types"; 
 
 /**
  * ValidatorInfoCodec:

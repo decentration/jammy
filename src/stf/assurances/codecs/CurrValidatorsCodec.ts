@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { ValidatorInfo } from "../../types";
-import { ValidatorInfoCodec } from "./ValidatorInfoCodec";
+import { ValidatorInfoCodec } from "../../../codecs/ValidatorInfoCodec";
 import { VALIDATOR_COUNT } from "../../../consts/tiny";
 
 export const CurrValidatorsCodec: Codec<ValidatorInfo[]> = (() => {
