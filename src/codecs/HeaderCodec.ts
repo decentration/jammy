@@ -31,16 +31,17 @@ export const HeaderCodec: Codec<Header> = [
       encEpoch.set(encMarker, 1);
     }
     
-    // 4) tickets_mark => Option(DiscriminatorCodec(Bytes(32)))
+    // 4) tickets_mark => Option(TicketsMarkCodec)
     let encTickets: Uint8Array;
     if (header.tickets_mark === null) {
-      encTickets = Uint8Array.of(0x00); // None
+      // 0x00 => None
+      encTickets = new Uint8Array([0x00]);
     } else {
-    console.log('HeaderCodec tickets_mark:', header.tickets_mark);
-      const setEnc = SetCodec(TicketsMarkCodec, 33).enc([header.tickets_mark]);
-      encTickets = new Uint8Array(1 + setEnc.length);
-      encTickets[0] = 0x01; // Some
-      encTickets.set(setEnc, 1);
+      // 0x01 => Some
+      const raw = TicketsMarkCodec.enc(header.tickets_mark);  // 12 items => 396 bytes
+      encTickets = new Uint8Array(1 + raw.length);
+      encTickets[0] = 0x01;
+      encTickets.set(raw, 1);
     }
 
     // 5) offenders_mark => DiscriminatorCodec(Bytes(32))
@@ -176,38 +177,29 @@ export const HeaderCodec: Codec<Header> = [
 
     // 4) tickets_mark 
     const ticketsByte = uint8[offset++];
-    console.log('HeaderCodec ticketsByte:', ticketsByte);
+    console.log("HeaderCodec ticketsByte:", ticketsByte);
     let tickets_mark: TicketsMark[] | null = null;
-
-    if (ticketsByte === 0x01) {
-    const tickets: TicketsMark[] = [];
-    while (offset + 33 <= uint8.length) {
-        // Check for stop condition
-        if (uint8[offset] === 0x00 && offset + 3 <= uint8.length) {
-          const potentialStop = new DataView(uint8.buffer, uint8.byteOffset + offset, 3);
-          const u16Value = potentialStop.getUint16(1, true); // Little-endian u16
-          if (u16Value > 0) {
-              // Valid stop condition
-              break;
-          }
-        }
-
-        // Decode a single ticket
-        const id = uint8.slice(offset, offset + 32);
-        const attempt = uint8[offset + 32];
-        tickets.push({ id, attempt });
-
-        offset += 33;
-    }
-        tickets_mark = tickets;
-    } else if (ticketsByte === 0x00) {
-        tickets_mark = null;
+    
+    if (ticketsByte === 0x00) {
+      // None
+      tickets_mark = null;
+    } else if (ticketsByte === 0x01) {
+      // Some => read 396 bytes exactly
+      const needed = 12 * 33; // 396
+      if (offset + needed > uint8.length) {
+        throw new Error(
+          `HeaderCodec: not enough data for tickets_mark (need 396, have ${
+            uint8.length - offset
+          })`
+        );
+      }
+      const slice = uint8.slice(offset, offset + needed);
+      offset += needed;
+    
+      tickets_mark = TicketsMarkCodec.dec(slice); // decode 12 items
     } else {
-        console.error("HeaderCodec: tickets_mark decoding failed. Invalid tag:", ticketsByte);
-        console.error("Remaining data slice:", uint8.slice(offset));
-        throw new Error(`Invalid option tag for tickets_mark: ${ticketsByte}`);
+      throw new Error(`HeaderCodec: invalid tickets_mark tag: ${ticketsByte}`);
     }
-
 
     // 5) offenders_mark => DiscriminatorCodec(Bytes(32)) (non-optional)
     {
