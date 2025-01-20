@@ -1,7 +1,7 @@
-import { BlockCodec } from "./BlockCodec";
+import { BlockCodec } from "../BlockCodec";
 import { sha256 } from '@noble/hashes/sha256';
-import { Block} from "../types/types";
-import { toHex } from "../utils";
+import { Block} from "../../types/types";
+import { toHex } from "../../utils";
 
 export function serializeBlock(block: Block, unsigned: boolean = false): Uint8Array {
     if (!unsigned && block.header.seal && block.header.seal.length !== 96) {

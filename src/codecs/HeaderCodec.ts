@@ -104,6 +104,8 @@ export const HeaderCodec: Codec<Header> = [
 
   // DECODER
   (input: ArrayBuffer | Uint8Array | string) => {
+
+    
     const uint8 =
       input instanceof Uint8Array
         ? input
@@ -112,7 +114,9 @@ export const HeaderCodec: Codec<Header> = [
         : new Uint8Array(input);
 
     let offset = 0;
-    console.log('HeaderCodec dec uint8 hex:', Buffer.from(uint8).toString('hex'));
+    // log everything not just a shorted version
+    console.log('HeaderCodec dec uint8:', uint8, input);
+    console.log('HeaderCodec dec uint8 hex:', Buffer.from(uint8).toString('hex'), input);
 
     // 1) parent(32), parent_state_root(32), extrinsic_hash(32)
     if (offset + 32 > uint8.length) throw new Error("HeaderCodec: not enough data for parent");
@@ -129,6 +133,7 @@ export const HeaderCodec: Codec<Header> = [
 
     // 2) slot => 4 bytes
     if (offset + 4 > uint8.length) throw new Error("HeaderCodec: not enough data for slot");
+    console.log('HeaderCodec slot offset:', offset, 'uint8:', uint8);
     const slotView = new DataView(uint8.buffer, uint8.byteOffset + offset, 4);
     const slot = slotView.getUint32(0, true);
     offset += 4;
@@ -165,6 +170,7 @@ export const HeaderCodec: Codec<Header> = [
         console.log('HeaderCodec epoch_mark offset after decoding:', offset, 'epoch_mark:', epoch_mark);
 
     } else if (epochByte === 0x00) {
+      console.log('HeaderCodec epoch_mark is null');
         // "None" => Null epoch_mark
         epoch_mark = null;
         console.log('HeaderCodec epoch_mark is null');
@@ -179,8 +185,10 @@ export const HeaderCodec: Codec<Header> = [
     const ticketsByte = uint8[offset++];
     console.log("HeaderCodec ticketsByte:", ticketsByte);
     let tickets_mark: TicketsMark[] | null = null;
-    
+    console.log('HeaderCodec tickets_mark:', tickets_mark, 'Offset:', offset, input);
     if (ticketsByte === 0x00) {
+
+      console.log('HeaderCodec tickets_mark is null');
       // None
       tickets_mark = null;
     } else if (ticketsByte === 0x01) {
@@ -195,6 +203,7 @@ export const HeaderCodec: Codec<Header> = [
       }
       const slice = uint8.slice(offset, offset + needed);
       offset += needed;
+      console.log('HeaderCodec tickets_mark slice:', slice);
     
       tickets_mark = TicketsMarkCodec.dec(slice); // decode 12 items
     } else {

@@ -3,18 +3,19 @@ import { ExtrinsicData } from '../../types/types';
 import { TicketCodec, AssuranceCodec } from '../../types/types';
 import { GuaranteeCodec, DisputeCodec, PreimageCodec } from '../../codecs';
 import { DiscriminatorCodec, decodeWithBytesUsed } from '../../codecs';
+import { CORES_COUNT, MAX_TICKET_PER_BLOCK } from '../../consts/tiny';
 
 export const ExtrinsicDataCodec: Codec<ExtrinsicData> = [
   // 1) ENCODER
   (data: ExtrinsicData): Uint8Array => {
     // a) encode tickets
-    const encTickets = DiscriminatorCodec(TicketCodec).enc(data.tickets);
+    const encTickets = DiscriminatorCodec(TicketCodec, { maxSize: MAX_TICKET_PER_BLOCK}).enc(data.tickets);
 
     // b) encode preimages
     const encPreimages = DiscriminatorCodec(PreimageCodec).enc(data.preimages);
 
     // c) encode guarantees
-    const encGuarantees = DiscriminatorCodec(GuaranteeCodec).enc(data.guarantees);
+    const encGuarantees = DiscriminatorCodec(GuaranteeCodec, { maxSize: CORES_COUNT }).enc(data.guarantees);
 
     // d) encode assurances
     const encAssurances = DiscriminatorCodec(AssuranceCodec).enc(data.assurances);
