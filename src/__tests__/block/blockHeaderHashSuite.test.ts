@@ -3,7 +3,7 @@ import { DisputeCodec } from "../../codecs";
 import { computeExtrinsicsMerkleRoot } from "../../block/merkle/computeExtrinsicsMerkleRoot";
 import { Block, ExtrinsicData, TicketCodec} from "../../types/types";
 import { toHexToggle } from "../../utils";
-import { generateBlockHash } from "../../block/serializeBlock";
+import { generateBlockHash } from "../../block/app/serializeBlock";
 import { sha256 } from "@noble/hashes/sha256";
 import { DiscriminatorCodec } from "../../codecs/DiscriminatorCodec";
 import { wellBalancedMerkle } from "../../block/merkle/wellBalancedMerkle";

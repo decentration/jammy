@@ -60,3 +60,25 @@ export function hexStringToBytes(hexStr: string): Uint8Array {
     return out;
   }
   
+
+  /**
+ * Recursively find "0x..." strings in an object or array 
+ * and convert them to Uint8Array using hexStringToBytes
+ */
+export function convertHexFieldsToBytes(obj: any): void {
+  if (Array.isArray(obj)) {
+    obj.forEach(convertHexFieldsToBytes);
+  } else if (obj && typeof obj === "object") {
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (typeof val === "string" && val.startsWith("0x")) {
+        // convert
+        obj[key] = hexStringToBytes(val);
+      } else {
+        // recurse
+        convertHexFieldsToBytes(val);
+      }
+    }
+  }
+  return obj;
+}

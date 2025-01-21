@@ -1,5 +1,5 @@
 // __tests__/block/serializeBlock.test.ts
-import { serializeBlock, generateBlockHash } from "../../block/serializeBlock";
+import { serializeBlock, generateBlockHash } from "../../block/app/serializeBlock";
 import { Block } from "../../types/types";
 
 describe("serializeBlock tests", () => {

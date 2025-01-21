@@ -1,4 +1,4 @@
-import { produceBlock } from "../../block/produceBlock";
+import { produceBlock } from "../../block/app/produceBlock";
 import { Block } from "../../types/types";
 
 describe("Epoch marker integration tests", () => {
