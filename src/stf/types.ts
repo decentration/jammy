@@ -76,11 +76,11 @@ export interface AvailAssignment {
 
 
   export enum ErrorCode {
-    BAD_ATTESTATION_PARENT = 0,
-    BAD_VALIDATOR_INDEX = 1,
-    CORE_NOT_ENGAGED = 2,
-    BAD_SIGNATURE = 3,
-    NOT_SORTED_OR_UNIQUE_ASSURERS = 4,
+    BAD_ATTESTATION_PARENT = "bad_attestation_parent",
+    BAD_VALIDATOR_INDEX = "bad_validator_index",
+    CORE_NOT_ENGAGED = "core_not_engaged",
+    BAD_SIGNATURE = "bad_signature",
+    NOT_SORTED_OR_UNIQUE_ASSURERS = "not_sorted_or_unique_assurers",
   }
 
 
