@@ -9,15 +9,15 @@
             },
             {
                 "anchor": "0xd61a38a0f73beda90e8c1dfba731f65003742539f4260694f44e22cabef24a8e",
-                "bitfield": "0x02",
-                "validator_index": 1,
-                "signature": "0x4a8fa6859dab41d76fa801ad076e2eda3f1e06a26e13df362b5da57f53c5ae4eef6454eb2d9327c4e94b3827f03ad3e8f796007571ddff898f394cac75bbdb0d"
+                "bitfield": "0x03",
+                "validator_index": 2,
+                "signature": "0xdbd50734b049bcc9e25f5c4d2d2b635e22ec1d4eefcc324863de9e1673bacb4b7ac4424a946abae83755908a3f77470776c160e7d5b42991c1b8914bfc16b700"
             },
             {
                 "anchor": "0xd61a38a0f73beda90e8c1dfba731f65003742539f4260694f44e22cabef24a8e",
                 "bitfield": "0x03",
-                "validator_index": 2,
-                "signature": "0xdbd50734b049bcc9e25f5c4d2d2b635e22ec1d4eefcc324863de9e1673bacb4b7ac4424a946abae83755908a3f77470776c160e7d5b42991c1b8914bfc16b700"
+                "validator_index": 1,
+                "signature": "0x4a8fa6859dab41d76fa801ad076e2eda3f1e06a26e13df362b5da57f53c5ae4eef6454eb2d9327c4e94b3827f03ad3e8f796007571ddff898f394cac75bbdb0d"
             },
             {
                 "anchor": "0xd61a38a0f73beda90e8c1dfba731f65003742539f4260694f44e22cabef24a8e",
@@ -154,7 +154,7 @@
         ]
     },
     "output": {
-        "err": "bad_signature"
+        "err": "not_sorted_or_unique_assurers"
     },
     "post_state": {
         "avail_assignments": [

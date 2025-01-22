@@ -9,7 +9,7 @@
             },
             {
                 "anchor": "0xd61a38a0f73beda90e8c1dfba731f65003742539f4260694f44e22cabef24a8e",
-                "bitfield": "0x02",
+                "bitfield": "0x03",
                 "validator_index": 1,
                 "signature": "0x4a8fa6859dab41d76fa801ad076e2eda3f1e06a26e13df362b5da57f53c5ae4eef6454eb2d9327c4e94b3827f03ad3e8f796007571ddff898f394cac75bbdb0d"
             },
@@ -76,7 +76,7 @@
                         }
                     ]
                 },
-                "timeout": 11
+                "timeout": 7
             },
             {
                 "report": {
@@ -154,12 +154,9 @@
         ]
     },
     "output": {
-        "err": "bad_signature"
-    },
-    "post_state": {
-        "avail_assignments": [
-            {
-                "report": {
+        "ok": {
+            "reported": [
+                {
                     "package_spec": {
                         "hash": "0x63c03371b9dad9f1c60473ec0326c970984e9c90c0b5ed90eba6ada471ba4d86",
                         "length": 12345,
@@ -191,10 +188,7 @@
                         }
                     ]
                 },
-                "timeout": 11
-            },
-            {
-                "report": {
+                {
                     "package_spec": {
                         "hash": "0xc7e675b7e3450cf70d436172644faef291c2aa905b1fe81c068785cd6e1e44e5",
                         "length": 12345,
@@ -225,9 +219,14 @@
                             }
                         }
                     ]
-                },
-                "timeout": 11
-            }
+                }
+            ]
+        }
+    },
+    "post_state": {
+        "avail_assignments": [
+            null,
+            null
         ],
         "curr_validators": [
             {
