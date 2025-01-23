@@ -1,5 +1,9 @@
 import { State as AssurancesState } from "./types";
 import { AssurancesInput, Output, ErrorCode } from "../types";
+import { verifyAssuranceSignature } from "./verifyAssuranceSignature";
+import { hexStringToBytes, toBytes } from "../../codecs";
+import { InputCodec } from "./codecs/Input/InputCodec";
+import { AssuranceCodec } from "./codecs/Input/AssuranceCodec";
 
 /**
  * applyAssurancesStf implements the logic from section 11 of the Jam paper:
@@ -16,10 +20,10 @@ import { AssurancesInput, Output, ErrorCode } from "../types";
  *      - If any condition fails => return an error code.
  *      - Returns { output, postState }
  */
-export function applyAssurancesStf(
+export async function applyAssurancesStf(
   preState: AssurancesState,
   input: AssurancesInput
-): { output: Output; postState: AssurancesState } {
+): Promise<{ output: Output; postState: AssurancesState; }> {
   // 1) clone preState => postState
   const postState = structuredClone(preState);
 
@@ -34,13 +38,7 @@ if (input.assurances.length === 0) {
   //    - Are they sorted by validator_index? (GP says must be)
   //    - Are they UNIQUE by validator_index? (GP says must be)
   //    - sorted but not contiguous
-  // 3) 11.12 => assurances must be sorted by validator_index (and uniqueness)
-  if (!areSortedAndUniqueByValidatorIndex(input.assurances)) {
-    return {
-      output: { err: ErrorCode.NOT_SORTED_OR_UNIQUE_ASSURERS },
-      postState,
-    };
-  }
+
 
 
   //    - Check each signature is correct for anchor=parent + bitfield
@@ -52,15 +50,43 @@ if (input.assurances.length === 0) {
 
     // 4) For each assurance a => implement eq. 11.11, 11.13, 11.15, etc.
     for (const assurance of input.assurances) {
-        // 11.11 => anchor must match parent. need to confirm anchor == input.parent
-        //    if (!arrayEqual(assurance.anchor, input.parent)) {...}
-        // 11.13 => signature check, bls is a TODO
-        // 11.15 => bits must only be set for cores that have a pending assignment
-    
+
         // a) Check validator_index in range => part of eq. 11.10 (v ∈ Nᵥ => must be < #validators)
         if (assurance.validator_index >= postState.curr_validators.length) {
           return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState };
         }
+
+          // 11.12 => assurances must be sorted by validator_index (and uniqueness)
+        if (!areSortedAndUniqueByValidatorIndex(input.assurances)) {
+          return {
+            output: { err: ErrorCode.NOT_SORTED_OR_UNIQUE_ASSURERS },
+            postState,
+          };
+        }
+
+        
+        // 11.11 => anchor must match parent. need to confirm anchor == input.parent
+        //    if (!arrayEqual(assurance.anchor, input.parent)) {...}
+        // 11.13 => signature check, bls is a TODO
+
+        console.log("assurance", assurance);
+        const anchor = toBytes(assurance.anchor);
+        const bitfield = toBytes(assurance.bitfield);
+        const signature = toBytes(assurance.signature);
+        
+        const publicKey = toBytes(postState.curr_validators[assurance.validator_index].ed25519);
+        console.log("anchor, bitfield, signature, publicKey", { anchor, bitfield, signature, publicKey });
+      
+        const isValid = await verifyAssuranceSignature(anchor, bitfield, signature, publicKey);
+        console.log("Is signature valid =>", isValid);
+
+        if (!isValid) {
+          return { output: { err: ErrorCode.BAD_SIGNATURE }, postState };
+        }
+
+        // 11.15 => bits must only be set for cores that have a pending assignment
+    
+
     
         // b) Check signature => 11.13
         //    For M1, I am assuming we should do it because there is a conformance test for it. 
@@ -72,7 +98,6 @@ if (input.assurances.length === 0) {
         // if not then return core_not_engaged. pre_state avail_assignments, with each assignment with a core index. 
         // if that index is not available, when the bitfield said it was then this is an error.
         // If the bit is set, the core is engaged.
-        const bitfield = assurance.bitfield;
         // loop over bytes
         for (let byteIndex = 0; byteIndex < bitfield.length; byteIndex++) {
         // loop over bits

@@ -82,3 +82,26 @@ export function convertHexFieldsToBytes(obj: any): void {
   }
   return obj;
 }
+
+
+export function toBytes(input: string | Uint8Array): Uint8Array {
+  // 1) If already a Uint8Array, return it
+  if (input instanceof Uint8Array) {
+    return input;
+  }
+
+  // 2) If it’s a hex string, strip "0x" if present
+  //    and convert to bytes
+  let hexStr = input.toLowerCase(); 
+  if (hexStr.startsWith("0x")) {
+    hexStr = hexStr.slice(2);
+  }
+  if (hexStr.length % 2 !== 0) {
+    throw new Error(`toBytes: invalid hex string (odd length): ${input}`);
+  }
+  const out = new Uint8Array(hexStr.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    out[i] = parseInt(hexStr.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
