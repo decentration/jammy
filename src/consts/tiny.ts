@@ -5,3 +5,5 @@ export const EPOCH_LENGTH = 12; // 600 in production
 export const MAX_TICKET_PER_BLOCK = 3; // 16 in production 
 export const MAX_BLOCKS_HISTORY = 8; // 8 in production? TODO: check
 export const TIMESLOT_DELAY_PERIOD = 5 // In GP its value  "U". The period in timeslots after which reported but unavailable work may be replaced.
+export const AUTH_QUEUE_SIZE = 80; 
+export const AUTH_POOL_MAX_SIZE = 8

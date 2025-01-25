@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { Assurances } from "../types"; // Adjust the import path as necessary
-import { StateCodec } from "./StateCodec";
+import { StateCodec } from "./StateCodec/StateCodec";
 import { InputCodec } from "./Input/InputCodec";
 import { OutputCodec } from "./Output/OutputCodec";
 import { decodeWithBytesUsed } from "../../../codecs";

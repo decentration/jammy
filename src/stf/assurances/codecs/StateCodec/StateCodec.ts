@@ -1,10 +1,8 @@
-// src/stf/assurances/codecs/StateCodec.ts
-
 import { Codec } from "scale-ts";
-import { State } from "../types"; // Adjust the import path as necessary
-import { AvailAssignmentsCodec } from "./AvailAssignments";
-import { CurrValidatorsCodec } from "./CurrValidatorsCodec"; // Ensure this codec is correctly defined
-import { decodeWithBytesUsed } from "../../../codecs";
+import { State } from "../../types"; 
+import { AvailAssignmentsCodec } from "../AvailAssignments/AvailAssignmentsCodec";
+import { CurrValidatorsCodec } from "./CurrValidatorsCodec"; 
+import { decodeWithBytesUsed } from "../../../../codecs";
 
 /**
  * StateCodec:

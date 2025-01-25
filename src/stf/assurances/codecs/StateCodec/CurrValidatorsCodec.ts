@@ -1,7 +1,7 @@
 import { Codec } from "scale-ts";
-import { ValidatorInfo } from "../../types";
-import { ValidatorInfoCodec } from "../../../codecs/ValidatorInfoCodec";
-import { VALIDATOR_COUNT } from "../../../consts/tiny";
+import { ValidatorInfo } from "../../../types";
+import { ValidatorInfoCodec } from "../../../../codecs/ValidatorInfoCodec";
+import { VALIDATOR_COUNT } from "../../../../consts/tiny";
 
 export const CurrValidatorsCodec: Codec<ValidatorInfo[]> = (() => {
   const encode = (vals: ValidatorInfo[]): Uint8Array => {
