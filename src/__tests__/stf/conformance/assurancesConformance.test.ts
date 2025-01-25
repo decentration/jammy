@@ -2,14 +2,19 @@ import fs from "fs";
 import path from "path";
 import { applyAssurancesStf } from "../../../stf/assurances/applyAssurancesStf";
 import { convertToReadableFormat } from "../../../utils";
-// import { AssurancesCodec } from "../../../stf/assurances/codecs/AssurancesCodec"; 
 
 describe("Assurances STF conformance", () => {
   const testFiles = [
     "assurance_for_not_engaged_core-1.json",
     "assurances_with_bad_signature-1.json",
     "assurances_with_bad_validator_index-1.json",
-    // ... TODO all other conformance tests in assurances. 
+    "assurance_with_bad_attestation_parent-1.json",
+    "assurances_for_stale_report-1.json",
+    "assurers_not_sorted_or_unique-1.json",
+    "assurers_not_sorted_or_unique-2.json",
+    "no_assurances-1.json",
+    "no_assurances_with_stale_report-1.json",
+    "some_assurances-1.json",
   ];
 
   testFiles.forEach((fileName) => {

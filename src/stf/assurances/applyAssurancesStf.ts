@@ -1,9 +1,8 @@
 import { State as AssurancesState } from "./types";
 import { AssurancesInput, Output, ErrorCode } from "../types";
-import { verifyAssuranceSignature } from "./verifyAssuranceSignature";
-import { hexStringToBytes, toBytes } from "../../codecs";
-import { InputCodec } from "./codecs/Input/InputCodec";
-import { AssuranceCodec } from "./codecs/Input/AssuranceCodec";
+import { areSortedAndUniqueByValidatorIndex, arrayEqual, handleStaleAssignments, finalizeTwoThirds} from "./helpers";
+import { Report } from "../../types/types";
+import { validateAssurances } from "./validateAssurances";
 
 /**
  * applyAssurancesStf implements the logic from section 11 of the Jam paper:
@@ -27,118 +26,55 @@ export async function applyAssurancesStf(
   // 1) clone preState => postState
   const postState = structuredClone(preState);
 
-  // TODO
-  // 2) Validate the “assurances” array
-  //    - Check if assurances are empty if they are then make Output ok reported, 
-if (input.assurances.length === 0) {
-    
-    return { output: { ok: { reported: [] } }, postState };
-}
-  //      like this: "output": { "ok": { "reported": []}},
-  //    - Are they sorted by validator_index? (GP says must be)
-  //    - Are they UNIQUE by validator_index? (GP says must be)
-  //    - sorted but not contiguous
+  const reported: Report[] = [];
 
+  // 1) Validate the “assurances” array
+  if (input.assurances.length === 0) {
 
+    // also check for stale assignments
+    handleStaleAssignments(postState, input.slot);
 
-  //    - Check each signature is correct for anchor=parent + bitfield
-  //    - Check no bit is set that references a core with no pending assignment
-  //    - Possibly check “2/3 super-majority” logic => finalizing availability
-  //    - If any check fails => produce e.g. { err: ErrorCode.BAD_SIGNATURE } or so.
-
-
-
-    // 4) For each assurance a => implement eq. 11.11, 11.13, 11.15, etc.
-    for (const assurance of input.assurances) {
-
-        // a) Check validator_index in range => part of eq. 11.10 (v ∈ Nᵥ => must be < #validators)
-        if (assurance.validator_index >= postState.curr_validators.length) {
-          return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState };
-        }
-
-          // 11.12 => assurances must be sorted by validator_index (and uniqueness)
-        if (!areSortedAndUniqueByValidatorIndex(input.assurances)) {
-          return {
-            output: { err: ErrorCode.NOT_SORTED_OR_UNIQUE_ASSURERS },
-            postState,
-          };
-        }
-
-        
-        // 11.11 => anchor must match parent. need to confirm anchor == input.parent
-        //    if (!arrayEqual(assurance.anchor, input.parent)) {...}
-        // 11.13 => signature check, bls is a TODO
-
-        console.log("assurance", assurance);
-        const anchor = toBytes(assurance.anchor);
-        const bitfield = toBytes(assurance.bitfield);
-        const signature = toBytes(assurance.signature);
-        
-        const publicKey = toBytes(postState.curr_validators[assurance.validator_index].ed25519);
-        console.log("anchor, bitfield, signature, publicKey", { anchor, bitfield, signature, publicKey });
-      
-        const isValid = await verifyAssuranceSignature(anchor, bitfield, signature, publicKey);
-        console.log("Is signature valid =>", isValid);
-
-        if (!isValid) {
-          return { output: { err: ErrorCode.BAD_SIGNATURE }, postState };
-        }
-
-        // 11.15 => bits must only be set for cores that have a pending assignment
-    
-
-    
-        // b) Check signature => 11.13
-        //    For M1, I am assuming we should do it because there is a conformance test for it. 
-    
-        console.log("assurance", assurance);
-        // c) Check bitfield => 11.15 
-        // basically, a byte in the bitfield represents 8 cores, bit[0] = core 0, bit[1] = core 1, etc. 
-        // If the validator is claiming that c cores are engaged, then the bitfield should have c bits set. 
-        // if not then return core_not_engaged. pre_state avail_assignments, with each assignment with a core index. 
-        // if that index is not available, when the bitfield said it was then this is an error.
-        // If the bit is set, the core is engaged.
-        // loop over bytes
-        for (let byteIndex = 0; byteIndex < bitfield.length; byteIndex++) {
-        // loop over bits
-        const byteVal = bitfield[byteIndex];
-        for (let bitPos = 0; bitPos < 8; bitPos++) {
-            // Check if the bit is set
-            const isSet = ((byteVal >> bitPos) & 1) === 1;
-            if (isSet) {
-            const coreIndex = byteIndex * 8 + bitPos;
-            // If we exceed the length, that might be an error or we ignore
-            if (coreIndex >= postState.avail_assignments.length) {
-                // throw an error if the bit references a non-existent core
-                return { output: { err: ErrorCode.CORE_NOT_ENGAGED }, postState };
-            }
-            // If there's no assignment => "core_not_engaged"
-            if (!postState.avail_assignments[coreIndex]) {
-                return { output: { err: ErrorCode.CORE_NOT_ENGAGED }, postState };
-            }
-          }
-        }
-      }
-    }
-
-
-  // etc. Possibly slot logic => if slot < something?
-
-  // 4) If no error => update postState if needed (like marking the assignment are assured)
-  // e.g. if 2/3 majority => set the assignment to “available” or remove it, etc.
-  
-  // 5) If all is well, either produce output: null or { ok: ... } 
-  return { output: null, postState };
-}
-
-
-function areSortedAndUniqueByValidatorIndex(assurances: {
-    validator_index: number;
-  }[]): boolean {
-    for (let i = 0; i < assurances.length - 1; i++) {
-      if (assurances[i].validator_index >= assurances[i + 1].validator_index) {
-        return false;
-      }
-    }
-    return true;
+    return { output: { ok: { reported } }, postState };
   }
+
+  // 2) Check validator_index in range => part of eq. 11.10 (v ∈ Nᵥ => must be < #validators)
+  for (const assurance of input.assurances) {
+    if (assurance.validator_index >= postState.curr_validators.length) {
+      return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState };
+    }
+  }
+
+  // 3) For each assurance a => implement eq. 11.11, 11.13, 11.15, etc.
+  // 11.12 => assurances must be sorted by validator_index (and uniqueness)
+  // move this out, dont need to check through each loop...
+  if (!areSortedAndUniqueByValidatorIndex(input.assurances)) {
+    return {
+      output: { err: ErrorCode.NOT_SORTED_OR_UNIQUE_ASSURERS },
+      postState,
+    };
+  }
+
+  // 4) For each assurance a => implement eq. 11.11, 11.13, 11.15, etc.
+  const errorCode = await validateAssurances(postState, input);
+  if (errorCode) {
+    return { output: { err: errorCode }, postState };
+  }
+
+  // 5) aggregator => eq. 11.16 => if > 2/3 => finalize, and push to reported. 
+  const assurancesForFinalization = input.assurances.map(a => ({
+    // direct
+    bitfield: a.bitfield,
+    validator_index: a.validator_index,
+  }));
+  finalizeTwoThirds(postState, assurancesForFinalization, reported);
+
+  // 6) Check for stale => eq. 11.17
+  // If stale, we remove the assignment
+  handleStaleAssignments(postState, input.slot);
+
+  // 7) If all is well, either produce output: null or { ok: ... } 
+  return { output: { ok: { reported } }, postState };
+}
+
+
+
