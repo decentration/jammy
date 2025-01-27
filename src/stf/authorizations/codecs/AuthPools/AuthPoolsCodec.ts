@@ -2,12 +2,13 @@ import { Codec } from "scale-ts";
 import { AuthPoolCodec } from "./AuthPoolCodec";
 import { decodeWithBytesUsed } from "../../../../codecs";
 import { toUint8Array, concatAll } from "../../../../codecs";
+import { CORES_COUNT } from "../../../../consts";
 
 export const AuthPoolsCodec: Codec<Uint8Array[][]> = [
   // ENCODER
   (pools: Uint8Array[][]): Uint8Array => {
-    if (pools.length !== 2) {
-      throw new Error(`AuthPools must have length=2, got ${pools.length}`);
+    if (pools.length !== CORES_COUNT) {
+      throw new Error(`AuthPools must have length=CORES_COUNT, got ${pools.length}`);
     }
     const enc0 = AuthPoolCodec.enc(pools[0]);
     const enc1 = AuthPoolCodec.enc(pools[1]);

@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { AuthQueueCodec } from "./AuthQueueCodec";
-import { AUTH_QUEUE_SIZE } from "../../../../consts"; 
+import { AUTH_QUEUE_SIZE, CORES_COUNT } from "../../../../consts"; 
 import { decodeWithBytesUsed } from "../../../../codecs";
 import { toUint8Array, concatAll } from "../../../../codecs";
 
@@ -10,8 +10,8 @@ const BYTES_PER_QUEUE = AUTH_QUEUE_SIZE * 32;
 export const AuthQueuesCodec: Codec<Uint8Array[][]> = [
   // ENCODER
   (queues: Uint8Array[][]): Uint8Array => {
-    if (queues.length !== 2) {
-      throw new Error(`AuthQueues must have length=2, got ${queues.length}`);
+    if (queues.length !== CORES_COUNT) {
+      throw new Error(`AuthQueues must have length=${CORES_COUNT}, got ${queues.length}`);
     }
     const enc0 = AuthQueueCodec.enc(queues[0]); // 2560 bytes
     const enc1 = AuthQueueCodec.enc(queues[1]); // 2560 bytes

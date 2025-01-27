@@ -1,7 +1,7 @@
 import { toBytes } from "../../codecs";
 import { State as AssurancesState } from "./types";
 import { AssurancesInput, ErrorCode } from "../types";
-import { arrayEqual } from "./helpers";
+import { arrayEqual } from "../../utils";
 import { verifyAssuranceSignature } from "./verifyAssuranceSignature";
 
 export async function validateAssurances(postState: AssurancesState, input: AssurancesInput): Promise<ErrorCode | null> {

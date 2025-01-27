@@ -1,6 +1,7 @@
 import { State as AssurancesState } from "./types";
 import { AssurancesInput, Output, ErrorCode } from "../types";
-import { areSortedAndUniqueByValidatorIndex, arrayEqual, handleStaleAssignments, finalizeTwoThirds} from "./helpers";
+import { areSortedAndUniqueByValidatorIndex, handleStaleAssignments, finalizeTwoThirds} from "./helpers";
+import { arrayEqual } from "../../utils";
 import { Report } from "../../types/types";
 import { validateAssurances } from "./validateAssurances";
 

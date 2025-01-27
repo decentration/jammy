@@ -14,13 +14,6 @@ export function areSortedAndUniqueByValidatorIndex(assurances: {
     return true;
   }
 
-  export function arrayEqual(h: Uint8Array, a: Uint8Array): boolean {
-    if (h.length !== a.length) return false;
-    for (let i = 0; i < h.length; i++) {
-      if (h[i] !== a[i]) return false;
-    }
-    return true;
-  }
 
 
   export function handleStaleAssignments(
