@@ -30,6 +30,3 @@ export interface Authorizations {
     post_state: AuthorizationsState;
 }
 
-export type AuthorizerHash = Uint8Array;
-
-export const AuthorizerHashCodec = Bytes(32);

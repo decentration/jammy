@@ -18,15 +18,15 @@ export interface MMR {
   peaks: MMRPeak[]; // array of Bytes(32)
 }
 
-export interface BetaItem {
+export interface BlockItem {
     header_hash: Uint8Array; 
     mmr: MMR;                // { peaks: (Uint8Array|null)[] }
     state_root: Uint8Array; 
     reported: WorkPackage[]; 
 }
 
-export interface State {
-  beta: BetaItem[];
+export interface HistoryState {
+  beta: BlockItem[];
 }
 
  // placeholder
@@ -39,9 +39,9 @@ OutputCodec.dec = () => null;
 
 export interface History {
   input: HistoryInput;
-  pre_state: State;
+  pre_state: HistoryState;
   output: null;       
-  post_state: State;
+  post_state: HistoryState;
 }
 
 export interface ValidatorInfo {
@@ -50,11 +50,6 @@ export interface ValidatorInfo {
     bls: BlsPublic;         // Bytes(144)
     metadata: ValidatorMetadata;    // Bytes(128)
  }
-
-export interface AvailAssignment {
-    report: Report;
-    timeout: number; // 4 bytes
-  }
   
   export type AssurancesExtrinsic = Assurance[];
 
@@ -82,6 +77,14 @@ export interface AvailAssignment {
     BAD_SIGNATURE = "bad_signature",
     NOT_SORTED_OR_UNIQUE_ASSURERS = "not_sorted_or_unique_assurers",
   }
+
+  export const ASSURANCES_ERROR_CODES: ErrorCode[] = [
+    ErrorCode.BAD_ATTESTATION_PARENT,
+    ErrorCode.BAD_VALIDATOR_INDEX,
+    ErrorCode.CORE_NOT_ENGAGED,
+    ErrorCode.BAD_SIGNATURE,
+    ErrorCode.NOT_SORTED_OR_UNIQUE_ASSURERS,
+  ];
 
 
   export enum Status {

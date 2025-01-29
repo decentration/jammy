@@ -17,7 +17,7 @@ export const ResultCodec: Codec<Result> = [
     const encPayloadHash = Bytes(32).enc(r.payload_hash);
 
     // 4) encode accumulate_gas (u64 -> 8 bytes LE)
-    const encAccumulateGas = u64.enc(BigInt(r.accumulate_gas)); // Convert to bigint for encoding
+    const encAccumulateGas = u64.enc(BigInt(r.accumulate_gas)); 
 
     // 5) encode result (ResultValueCodec)
     const encResult = ResultValueCodec.enc(r.result);

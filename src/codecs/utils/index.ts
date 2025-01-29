@@ -1,5 +1,5 @@
 export * from './decodeWithBytesUsed';
-
+export * from './read';
 
 
 /**
@@ -65,7 +65,7 @@ export function hexStringToBytes(hexStr: string): Uint8Array {
  * Recursively find "0x..." strings in an object or array 
  * and convert them to Uint8Array using hexStringToBytes
  */
-export function convertHexFieldsToBytes(obj: any): void {
+export function convertHexFieldsToBytes(obj: any): any {
   if (Array.isArray(obj)) {
     obj.forEach(convertHexFieldsToBytes);
   } else if (obj && typeof obj === "object") {
@@ -82,6 +82,7 @@ export function convertHexFieldsToBytes(obj: any): void {
   }
   return obj;
 }
+
 
 
 export function toBytes(input: string | Uint8Array): Uint8Array {
@@ -104,4 +105,31 @@ export function toBytes(input: string | Uint8Array): Uint8Array {
     out[i] = parseInt(hexStr.slice(i * 2, i * 2 + 2), 16);
   }
   return out;
+}
+
+
+export function deepConvertHexToBytes(obj: any): any {
+  if (Array.isArray(obj)) {
+    return obj.map(deepConvertHexToBytes);
+  } else if (obj && typeof obj === "object") {
+    const result: any = {};
+    for (const [key, val] of Object.entries(obj)) {
+      result[key] = deepConvertHexToBytes(val);
+    }
+    return result;
+  } else if (obj === "0x") {
+    return new Uint8Array();
+  } else if (
+    typeof obj === "string" &&
+    obj.startsWith("0x") &&
+    obj.length >= 4
+  ) {
+    const hexStr = obj.slice(2);
+    if (hexStr.length % 2 !== 0) {
+      throw new Error(`Odd hex length: ${obj}`);
+    }
+    return Uint8Array.from(Buffer.from(hexStr, "hex"));
+  } else {
+    return obj;
+  }
 }

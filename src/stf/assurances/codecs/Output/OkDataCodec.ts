@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { OkData } from "../../../types";
-import { ReportCodec } from "../../../../codecs/ReportCodec";
+import { ReportCodec } from "../../../../codecs";
 import { decodeWithBytesUsed } from "../../../../codecs";
 
 export const OkDataCodec: Codec<OkData> = [

@@ -141,7 +141,7 @@ export interface Report {
   core_index: number; // u32
   authorizer_hash: Uint8Array; // Bytes(32)
   auth_output: Uint8Array;
-  segment_root_lookup: SegmentLookupItem[]; // Array of Bytes(32)
+  segment_root_lookup: SegmentItem[]; // Array of Bytes(32)
   results: Result[];
 }
 
@@ -231,10 +231,15 @@ export interface Block {
 
 
 
-export interface SegmentLookupItem {
+export interface SegmentItem {
   work_package_hash: Uint8Array;  // Bytes(32)
   segment_tree_root: Uint8Array;  // Bytes(32)
 }
+
+export const ReportedPackageCodec = Struct({
+  work_package_hash: Bytes(32),
+  segment_tree_root: Bytes(32),
+});
 
 export type Gas = number; // u64 
                          
@@ -270,6 +275,15 @@ export interface WorkPackage {
   authorizer: Authorizer;
   context: Context;          
   items: WorkItem[];          // single-byte-len array (size 1..4)
+}
+
+export type AuthorizerHash = Uint8Array;
+
+export const AuthorizerHashCodec = Bytes(32);
+
+export interface AvailAssignment {
+  report: Report;
+  timeout: number; // 4 bytes
 }
 
 

@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { State } from "../../types"; 
-import { AvailAssignmentsCodec } from "../AvailAssignments/AvailAssignmentsCodec";
+import { AvailAssignmentsCodec } from "../../../../codecs/AvailAssignments/AvailAssignmentsCodec";
 import { CurrValidatorsCodec } from "./CurrValidatorsCodec"; 
 import { decodeWithBytesUsed } from "../../../../codecs";
 
