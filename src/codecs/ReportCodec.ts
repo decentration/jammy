@@ -1,17 +1,14 @@
 import { Codec } from "scale-ts";
 import { Report } from "../types/types";
 import { PackageSpecCodec } from "../types/types";
-// import { ContextCodec } from "../types/types"; // replace this with new ContextCodec
 import { ResultCodec } from "./ResultCodec";
-
-import { DiscriminatorCodec } from "../codecs/DiscriminatorCodec";  // direct path
-import { SegmentLookupItemCodec } from "./SegmentLookupItemCodec";
+import { DiscriminatorCodec } from "./DiscriminatorCodec";
+import { SegmentItemCodec } from "./SegmentItemCodec";
 import { ContextCodec } from "./ContextCodec";
 import { SingleByteLenCodec, decodeWithBytesUsed } from "./index";
 import { Bytes, Vector } from "scale-ts";
 
-
-export const SegmentLookupArrayCodec = DiscriminatorCodec(SegmentLookupItemCodec);
+export const SegmentArrayCodec = DiscriminatorCodec(SegmentItemCodec);
 
 /**
  * `Report` has:
@@ -39,6 +36,7 @@ export const ReportCodec: Codec<Report> = [
     // 4) encode authorizer_hash (32 bytes)
     const encAuthHash = Bytes(32).enc(report.authorizer_hash);
 
+    console.log("encAuthHash", Buffer.from(encAuthHash).toString("hex"));
     // 5) encode auth_output with SingleByteLenCodec
     const encAuthOutput = SingleByteLenCodec.enc(report.auth_output);
 
@@ -46,7 +44,7 @@ export const ReportCodec: Codec<Report> = [
     console.log("encAuthOutput", encAuthOutput);
     // 6) encode segment_root_lookup with Vector(Bytes(32))
 
-    const encSegLookup = DiscriminatorCodec(SegmentLookupItemCodec).enc(report.segment_root_lookup);
+    const encSegLookup = DiscriminatorCodec(SegmentItemCodec).enc(report.segment_root_lookup);
     // log string hex
 console.log("encSegLookup", Buffer.from(encSegLookup).toString("hex"));
     // 7) encode results with DiscriminatorCodec(ResultCodec)
@@ -77,6 +75,7 @@ console.log("encSegLookup", Buffer.from(encSegLookup).toString("hex"));
     out.set(encAuthHash, offset);
     offset += encAuthHash.length;
 
+    console.log("encAuthOutput", encAuthOutput);
     out.set(encAuthOutput, offset);
     offset += encAuthOutput.length;
 
@@ -145,10 +144,10 @@ console.log("encSegLookup", Buffer.from(encSegLookup).toString("hex"));
     }
 
 
-    // 6) decode segment_root_lookup => SegmentLookupArrayCodec
+    // 6) decode segment_root_lookup => SegmentArrayCodec
     {
       const { value: segLookup, bytesUsed } = decodeWithBytesUsed(
-        SegmentLookupArrayCodec,
+        SegmentArrayCodec,
         uint8.slice(offset)
       );
       offset += bytesUsed;

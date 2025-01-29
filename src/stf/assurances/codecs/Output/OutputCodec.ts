@@ -1,45 +1,51 @@
-// src/stf/assurances/codecs/OutputCodec.ts
-
 import { Codec } from "scale-ts";
-import { Output, OkData, ErrorCode } from "../../../types";
+import { Output, OkData, ErrorCode, ASSURANCES_ERROR_CODES } from "../../../types";
 import { OkDataCodec } from "./OkDataCodec";
 
 /**
  * OutputCodec:
- * Encodes/decodes the Output type.
+ * Encodes/decodes the Output type:
+ *
  * Variants:
- * - { err: ErrorCode } => [0x01, ErrorCode]
- * - { ok: OkData } => [0x02, ...OkData]
+ *   - `{ err: ErrorCode }` => [0x01, <byteForErrorIndex>]
+ *   - `{ ok: OkData }`     => [0x02, <encodedOkData>...]
  */
 export const OutputCodec: Codec<Output> = [
+  // ---------------------
   // ENCODER
+  // ---------------------
   (out: Output): Uint8Array => {
-
+    // 1) null variant
     if (out === null) {
-      return new Uint8Array([0x00]); 
+      throw new Error("OutputCodec.enc: null variant not supported. Shouuld either be Err or Ok");
     }
 
+    // 2) Error variant => [0x01, <errIndex>]
     if ("err" in out) {
-      const errCode = out.err as ErrorCode;
-      if (errCode < 0 || errCode > 0xff) {
-        throw new Error(`OutputCodec.enc: invalid err code ${errCode}`);
+      const errStr = out.err as ErrorCode;
+      const errByte = errorCodeToByte.get(errStr);
+      if (errByte === undefined) {
+        throw new Error(`OutputCodec.enc: unknown error code='${errStr}'`);
       }
-      return new Uint8Array([0x01, errCode & 0xff]);
+      return new Uint8Array([0x01, errByte]);
     }
 
+    // 3) OK variant => [0x02, <OkDataCodec>...]
     if ("ok" in out) {
       const prefix = new Uint8Array([0x02]);
       const encodedOk = OkDataCodec.enc(out.ok as OkData);
       const outBuf = new Uint8Array(prefix.length + encodedOk.length);
       outBuf.set(prefix, 0);
-      outBuf.set(encodedOk, prefix.length);
+      outBuf.set(encodedOk, 1);
       return outBuf;
     }
 
     throw new Error("OutputCodec.enc: unrecognized variant in Output");
   },
 
+  // ---------------------
   // DECODER
+  // ---------------------
   (data: ArrayBuffer | Uint8Array | string): Output => {
     const uint8 =
       data instanceof Uint8Array
@@ -52,14 +58,26 @@ export const OutputCodec: Codec<Output> = [
       throw new Error("OutputCodec.dec: no data to decode");
     }
 
+    // 1) The tag is the first byte
     const tag = uint8[0];
+
+    // [0x00] => null
+    if (tag === 0x00) {
+      return null;
+    }
+
+    // [0x01, errByte] => error
     if (tag === 0x01) {
       if (uint8.length < 2) {
         throw new Error("OutputCodec.dec: insufficient data for 'err' variant");
       }
-      const errCode = uint8[1];
-      return { err: errCode as ErrorCode };
-    } else if (tag === 0x02) {
+      const errByte = uint8[1];
+      const errStr = byteToErrorCode(errByte);
+      return { err: errStr };
+    }
+
+    // [0x02, ...OkData] => OK
+    if (tag === 0x02) {
       const slice = uint8.slice(1);
       const okData = OkDataCodec.dec(slice);
       return { ok: okData };
@@ -71,3 +89,15 @@ export const OutputCodec: Codec<Output> = [
 
 OutputCodec.enc = OutputCodec[0];
 OutputCodec.dec = OutputCodec[1];
+
+// build map from string -> index
+const errorCodeToByte = new Map<ErrorCode, number>();
+ASSURANCES_ERROR_CODES.forEach((code, i) => errorCodeToByte.set(code, i));
+
+// reverse lookup 
+function byteToErrorCode(b: number): ErrorCode {
+  if (b < 0 || b >= ASSURANCES_ERROR_CODES.length) {
+    throw new Error(`OutputCodec: invalid error code byte=${b}`);
+  }
+  return ASSURANCES_ERROR_CODES[b];
+}

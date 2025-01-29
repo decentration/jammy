@@ -1,6 +1,6 @@
 import { sha256 } from "@noble/hashes/sha256";
 import { ExtrinsicData, AssuranceCodec, TicketCodec } from "../../types/types";
-import { ExtrinsicDataCodec } from "../ExtrinsicData/ExtrinsicData";
+import { ExtrinsicDataCodec } from "../ExtrinsicData/ExtrinsicDataCodec";
 import { PreimageCodec, GuaranteeCodec, DisputeCodec } from "../../codecs";
 import { buildBinaryMerkleTree } from "./MerkleTree";
 import { DiscriminatorCodec } from "../../codecs/DiscriminatorCodec";

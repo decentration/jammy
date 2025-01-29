@@ -1,8 +1,8 @@
 import { Codec } from "scale-ts";
 import { SafroleState } from "../types"; 
 import { TimeSlotCodec } from "../types";  
-import { EntropyBufferCodec } from "./EntropyBufferCodec"; 
-import { ValidatorsInfoCodec } from "./ValidatorsInfoCodec";
+import { EntropyBufferCodec } from "../../codecs/EntropyBufferCodec"; 
+import { ValidatorsInfoCodec } from "../../codecs/ValidatorsInfoCodec";
 import { TicketsAccumulatorCodec } from "./TicketsAccumulatorCodec";
 import { PostOffendersCodec } from "../types";
 import { concatAll, decodeWithBytesUsed, toUint8Array } from "../../codecs/utils"; 

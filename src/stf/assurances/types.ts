@@ -1,6 +1,7 @@
-import { AvailAssignment, ValidatorInfo, AssurancesInput, Output } from "../types";
+import { ValidatorInfo, AssurancesInput, Output } from "../types";
 import { BITFIELD_LENGTH } from "../../consts";
 import { Struct, Bytes } from "scale-ts";
+import { AvailAssignment } from "../../types/types";
 
 export interface State {
   avail_assignments: (AvailAssignment | null)[]; 

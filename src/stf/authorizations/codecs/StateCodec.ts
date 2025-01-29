@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { AuthorizationsState } from "../types";
-import { AuthPoolsCodec } from "./AuthPools/AuthPoolsCodec";
+import { AuthPoolsCodec } from "../../../codecs/AuthPools/AuthPoolsCodec";
 import { AuthQueuesCodec } from "./AuthQueues/AuthQueuesCodec";
 import { decodeWithBytesUsed } from "../../../codecs";
 import { toUint8Array, concatAll } from "../../../codecs";

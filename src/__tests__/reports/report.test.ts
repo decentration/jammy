@@ -78,7 +78,7 @@ describe("ReportCodec test", () => {
     const readableDecoded = convertToReadableFormat(decoded);
     const readableOriginal = convertToReadableFormat(report);
 
-    const outDir = path.resolve(__dirname, "../../__tests__/output/report/");
+    const outDir = path.resolve(__dirname, "../../__tests__/output/reports/");
     writeFileSync(path.join(outDir, "encodedReport.txt"), readableEncoded);
     writeFileSync(
       path.join(outDir, "decodedReport.json"),

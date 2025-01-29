@@ -1,2 +1,2 @@
-export * from './ExtrinsicData';
+export * from './ExtrinsicDataCodec';
 export * from '../merkle/computeExtrinsicsMerkleRoot';

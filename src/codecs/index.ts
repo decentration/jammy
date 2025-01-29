@@ -13,10 +13,15 @@ export * from './DiscriminatorCodec';
 export * from './SetCodec';
 export * from './utils';
 export * from './MMRPeakCodec';
-export * from './SegmentLookupItemCodec'
-export * from './BetaItemCodec';
+export * from './SegmentItemCodec'
+export * from './BlockItemCodec';
 export * from './MMRCodec';
 export * from './SingleByteLenCodec'
 export * from './utils/OptionCodec';
 export * from './TicketsMarkCodec';
 export * from './TicketBodyCodec';
+export * from './AuthPools/AuthPoolsCodec';
+export * from './EntropyBufferCodec';
+export * from './ValidatorsInfoCodec';
+export * from './AvailAssignments/AvailAssignmentsCodec';
+export * from './IntegerCodec';

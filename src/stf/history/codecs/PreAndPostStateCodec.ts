@@ -1,22 +1,22 @@
 import { Codec } from 'scale-ts';
-import { BetaItem } from '../../types'; // Adjust the path for BetaItem type
-import { BetaItemCodec } from '../../../codecs/BetaItemCodec'; // Adjust the path for BetaItemCodec
+import { BlockItem } from '../../types'; 
+import { BlockItemCodec } from '../../../codecs/BlockItemCodec';
 import { DiscriminatorCodec, decodeWithBytesUsed } from '../../../codecs';
 
 /**
  * PreAndPostState represents structures like:
- * { beta: BetaItem[] }
+ * { beta: BlockItem[] }
  */
-export const PreAndPostStateCodec: Codec<{ beta: BetaItem[] }> = [
+export const PreAndPostStateCodec: Codec<{ beta: BlockItem[] }> = [
   // ENCODER
-  (state: { beta: BetaItem[] }): Uint8Array => {
-    const encBeta = DiscriminatorCodec(BetaItemCodec).enc(state.beta);
+  (state: { beta: BlockItem[] }): Uint8Array => {
+    const encBeta = DiscriminatorCodec(BlockItemCodec).enc(state.beta);
 
     return encBeta;
   },
 
   // DECODER
-  (data: ArrayBuffer | Uint8Array | string): { beta: BetaItem[] } => {
+  (data: ArrayBuffer | Uint8Array | string): { beta: BlockItem[] } => {
     const uint8 =
       data instanceof Uint8Array
         ? data
@@ -25,13 +25,13 @@ export const PreAndPostStateCodec: Codec<{ beta: BetaItem[] }> = [
         : new Uint8Array(data);
 
     const { value: beta, bytesUsed } = decodeWithBytesUsed(
-      DiscriminatorCodec(BetaItemCodec),
+      DiscriminatorCodec(BlockItemCodec),
       uint8
     );
 
     return { beta };
   },
-] as unknown as Codec<{ beta: BetaItem[] }>;
+] as unknown as Codec<{ beta: BlockItem[] }>;
 
 PreAndPostStateCodec.enc = PreAndPostStateCodec[0];
 PreAndPostStateCodec.dec = PreAndPostStateCodec[1];
