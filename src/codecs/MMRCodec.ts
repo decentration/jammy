@@ -1,76 +1,29 @@
-import { Codec } from "scale-ts";
-import { MMR } from "../stf/types";
-import { decodeWithBytesUsed } from ".";
 import { DiscriminatorCodec } from "./DiscriminatorCodec";
 import { MMRPeakCodec } from "./MMRPeakCodec";
+import { MMR } from "../stf/types";
+import { Codec } from "scale-ts";
 
 /**
- * MMRCodec:
- * - 0x00 => None => MMR.peaks = []
- * - 0x01 => Some => followed by a length-prefix, then that many MMRPeak items
- 
-**/
+ * MMRCodec that uses DiscriminatorCodec of MMRPeakCodec:
+ * 
+ *  - The first integer is length of peaks
+ *  - Then decode that many MMRPeak items
+ */
 export const MMRCodec: Codec<MMR> = [
-  // ENCODER
+  // Encoder
   (mmr: MMR): Uint8Array => {
-    const peaks = mmr.peaks || [];
-    if (peaks.length === 0) {
-      // None
-      return Uint8Array.of(0x00);
-    }
-
-    // Some
-    // 1) prefix 0x01
-    // 2) length-prefixed array of MMRPeak
- 
-    const encPeaks = DiscriminatorCodec(MMRPeakCodec).enc(peaks);
-
-    // total = 1 (prefix) + encoded-peaks-length
-    const out = new Uint8Array(1 + encPeaks.length);
-    out[0] = 0x01;
-    out.set(encPeaks, 1);
-    console.log('MMRCodec: enc out :', out);
-    return out;
+    // encode array with DiscriminatorCodec => length + items
+    const enc = DiscriminatorCodec(MMRPeakCodec).enc(mmr.peaks);
+    return enc;
   },
 
-
-  // DECODER
-
+  // Decoder
   (data: ArrayBuffer | Uint8Array | string): MMR => {
-    const uint8 =
-      data instanceof Uint8Array
-        ? data
-        : typeof data === "string"
-        ? new TextEncoder().encode(data)
-        : new Uint8Array(data);
-
-    if (uint8.length === 0) {
-      throw new Error("MMRCodec: no data available to decode");
-    }
-
-    const prefix = uint8[0];
-    let offset = 1;
-
-    // 0x00 => None => empty array
-    if (prefix === 0x00) {
-      return { peaks: [] };
-    }
-    // console.log('MMRCodec: dec :', prefix, data);
-    // 0x01 => Some => decode a length-prefixed array of MMRPeak
-    if (prefix === 0x01) {
-      const slice = uint8.slice(offset);
-      const { value: peaks, bytesUsed } = decodeWithBytesUsed(
-        DiscriminatorCodec(MMRPeakCodec),
-        slice
-      );
-      offset += bytesUsed;
-      return { peaks };
-    }
-
-    throw new Error(`MMRCodec: invalid prefix 0x${prefix.toString(16)}`);
+    // decode array => MMRPeak[] => put it in .peaks
+    const peaks = DiscriminatorCodec(MMRPeakCodec).dec(data);
+    return { peaks };
   },
 ] as unknown as Codec<MMR>;
-
 
 MMRCodec.enc = MMRCodec[0];
 MMRCodec.dec = MMRCodec[1];
