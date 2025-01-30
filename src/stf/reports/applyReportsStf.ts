@@ -3,6 +3,7 @@ import { ErrorCode } from "./types";
 import { arrayEqual } from "../../utils";
 import { verify } from "tweetnacl"
 import { CORES_COUNT, MAX_BLOCKS_HISTORY } from "../../consts";
+import { areSortedAndUniqueByValidatorIndex } from "./helpers";
 
 // for reference:
 // export enum ErrorCode {
@@ -40,7 +41,7 @@ import { CORES_COUNT, MAX_BLOCKS_HISTORY } from "../../consts";
  * 11.2 work report definition 
  * eq.'s (11.3), (11.4) and (11.5) are structural constrains 
  *  - (11.3) Guarantor Assignments ∀w ∈ W ∶ SwlS + S(wx)pS ≤ J, where J = 8
- *  
+ *  -...
 */
 export function applyReportsStf( preState: ReportsState, input: ReportsInput): 
 { output: ReportsOutput; postState: ReportsState } {
@@ -78,13 +79,17 @@ export function applyReportsStf( preState: ReportsState, input: ReportsInput):
     if (anchorIdx < 0 || anchorIdx > MAX_BLOCKS_HISTORY ) {
         console.log("anchor not recent");
       return { output: { err: ErrorCode.ANCHOR_NOT_RECENT }, postState: preState };
-    }
+    } 
 
+    console.log("checking order and uniqueness of guarantors");
     // // 2c  check if reports are in ascending order and unique => (11.24) and (11.23)
-    // // NOT_SORTED_OR_UNIQUE_GUARANTORS
-    // if (i > 0 && input.guarantees[i - 1].slot >= slot) {
-    //   return { output: { err: ErrorCode.NOT_SORTED_OR_UNIQUE_GUARANTORS }, postState: preState };
-    // }
+    // NOT_SORTED_OR_UNIQUE_GUARANTORS
+    if (!areSortedAndUniqueByValidatorIndex(signatures)) {
+      return {
+        output: { err: ErrorCode.NOT_SORTED_OR_UNIQUE_GUARANTORS },
+        postState,
+      };
+    }
 
     // // 2d) check if report slot is in the future => 
     // // FUTURE_REPORT_SLOT
