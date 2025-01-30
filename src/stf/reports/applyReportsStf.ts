@@ -4,6 +4,8 @@ import { arrayEqual } from "../../utils";
 import { verify } from "tweetnacl"
 import { CORES_COUNT, MAX_BLOCKS_HISTORY } from "../../consts";
 import { areSortedAndUniqueByValidatorIndex } from "./helpers";
+import { buildSignatureMessage } from "./buildSignatureMessage";
+import { ValidatorInfo } from "../types";
 
 // for reference:
 // export enum ErrorCode {
@@ -46,11 +48,11 @@ import { areSortedAndUniqueByValidatorIndex } from "./helpers";
 export function applyReportsStf( preState: ReportsState, input: ReportsInput): 
 { output: ReportsOutput; postState: ReportsState } {
 
-//   // 1) If no guarantees, do no op.
-//   if (!input.guarantees || input.guarantees.length === 0) {
-//     // no changes to state 
-//     return { output: null, postState: preState };
-//   }
+  // 1) If no guarantees, do no op.
+  if (!input.guarantees || input.guarantees.length === 0) {
+    // no changes to state 
+    return { output: null, postState: preState };
+  }
 
   // 2) Clone preState
   const postState = structuredClone(preState) as ReportsState;
@@ -91,48 +93,67 @@ export function applyReportsStf( preState: ReportsState, input: ReportsInput):
       };
     }
 
-    // // 2d) check if report slot is in the future => 
-    // // FUTURE_REPORT_SLOT
-    // if (slot > input.slot) {
-    //   return { output: { err: ErrorCode.FUTURE_REPORT_SLOT }, postState: preState };
-    // }
+    // 2d) check if report slot is in the future => 
+    // FUTURE_REPORT_SLOT
+    if (slot > input.slot) {
+      return { output: { err: ErrorCode.FUTURE_REPORT_SLOT }, postState: preState };
+    }
 
-    // // 2e) "credentials" aka signatures... check each signature is correct, and that validator is assigned to `core` either in current or prior rotation
-    // for (const sig of signatures) {
-    //   const { validator_index, signature } = sig;
+    // 2e) "credentials" aka signatures... check each signature is correct, and that validator is assigned to `core` either in current or prior rotation
+    for (const sig of signatures) {
+      const { validator_index, signature } = sig;
 
-    //   // 2e.1)
-    //   // basic checks before verifying signature
-    //   // check if in range.  (11.24)
-    //   if (validator_index >= postState.curr_validators.length || validator_index < 0) {
-    //     return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
+      // i)
+      // basic checks before verifying signature
+      // check if in range.  (11.24)
+      if (validator_index >= postState.curr_validators.length || validator_index < 0) {
+        return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
+      }
+
+    //   // ii) Check assignment => (11.26)
+    //   const coreNow = whichCore(validator_index, postState.curr_validators, input.slot);
+    //   const corePrev = whichCore(validator_index, postState.prev_validators, input.slot);
+    //   if (core !== coreNow && core !== corePrev) {
+    //     return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
     //   }
 
-    //   // 2e.2)
+    //         // 2e.1)
     //   // (11.25) check if the validator is assigned to the core in this block's time slot or in the most recent previous 
     //   // set of assignments. 
 
-    //   //  get the ed25519 key in `curr_validators`
+    //   // get the current ed25519 key in `curr_validators`
     //   const validatorInfo = postState.curr_validators[validator_index]; 
-    //   const edKey = validatorInfo.ed25519;
+    //   const currEdKey = validatorInfo.ed25519;
 
     //   // get ed25519 key in `prev_validators`
     //   const prevValidatorInfo = postState.prev_validators[validator_index];
     //   const prevEdKey = prevValidatorInfo.ed25519;
 
-    //   // if the edKey or prevEdKey is not equal to the signature, return error
-    //     if (!arrayEqual(edKey, signature) && !arrayEqual(prevEdKey, signature)) {
-    //         return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
-    //     }
+    //   // if the edKey or prevEdKey is not part  signature, return error
+    //   if (!arrayEqual(currEdKey, signature) && !arrayEqual(prevEdKey, signature)) {
 
-    //   const message = buildGuaranteeMessage(report); // TODO
-    //   const isOK = verify(signature, message, validatorInfo.ed25519);
+    //     console.log("bad signature", { currEdKey, prevEdKey, signature });
+    //       return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
+    //   }
+
+    //   const message = buildSignatureMessage(guarantee); // TODO
+    //   const isOK = verify(signature, message);
     //   if (!isOK) {
     //     return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
     //   }
-    // }
+    }
 
   } 
     // 3) commit changes
   return { output: null, postState };
 }
+
+
+// function whichCore(
+//   validatorIndex: number, 
+//   validatorSet: ValidatorInfo[], 
+//   slot: number
+// ): number {
+// //... TODO
+//   return 0; 
+// }

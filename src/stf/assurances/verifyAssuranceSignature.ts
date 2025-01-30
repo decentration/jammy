@@ -14,11 +14,8 @@ import { buildSignatureMessage } from "./buildSignatureMessage";
  * @param publicKey 32-byte Ed25519 public key
  * @returns True if valid, false if invalid or an error occurs
  */
-export async function verifyAssuranceSignature(
-  anchor: Uint8Array,
-  bitfield: Uint8Array,
-  signature: Uint8Array,
-  publicKey: Uint8Array
+export async function verifyReportSignature(
+  report: Uint8Array,
 ): Promise<boolean> {
   // length checks
   if (signature.length !== 64) {
@@ -28,7 +25,7 @@ export async function verifyAssuranceSignature(
     return false;
   }
 
-  console.log("anchor, bitfield, signature, publicKey", { anchor, bitfield, signature, publicKey });
+  console.log("report signature, publicKey", { anchor, bitfield, signature, publicKey });
 
   // 2) Build message from (anchor, bitfield
   const finalMsg = buildSignatureMessage(anchor, bitfield);

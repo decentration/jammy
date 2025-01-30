@@ -1,5 +1,5 @@
 import nacl from "tweetnacl";
-import { buildSignatureMessage } from "./verifyReportSignature";
+import { buildSignatureMessage } from "./buildSignatureMessage";
 
 
 // TODO convert to reports from assurances (11.26)
