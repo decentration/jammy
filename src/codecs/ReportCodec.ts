@@ -46,7 +46,7 @@ export const ReportCodec: Codec<Report> = [
 
     const encSegLookup = DiscriminatorCodec(SegmentItemCodec).enc(report.segment_root_lookup);
     // log string hex
-console.log("encSegLookup", Buffer.from(encSegLookup).toString("hex"));
+
     // 7) encode results with DiscriminatorCodec(ResultCodec)
     const encResults = DiscriminatorCodec(ResultCodec).enc(report.results);
 

@@ -13,8 +13,12 @@ export const ContextCodec: Codec<Context> = [
     out.set(ctx.anchor, offset);
     offset += 32;
     out.set(ctx.state_root, offset);
+
+    console.log("state_root", Buffer.from(ctx.state_root).toString("hex"));
     offset += 32;
     out.set(ctx.beefy_root, offset);
+
+    console.log("beefy_root", Buffer.from(ctx.beefy_root).toString("hex"));
     offset += 32;
     out.set(ctx.lookup_anchor, offset);
     offset += 32;

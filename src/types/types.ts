@@ -1,4 +1,4 @@
-import { Struct, u8, u16, u32, Bytes, Vector, bool, _void} from 'scale-ts';
+import { Struct, u8, u16, u32, Bytes, Vector, bool, _void, Codec} from 'scale-ts';
 import { SingleByteLenCodec } from '../codecs/SingleByteLenCodec';
 import { BITFIELD_LENGTH } from '../consts/tiny';
 
@@ -109,6 +109,7 @@ export interface PackageSpec {
   exports_count: number; // u16
 }
 
+// lets log inside the PackageSpecCodec 
 export const PackageSpecCodec = Struct({
   hash: Bytes(32),
   length: u32, // 4 bytes
@@ -116,7 +117,6 @@ export const PackageSpecCodec = Struct({
   exports_root: Bytes(32),
   exports_count: u16,
 });
-
 export interface Context {
   anchor: Uint8Array; 
   state_root: Uint8Array;

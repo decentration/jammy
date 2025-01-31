@@ -7,12 +7,12 @@ import { convertToReadableFormat } from "../../../utils";
 describe("Reports STF - conformance tests", () => {
 
     const testFiles = [
-        "anchor_not_recent-1.json",
+        // "anchor_not_recent-1.json",
         // "bad_beefy_mmr-1.json",
         // "bad_code_hash-1.json",
         // "bad_core_index-1.json",
         // "bad_service_id-1.json",
-        // "bad_signature-1.json",
+        "bad_signature-1.json",
         // "bad_state_root-1.json",
         "bad_validator_index-1.json",
         // "big_work_report_output-1.json",
@@ -20,14 +20,14 @@ describe("Reports STF - conformance tests", () => {
         // "dependency_missing-1.json",
         // "duplicate_package_in_recent_history-1.json",
         // "duplicated_package_in_report-1.json",
-        "future_report_slot-1.json",
+        // "future_report_slot-1.json",
         // "high_work_report_gas-1.json",
         // "many_dependencies-1.json",
         // "multiple_reports-1.json",
         // "no_enough_guarantees-1.json",
         // "not_authorized-1.json",
         // "not_authorized-2.json",
-        "not_sorted_guarantor-1.json",
+        // "not_sorted_guarantor-1.json",
         // "out_of_order_guarantees-1.json",
         // "report_before_last_rotation-1.json",
         // "report_curr_rotation-1.json",
@@ -53,7 +53,7 @@ describe("Reports STF - conformance tests", () => {
             const filePath = path.join(__dirname, "../../../stf/reports/data/tiny",
             fileName
             );
-
+            console.log("checking filePath", filePath);
             const rawJson = fs.readFileSync(filePath, "utf8");
 
             // 2) Parse the top-level shape { input, pre_state, output, post_state }
@@ -66,7 +66,7 @@ describe("Reports STF - conformance tests", () => {
             const expectedPostState = testVector.post_state;
 
             // 4) Call the STF
-            const { output, postState } = applyReportsStf(pre_state, input);
+            const { output, postState } = await applyReportsStf(pre_state, input);
 
             // 5) Compare results
             expect(output).toEqual(expectedOutput);

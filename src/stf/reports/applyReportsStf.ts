@@ -2,10 +2,12 @@ import { ReportsState, ReportsInput, ReportsOutput } from "./types";
 import { ErrorCode } from "./types"; 
 import { arrayEqual } from "../../utils";
 import { verify } from "tweetnacl"
-import { CORES_COUNT, MAX_BLOCKS_HISTORY } from "../../consts";
+import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT } from "../../consts";
 import { areSortedAndUniqueByValidatorIndex } from "./helpers";
 import { buildSignatureMessage } from "./buildSignatureMessage";
 import { ValidatorInfo } from "../types";
+import { Ed25519Public } from "../../types/types";
+import { verifyReportSignature } from "./verifyReportSignature";
 
 // for reference:
 // export enum ErrorCode {
@@ -45,8 +47,8 @@ import { ValidatorInfo } from "../types";
  *  - (11.3) Guarantor Assignments ∀w ∈ W ∶ SwlS + S(wx)pS ≤ J, where J = 8
  *  -...
 */
-export function applyReportsStf( preState: ReportsState, input: ReportsInput): 
-{ output: ReportsOutput; postState: ReportsState } {
+export async function applyReportsStf( preState: ReportsState, input: ReportsInput): 
+Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
   // 1) If no guarantees, do no op.
   if (!input.guarantees || input.guarantees.length === 0) {
@@ -99,61 +101,70 @@ export function applyReportsStf( preState: ReportsState, input: ReportsInput):
       return { output: { err: ErrorCode.FUTURE_REPORT_SLOT }, postState: preState };
     }
 
+
+    console.log("checking if report is in the current or previous epoch");
     // 2e) "credentials" aka signatures... check each signature is correct, and that validator is assigned to `core` either in current or prior rotation
     for (const sig of signatures) {
       const { validator_index, signature } = sig;
+      console.log("checking signature", { validator_index, signature });
 
       // i)
       // basic checks before verifying signature
       // check if in range.  (11.24)
-      if (validator_index >= postState.curr_validators.length || validator_index < 0) {
+
+      if (validator_index >= VALIDATOR_COUNT || validator_index < 0) {
+        console.log("bad validator index");
         return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
       }
 
-    //   // ii) Check assignment => (11.26)
-    //   const coreNow = whichCore(validator_index, postState.curr_validators, input.slot);
-    //   const corePrev = whichCore(validator_index, postState.prev_validators, input.slot);
-    //   if (core !== coreNow && core !== corePrev) {
-    //     return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
-    //   }
+     
+      // // (11.25) check if the validator is assigned to the core in this block's time slot or in the most recent previous 
+      // // set of assignments. 
+      // let pubEdKey: Ed25519Public | null = null
 
-    //         // 2e.1)
-    //   // (11.25) check if the validator is assigned to the core in this block's time slot or in the most recent previous 
-    //   // set of assignments. 
+      // // check if the validator is in the current or previous validators
+      // if (validator_index < postState.curr_validators.length) {
+      //   pubEdKey = postState.curr_validators[validator_index].ed25519;
+      // } else if (validator_index < postState.prev_validators.length) {
+      //   pubEdKey = postState.prev_validators[validator_index].ed25519;
+      // }
 
-    //   // get the current ed25519 key in `curr_validators`
-    //   const validatorInfo = postState.curr_validators[validator_index]; 
-    //   const currEdKey = validatorInfo.ed25519;
+      // let isValidSignature = false;
 
-    //   // get ed25519 key in `prev_validators`
-    //   const prevValidatorInfo = postState.prev_validators[validator_index];
-    //   const prevEdKey = prevValidatorInfo.ed25519;
+      // if (pubEdKey) {
+      //   // basic validation checks
+      //   if (pubEdKey.length !== 32 || signature.length !== 64) {
+      //     return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
+      //   }
 
-    //   // if the edKey or prevEdKey is not part  signature, return error
-    //   if (!arrayEqual(currEdKey, signature) && !arrayEqual(prevEdKey, signature)) {
+      //   console.log("verifying signature", { validator_index, signature, pubEdKey });
+      //   // check if the signature is valid
+      //   const isVerified = await verifyReportSignature(guarantee, signature, pubEdKey);
+      //   if (isVerified) {
+      //     isValidSignature = true;
+      //     console.log("signature is valid");
+      //   } 
+      //   if (!isValidSignature) {
+      //     isValidSignature = false;
+      //     return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
+      //   }
 
-    //     console.log("bad signature", { currEdKey, prevEdKey, signature });
-    //       return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
-    //   }
+      // }
 
-    //   const message = buildSignatureMessage(guarantee); // TODO
-    //   const isOK = verify(signature, message);
-    //   if (!isOK) {
-    //     return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
-    //   }
+      //... whichCore WRONG_ASSIGNMENT next WIP TODO
+      // // ii) Check assignment => (11.26)
+      // const coreNow = whichCore(validator_index, postState.curr_validators, input.slot);
+      // const corePrev = whichCore(validator_index, postState.prev_validators, input.slot);
+      // if (core !== coreNow && core !== corePrev) {
+      //   return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
+      // }
+
+            
+      // iii) Check signature => (11.25)
     }
 
   } 
-    // 3) commit changes
   return { output: null, postState };
 }
 
 
-// function whichCore(
-//   validatorIndex: number, 
-//   validatorSet: ValidatorInfo[], 
-//   slot: number
-// ): number {
-// //... TODO
-//   return 0; 
-// }
