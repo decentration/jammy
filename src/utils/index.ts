@@ -43,3 +43,14 @@ export function toHex(uint8: Uint8Array): string {
     }
     return true;
   }
+
+
+  export function ensureBinary(field: any, expectedLength: number, fieldName: string): Uint8Array {
+    if (!(field instanceof Uint8Array)) {
+      throw new Error(`${fieldName} is not binary data`);
+    }
+    if (field.length !== expectedLength) {
+      throw new Error(`${fieldName} has wrong length: expected ${expectedLength}, got ${field.length}`);
+    }
+    return field;
+  }

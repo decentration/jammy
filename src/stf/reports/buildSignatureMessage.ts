@@ -1,8 +1,6 @@
 import { blake2b } from "blakejs";
-import { Guarantee } from "../../types/types";
-import { GuaranteeCodec } from "../../codecs";
-
-// TODO: convert to reports from assurances (11.26)
+import { Guarantee, Report } from "../../types/types";
+import { GuaranteeCodec, ReportCodec } from "../../codecs";
 
 /**
  * Builds the concatenated message for Ed25519 signature verification.
@@ -14,9 +12,9 @@ import { GuaranteeCodec } from "../../codecs";
  * @returns A Uint8Array representing the final message to be signed/verified.
  */
 
-export function buildSignatureMessage(report: Guarantee): Uint8Array {
+export function buildSignatureMessage(report: Report): Uint8Array {
   // 1) scale encode the report
-  const encoded = GuaranteeCodec.enc(report);
+  const encoded = ReportCodec.enc(report);
 
   console.log("encoded", encoded);
 

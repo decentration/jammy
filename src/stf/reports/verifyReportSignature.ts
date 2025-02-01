@@ -1,11 +1,12 @@
 import nacl from "tweetnacl";
 import { buildSignatureMessage } from "./buildSignatureMessage";
-import { Guarantee } from "../../types/types";
+import { Guarantee, Report } from "../../types/types";
+import { deepConvertHexToBytes, hexStringToBytes, ReportCodec } from "../../codecs";
+import { toHexToggle } from "../../utils";
 
 
 /**
  * Checks Ed25519 signature as per eq. 11.26 in GP:
- *   - encode report with GuaranteeCodec
  *   - blake2b(32) hash
  *   -  prepend "jam_guarantee" not the "$" label ($jam_guarantee won't work)
  *   - Ed25519 verify
@@ -16,18 +17,15 @@ import { Guarantee } from "../../types/types";
  * @returns True if valid, false if invalid or an error occurs
  */
 export async function verifyReportSignature(
-  report: Guarantee,
+  report: Report,
   signature: Uint8Array,
   publicKey: Uint8Array
-): Promise<boolean> {
-  console.log("report, signature, publicKey", { report, signature, publicKey });
-  const msg = buildSignatureMessage(report);
-  // Ed25519 verify
-  try {
-    const isValid = nacl.sign.detached.verify(msg, signature, publicKey);
-    console.log("Is signature valid =>", isValid);
-    return isValid;
-  } catch (err) {
-    return false;
+  ): Promise<boolean> {
+    const message = buildSignatureMessage(report);
+    try {
+      return nacl.sign.detached.verify(message, signature, publicKey);
+    } catch {
+      return false;
+    }
   }
-}
+  

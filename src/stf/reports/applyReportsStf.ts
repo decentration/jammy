@@ -8,6 +8,7 @@ import { buildSignatureMessage } from "./buildSignatureMessage";
 import { ValidatorInfo } from "../types";
 import { Ed25519Public } from "../../types/types";
 import { verifyReportSignature } from "./verifyReportSignature";
+import { hexStringToBytes } from "../../codecs";
 
 // for reference:
 // export enum ErrorCode {
@@ -106,6 +107,16 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     // 2e) "credentials" aka signatures... check each signature is correct, and that validator is assigned to `core` either in current or prior rotation
     for (const sig of signatures) {
       const { validator_index, signature } = sig;
+      console.log("signature (before conversion)", sig.signature, "type:", typeof sig.signature);
+      console.log("signature length", sig.signature.length);
+
+      let signatureBytes: Uint8Array;
+      if (typeof signature === "string") {
+        signatureBytes = new Uint8Array(hexStringToBytes(signature));
+      } else {
+        signatureBytes = signature;
+      }
+      
       console.log("checking signature", { validator_index, signature });
 
       // i)
@@ -118,40 +129,50 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       }
 
      
-      // // (11.25) check if the validator is assigned to the core in this block's time slot or in the most recent previous 
-      // // set of assignments. 
-      // let pubEdKey: Ed25519Public | null = null
+      // (11.25) check if the validator is assigned to the core in this block's time slot or in the most recent previous 
+      // set of assignments. 
+      let pubEdKey: Ed25519Public | null = null
 
-      // // check if the validator is in the current or previous validators
-      // if (validator_index < postState.curr_validators.length) {
-      //   pubEdKey = postState.curr_validators[validator_index].ed25519;
-      // } else if (validator_index < postState.prev_validators.length) {
-      //   pubEdKey = postState.prev_validators[validator_index].ed25519;
-      // }
+      // check if the validator is in the current or previous validators
+      if (validator_index < postState.curr_validators.length) {
+        pubEdKey = postState.curr_validators[validator_index].ed25519;
+        console.log("pubEdKey", pubEdKey);
+      } else if (validator_index < postState.prev_validators.length) {
+        pubEdKey = postState.prev_validators[validator_index].ed25519;
+        console.log("pubEdKey", pubEdKey);
+      } else {
+        return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
+      }
 
-      // let isValidSignature = false;
+      if (typeof pubEdKey === "string") {
+        pubEdKey = new Uint8Array(hexStringToBytes(pubEdKey));
+        console.log("converted pubEdKey", pubEdKey.length);
+      } 
 
-      // if (pubEdKey) {
-      //   // basic validation checks
-      //   if (pubEdKey.length !== 32 || signature.length !== 64) {
-      //     return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
-      //   }
+      let isValidSignature = false;
 
-      //   console.log("verifying signature", { validator_index, signature, pubEdKey });
-      //   // check if the signature is valid
-      //   const isVerified = await verifyReportSignature(guarantee, signature, pubEdKey);
-      //   if (isVerified) {
-      //     isValidSignature = true;
-      //     console.log("signature is valid");
-      //   } 
-      //   if (!isValidSignature) {
-      //     isValidSignature = false;
-      //     return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
-      //   }
+      if (pubEdKey) {
+        // basic validation checks
+        if (pubEdKey.length !== 32 || signatureBytes.length !== 64) {
+          console.log("bad signature length", pubEdKey.length, signatureBytes.length );
+          return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
+        }
 
-      // }
+        console.log("verifying signature", { validator_index, signatureBytes, pubEdKey });
+        // check if the signature is valid
+        const isVerified = await verifyReportSignature(report, signatureBytes, pubEdKey);
+        if (isVerified) {
+          isValidSignature = true;
+          console.log("signature is valid");
+        } 
+        if (!isValidSignature) {
+          isValidSignature = false;
+          return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
+        }
 
-      //... whichCore WRONG_ASSIGNMENT next WIP TODO
+      }
+
+      //... whichCore WRONG_ASSIGNMENT... WIP TODO
       // // ii) Check assignment => (11.26)
       // const coreNow = whichCore(validator_index, postState.curr_validators, input.slot);
       // const corePrev = whichCore(validator_index, postState.prev_validators, input.slot);
@@ -162,6 +183,30 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
             
       // iii) Check signature => (11.25)
     }
+
+    // TODO 2f) check service ID is correct
+    // BAD_SERVICE_ID
+
+    // TODO 2g) check code hash is correct
+    // BAD_CODE_HASH
+
+    // TODO 2h) check dependencies are present
+    // DEPENDENCY_MISSING
+
+    // TODO 2i) check package is not duplicated
+    // DUPLICATE_PACKAGE
+
+    // TODO 2j) check state root is correct
+    // BAD_STATE_ROOT
+
+    // TODO 2k) check beefy MMR root is correct
+    // BAD_BEEFY_MMR_ROOT
+
+    // TODO 2l) check core is authorized
+    // CORE_UNAUTHORIZED
+
+    // 3) Update state
+    //... WIP TODO
 
   } 
   return { output: null, postState };

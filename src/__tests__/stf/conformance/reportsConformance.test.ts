@@ -2,15 +2,17 @@ import fs from "fs";
 import path from "path";
 import { applyReportsStf } from "../../../stf/reports/applyReportsStf";
 import { convertToReadableFormat } from "../../../utils";
+import { deepConvertHexToBytes } from "../../../codecs";
+import { Reports } from "../../../stf/reports/types";
 
 
 describe("Reports STF - conformance tests", () => {
 
     const testFiles = [
-        // "anchor_not_recent-1.json",
+        "anchor_not_recent-1.json",
         // "bad_beefy_mmr-1.json",
         // "bad_code_hash-1.json",
-        // "bad_core_index-1.json",
+        "bad_core_index-1.json",
         // "bad_service_id-1.json",
         "bad_signature-1.json",
         // "bad_state_root-1.json",
@@ -20,14 +22,14 @@ describe("Reports STF - conformance tests", () => {
         // "dependency_missing-1.json",
         // "duplicate_package_in_recent_history-1.json",
         // "duplicated_package_in_report-1.json",
-        // "future_report_slot-1.json",
+        "future_report_slot-1.json",
         // "high_work_report_gas-1.json",
         // "many_dependencies-1.json",
         // "multiple_reports-1.json",
         // "no_enough_guarantees-1.json",
         // "not_authorized-1.json",
         // "not_authorized-2.json",
-        // "not_sorted_guarantor-1.json",
+        "not_sorted_guarantor-1.json",
         // "out_of_order_guarantees-1.json",
         // "report_before_last_rotation-1.json",
         // "report_curr_rotation-1.json",
@@ -58,10 +60,11 @@ describe("Reports STF - conformance tests", () => {
 
             // 2) Parse the top-level shape { input, pre_state, output, post_state }
             const testVector = JSON.parse(rawJson);
+
             // console.log("testVector", testVector);
             // 3) Convert any "0x..." strings -> Uint8Array for input/pre_state/post_state
-            const input = testVector.input;
-            const pre_state = testVector.pre_state;
+            const input = deepConvertHexToBytes(testVector.input);
+            const pre_state = deepConvertHexToBytes(testVector.pre_state);
             const expectedOutput = testVector.output;
             const expectedPostState = testVector.post_state;
 
