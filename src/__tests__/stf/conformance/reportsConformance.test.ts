@@ -3,32 +3,30 @@ import path from "path";
 import { applyReportsStf } from "../../../stf/reports/applyReportsStf";
 import { convertToReadableFormat } from "../../../utils";
 import { deepConvertHexToBytes } from "../../../codecs";
-import { Reports } from "../../../stf/reports/types";
-
 
 describe("Reports STF - conformance tests", () => {
 
     const testFiles = [
         "anchor_not_recent-1.json",
         // "bad_beefy_mmr-1.json",
-        // "bad_code_hash-1.json",
+        "bad_code_hash-1.json",
         "bad_core_index-1.json",
-        // "bad_service_id-1.json",
+        "bad_service_id-1.json",
         "bad_signature-1.json",
-        // "bad_state_root-1.json",
+        "bad_state_root-1.json",
         "bad_validator_index-1.json",
         // "big_work_report_output-1.json",
         // "core_engaged-1.json",
-        // "dependency_missing-1.json",
-        // "duplicate_package_in_recent_history-1.json",
-        // "duplicated_package_in_report-1.json",
+        "dependency_missing-1.json",
+        "duplicate_package_in_recent_history-1.json",
+        "duplicated_package_in_report-1.json",
         "future_report_slot-1.json",
         // "high_work_report_gas-1.json",
         // "many_dependencies-1.json",
         // "multiple_reports-1.json",
         // "no_enough_guarantees-1.json",
-        // "not_authorized-1.json",
-        // "not_authorized-2.json",
+        "not_authorized-1.json",
+        "not_authorized-2.json",
         "not_sorted_guarantor-1.json",
         // "out_of_order_guarantees-1.json",
         // "report_before_last_rotation-1.json",
@@ -40,12 +38,12 @@ describe("Reports STF - conformance tests", () => {
         // "reports_with_dependencies-4.json",
         // "reports_with_dependencies-5.json",
         // "reports_with_dependencies-6.json",
-        // "segment_root_lookup_invalid-1.json",
-        // "segment_root_lookup_invalid-2.json",
-        // "service_item_gas_too_low-1.json",
-        // "too_big_work_report_output-1.json",
-        // "too_high_work_report_gas-1.json",
-        // "too_many_dependencies-1.json",
+        "segment_root_lookup_invalid-1.json",
+        "segment_root_lookup_invalid-2.json",
+        "service_item_gas_too_low-1.json",
+        "too_big_work_report_output-1.json",
+        "too_high_work_report_gas-1.json",
+        "too_many_dependencies-1.json",
         // "wrong_assignment-1.json"
     ]
 
