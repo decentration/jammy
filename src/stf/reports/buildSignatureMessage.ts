@@ -13,14 +13,12 @@ import { GuaranteeCodec, ReportCodec } from "../../codecs";
  */
 
 export function buildSignatureMessage(report: Report): Uint8Array {
+
   // 1) scale encode the report
   const encoded = ReportCodec.enc(report);
 
-  console.log("encoded", encoded);
-
   // 2) compute blake2b(32) hash
   const hashed = blake2b(encoded, undefined, 32);
-
 
   // 3) prepend the label "jam_guarantee"
   const label = new TextEncoder().encode("jam_guarantee");

@@ -29,9 +29,9 @@ describe("Reports STF - conformance tests", () => {
         "not_authorized-2.json",
         "not_sorted_guarantor-1.json",
         // "out_of_order_guarantees-1.json",
-        // "report_before_last_rotation-1.json",
-        // "report_curr_rotation-1.json",
-        // "report_prev_rotation-1.json",
+        "report_before_last_rotation-1.json",
+        "report_curr_rotation-1.json",
+        "report_prev_rotation-1.json",
         // "reports_with_dependencies-1.json",
         // "reports_with_dependencies-2.json",
         // "reports_with_dependencies-3.json",
@@ -69,8 +69,13 @@ describe("Reports STF - conformance tests", () => {
             // 4) Call the STF
             const { output, postState } = await applyReportsStf(pre_state, input);
 
+            // if output contains Uint8Arrays, convert them to hex strings
+            const convertedOutput = convertToReadableFormat(output);
+
+            console.log("convertedOutput", convertedOutput);
+            console.log("expectedOutput", expectedOutput);
             // 5) Compare results
-            expect(output).toEqual(expectedOutput);
+            expect(convertedOutput).toEqual(expectedOutput);
             expect(convertToReadableFormat(postState)).toEqual(expectedPostState);
             });
         });

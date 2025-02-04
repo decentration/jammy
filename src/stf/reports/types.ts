@@ -103,3 +103,9 @@ export enum ErrorCode {
     output: ReportsOutput;
     post_state: ReportsState;
   }
+  
+  export interface ReporterItem {
+    validatorIndex: number;
+    pubEdKey: Uint8Array;
+    set: "curr" | "prev";
+  }

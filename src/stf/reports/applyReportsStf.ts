@@ -1,11 +1,11 @@
-import { ReportsState, ReportsInput, ReportsOutput } from "./types"; 
-import { ErrorCode } from "./types"; 
-import { arrayEqual, toHex } from "../../utils";
-import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT } from "../../consts";
-import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, findExportedPackage, isKnownPackage } from "./helpers";
-import { Ed25519Public } from "../../types/types";
+
+import { arrayEqual, convertToReadableFormat, toHex } from "../../utils";
+import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT, MAX_WORK_SIZE, ROTATION_PERIOD, MAXIMUM_TOTAL_ACCUMULATE_GAS } from "../../consts";
+import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, finalizeReporters, findExportedPackage, isKnownPackage, isWithinOneRotation, whichRotation } from "./helpers";
+import { Ed25519Public, SegmentItem } from "../../types/types";
 import { verifyReportSignature } from "./verifyReportSignature";
 import { hexStringToBytes } from "../../codecs";
+import { ReportsState, ReportsInput, ReportsOutput, ReporterItem, ErrorCode } from "./types"; 
 
 // for reference:
 // export enum ErrorCode {
@@ -35,8 +35,6 @@ import { hexStringToBytes } from "../../codecs";
 //   }
 
 
-const GA = 50000;              // 11.30 => maximum total accumulate_gas
-const MAX_WORK_SIZE = 48*1024; // 11.8 => 48 KiB of output data
 
 
 /**
@@ -61,6 +59,10 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
   // 1) Clone preState
   const postState = structuredClone(preState) as ReportsState;
   const seenPkgHashes = new Set<string>();
+  const reported: SegmentItem[] = [];
+  const reporterItems: ReporterItem[] = [];
+
+  let finalReporters: Uint8Array[] = [];
 
   for (let i = 0; i < input.guarantees.length; i++) {
 
@@ -69,7 +71,15 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     const { report, slot, signatures } = guarantee;
     const core = report.core_index; 
 
-    // 2a) Convert the "report.package_spec.hash" => a consistent hex string
+    // 1)  check if report slot is within one rotation of the input slot => REPORT_EPOCH_BEFORE_LAST
+    if (!isWithinOneRotation(slot, input.slot, ROTATION_PERIOD)) {
+      return { 
+        output: { err: ErrorCode.REPORT_EPOCH_BEFORE_LAST }, 
+        postState: preState 
+      };
+    }
+
+    // 2) Convert the "report.package_spec.hash" => a consistent hex string
     let pkgHashBytes = report.package_spec.hash;
     if (typeof pkgHashBytes === "string") {
       pkgHashBytes = hexStringToBytes(pkgHashBytes);
@@ -104,6 +114,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       return { output: { err: ErrorCode.ANCHOR_NOT_RECENT }, postState: preState };
     } 
 
+    // TODO REPORT_EPOCH_BEFORE_LAST 
 
     // 5)  check if reports are in ascending order and unique => (11.24) and (11.23)
     // NOT_SORTED_OR_UNIQUE_GUARANTORS
@@ -121,8 +132,8 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     if (idx < 0) {
       return { output: { err: ErrorCode.CORE_UNAUTHORIZED }, postState: preState };
     }
-    // remove it so can’t be reused
-    authPool.splice(idx, 1);
+    // // remove it so can’t be reused
+    // authPool.splice(idx, 1);
 
     // 7) check if report slot is in the future => 
     // FUTURE_REPORT_SLOT
@@ -138,8 +149,6 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       return { output: { err: ErrorCode.TOO_MANY_DEPENDENCIES }, postState: preState };
     }
 
-
-   
     let totalGas = 0;  // Gas usage => 11.30
     let totalOutputSize = 0; // for 11.8 => for checking "WORK_REPORT_TOO_BIG"
     
@@ -196,7 +205,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
 
       // v) 11.30 => if totalGas > GA => WORK_REPORT_GAS_TOO_HIGH
-      if (totalGas > GA) {
+      if (totalGas > MAXIMUM_TOTAL_ACCUMULATE_GAS) {
         return { output: { err: ErrorCode.WORK_REPORT_GAS_TOO_HIGH }, postState: preState };
       }
 
@@ -274,7 +283,8 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       }
     }
 
-   
+    const rotation = whichRotation(slot, input.slot, ROTATION_PERIOD);
+
     // 10) "credentials" aka signatures... 
     // check each signature is correct, and that validator is assigned to `core` either in current or prior rotation
     for (const sig of signatures) {
@@ -299,19 +309,38 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       // (11.25) check if the validator is assigned to the core in this block's time slot or in the most recent previous 
       // set of assignments. 
       let pubEdKey: Ed25519Public | null = null
+      let set: "curr" | "prev";
 
-      if (validator_index < postState.curr_validators.length) {
+      if (rotation === "curr") {
+        // Must ensure validator_index < curr_validators.length
+        if (validator_index >= postState.curr_validators.length) {
+          return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
+        }
+        set = "curr";
         pubEdKey = postState.curr_validators[validator_index].ed25519;
-        console.log("pubEdKey", pubEdKey);
-      } else if (validator_index < postState.prev_validators.length) {
+        console.log("checking curr_validators", validator_index, pubEdKey);
+      } else if (rotation === "prev") {
+        if (validator_index >= postState.prev_validators.length) {
+          return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
+        }
+        set = "prev";
         pubEdKey = postState.prev_validators[validator_index].ed25519;
-        console.log("pubEdKey", pubEdKey);
+      } else if (rotation === "too_old") {
+        return {
+          output: { err: ErrorCode.REPORT_EPOCH_BEFORE_LAST },
+          postState: preState
+        };
       } else {
-        return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
+        return {
+          output: { err: ErrorCode.WRONG_ASSIGNMENT },
+          postState: preState
+        };
       }
+      reporterItems.push({ validatorIndex: validator_index, pubEdKey, set });
 
       if (typeof pubEdKey === "string") {
         pubEdKey = new Uint8Array(hexStringToBytes(pubEdKey));
+
         console.log("converted pubEdKey", pubEdKey.length);
       } 
 
@@ -319,6 +348,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
       // iii) check signature is valid
       if (pubEdKey) {
+
         // basic validation checks
         if (pubEdKey.length !== 32 || signatureBytes.length !== 64) {
           console.log("bad signature length", pubEdKey.length, signatureBytes.length );
@@ -332,6 +362,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
           console.log("signature is valid");
         } 
         if (!isValidSignature) {
+          console.log("bad signature");
           isValidSignature = false;
           return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
         }
@@ -344,14 +375,33 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       // if (core !== coreNow && core !== corePrev) {
       //   return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
       // }        
+      
     }
 
+    finalReporters = finalizeReporters(reporterItems);
+    console.log("finalReporters", convertToReadableFormat(finalReporters));
 
-    // 3) Update state
-    //... WIP TODO
+    // If the entire guarantee is good, push to "reported"
+    const segRootBytes = report.package_spec.exports_root;
 
+    reported.push({
+      work_package_hash: pkgHashBytes,
+      segment_tree_root: segRootBytes
+    });
+
+    postState.avail_assignments[core] = {
+      report,
+      timeout: input.slot
+    };
   } 
-  return { output: null, postState };
+   // 3) Update state
+  return {
+    output: {
+      ok: {
+        reported,                 
+        reporters: finalReporters
+        }
+    },
+    postState
+  }
 }
-
-
