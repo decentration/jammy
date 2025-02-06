@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 
-import { StateCodec } from "../../../stf/assurances/codecs/StateCodec";
+import { StateCodec } from "../../../stf/assurances/codecs/StateCodec/StateCodec";
 import { toHex, convertToReadableFormat } from "../../../utils";
 
 describe("StateCodec test", () => {

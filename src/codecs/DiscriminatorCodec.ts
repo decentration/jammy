@@ -3,6 +3,11 @@ import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec"
 
 /**
  * DiscriminatorCodec: Creates a compatible codec for a sequence of items,
+ * - where the length of the sequence is encoded as a protocol integer.
+ * - the prefix is a single byte.
+ *    - if zero then the length is zero, otherwise the length is the value of the byte.
+ * - if the whole sequence is empty, the length byte is zero.
+ *
  */
 export function DiscriminatorCodec<T>(
   itemCodec: Codec<T>,

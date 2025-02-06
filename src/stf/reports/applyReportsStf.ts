@@ -1,10 +1,10 @@
 
 import { arrayEqual, convertToReadableFormat, toHex } from "../../utils";
 import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT, MAX_WORK_SIZE, ROTATION_PERIOD, MAXIMUM_TOTAL_ACCUMULATE_GAS } from "../../consts";
-import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, finalizeReporters, findExportedPackage, isKnownPackage, isWithinOneRotation, whichRotation } from "./helpers";
+import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, finalizeReporters, findExportsRoot, inRecentBlocksOrNew, isWithinOneRotation, whichRotation } from "./helpers";
 import { Ed25519Public, SegmentItem } from "../../types/types";
 import { verifyReportSignature } from "./verifyReportSignature";
-import { hexStringToBytes } from "../../codecs";
+import { hexStringToBytes, toBytes } from "../../codecs";
 import { ReportsState, ReportsInput, ReportsOutput, ReporterItem, ErrorCode } from "./types"; 
 
 // for reference:
@@ -38,16 +38,16 @@ import { ReportsState, ReportsInput, ReportsOutput, ReporterItem, ErrorCode } fr
 
 
 /**
- * applyReportsStf 
- * Following the conformance naming convention we call it "reports" 
- * because each "guarantee" carries a new Work Report onto the chain, which eventually leads to availability and accumulation.
- * applyReportsStf implements 11.2 – 11.5, Guaruntees.
- * 11.1 state is avail_assignments
- * 11.2 work report definition 
- * eq.'s (11.3), (11.4) and (11.5) are structural constrains 
- *  - (11.3) Guarantor Assignments ∀w ∈ W ∶ SwlS + S(wx)pS ≤ J, where J = 8
- *  -  TODO improve description 
-*/
+* applyReportsStf 
+ * Implements Jam GP 11.2–11.5 (the guarantees extrinsic).
+ * This function performs structural checks (e.g. package hash duplication,
+ * dependency limits), context checks (e.g. anchor, state root), gas/output checks,
+ * prerequisite and segment lookup validations, and then signature (credential) checks.
+ * 
+ * On success, the guarantee is recorded in avail_assignments and the output includes:
+ *    - reported: a list of { work_package_hash, segment_tree_root }
+ *    - reporters: a finalized list of reporter public keys.
+ */
 export async function applyReportsStf( preState: ReportsState, input: ReportsInput): 
 Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
@@ -56,20 +56,51 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     return { output: null, postState: preState };
   }
 
-  // 1) Clone preState
+  // Clone preState
   const postState = structuredClone(preState) as ReportsState;
   const seenPkgHashes = new Set<string>();
+  const newPackages: Map<string, { exportsRoot: Uint8Array }> = new Map(); 
+
+  for (const g of input.guarantees) {
+    const pkgHash = toHex(g.report.package_spec.hash);
+    const exportsRoot = g.report.package_spec.exports_root;
+    newPackages.set(pkgHash, { exportsRoot });
+  }
   const reported: SegmentItem[] = [];
   const reporterItems: ReporterItem[] = [];
 
   let finalReporters: Uint8Array[] = [];
 
-  for (let i = 0; i < input.guarantees.length; i++) {
 
-    const guarantee = input.guarantees[i];
+  // 0) 
+  for (const guarantee of input.guarantees) {
     console.log("processing guarantee", guarantee);
     const { report, slot, signatures } = guarantee;
     const core = report.core_index; 
+
+    const pkgHash = toHex(guarantee.report.package_spec.hash);
+
+    // i) For each prerequisite p => if p not in newPackages or chain => fail
+    for (const prereqHashRaw of guarantee.report.context.prerequisites) {
+      const prereqHash = toHex(prereqHashRaw);
+      if (!inRecentBlocksOrNew(prereqHash, postState.recent_blocks, newPackages)) {
+        return { output: { err: ErrorCode.DEPENDENCY_MISSING }, postState: preState };
+      }
+    }
+
+    // ii) For each segment root reference => same logic
+    for (const seg of guarantee.report.segment_root_lookup) {
+      const segWph = toHex(seg.work_package_hash);
+
+      if (!inRecentBlocksOrNew(segWph, postState.recent_blocks, newPackages)) {
+        return { output: { err: ErrorCode.SEGMENT_ROOT_LOOKUP_INVALID }, postState: preState };
+      }
+      // also compare the exportsRoot
+      const known = findExportsRoot(segWph, postState.recent_blocks, newPackages);
+      if (!known || !arrayEqual(known, toBytes(seg.segment_tree_root))) {
+        return { output: { err: ErrorCode.SEGMENT_ROOT_LOOKUP_INVALID }, postState: preState };
+      }
+    }
 
     // 1)  check if report slot is within one rotation of the input slot => REPORT_EPOCH_BEFORE_LAST
     if (!isWithinOneRotation(slot, input.slot, ROTATION_PERIOD)) {
@@ -173,40 +204,33 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
           ? hexStringToBytes(report.auth_output).length
           : report.auth_output.length;
       }
-      console.log("authOutSize + totalOutputSize", authOutSize, totalOutputSize);
+
       if (totalOutputSize + authOutSize > MAX_WORK_SIZE) {
         console.log("work report too big");
         return { output: { err: ErrorCode.WORK_REPORT_TOO_BIG }, postState: preState };
       }
 
-
-      // ii) check service ID is correct
-      // BAD_SERVICE_ID
+      // ii) check service ID is correct => BAD_SERVICE_ID
       const svcId = postState.services.find(s => s.id === item.service_id);
       if (!svcId) {
         return { output: { err: ErrorCode.BAD_SERVICE_ID }, postState: preState };
       }
 
-
-      // iii) 
-      // (11.30) => check item.gas >= svcId.info.min_item_gas
+      // iii) (11.30) => check item.gas >= svcId.info.min_item_gas
       if (item.accumulate_gas < svcId.info.min_item_gas) {
         return { output: { err: ErrorCode.SERVICE_ITEM_GAS_TOO_LOW }, postState: preState };
       }
       totalGas += item.accumulate_gas;
 
+      // iv) 11.30 => if totalGas > GA => WORK_REPORT_GAS_TOO_HIGH
+      if (totalGas > MAXIMUM_TOTAL_ACCUMULATE_GAS) {
+        return { output: { err: ErrorCode.WORK_REPORT_GAS_TOO_HIGH }, postState: preState };
+      }
 
-
-      // iv)) check code hash is correct (11.42)
+      // v)check code hash is correct (11.42) 
       // BAD_CODE_HASH
       if (!arrayEqual(item.code_hash, svcId.info.code_hash)) {
         return { output: { err: ErrorCode.BAD_CODE_HASH }, postState: preState };
-      }
-
-
-      // v) 11.30 => if totalGas > GA => WORK_REPORT_GAS_TOO_HIGH
-      if (totalGas > MAXIMUM_TOTAL_ACCUMULATE_GAS) {
-        return { output: { err: ErrorCode.WORK_REPORT_GAS_TOO_HIGH }, postState: preState };
       }
 
       // vi) 
@@ -223,64 +247,6 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       //     postState: preState
       //   };
       // }
-
-
-      const segLookups = report.segment_root_lookup || [];
-
-      // vii) For each segment root reference => check and veify existence and correctness
-      for (const segItem of segLookups) {
-        let rootBytes: Uint8Array;
-        if (typeof segItem.segment_tree_root === "string") {
-          rootBytes = hexStringToBytes(segItem.segment_tree_root);
-        } else {
-          rootBytes = segItem.segment_tree_root;
-        }
-
-        if (rootBytes.length !== 32) {
-          return {
-            output: { err: ErrorCode.SEGMENT_ROOT_LOOKUP_INVALID },
-            postState: preState
-          };
-        }
-        
-        let wphBytes: Uint8Array;
-        if (typeof segItem.work_package_hash === "string") {
-          wphBytes = hexStringToBytes(segItem.work_package_hash);
-        } else {
-          wphBytes = segItem.work_package_hash;
-        }
-
-        // viii) get the exported package and check if it's known
-        const found = findExportedPackage(postState.recent_blocks, wphBytes);
-        if (!found) {
-          // The older package wasn't found => dependency missing
-          return {
-            output: { err: ErrorCode.SEGMENT_ROOT_LOOKUP_INVALID },
-            postState: preState
-          };
-        }
-      
-        // ix) Compare the found `exports_root` with the `segment_tree_root` 
-        if (!arrayEqual(rootBytes, found.exports_root)) {
-          return {
-            output: { err: ErrorCode.SEGMENT_ROOT_LOOKUP_INVALID },
-            postState: preState
-          };
-        }
-      }
-
-      // x) For each prerequisite p => check if known
-      for (const p of prereqs) {
-        
-        const pBytes = (typeof p === "string") ? hexStringToBytes(p) : p;
-        if (!isKnownPackage(pBytes, postState.recent_blocks, seenPkgHashes)) {
-          console.log("dependency missing 2");
-          return {
-            output: { err: ErrorCode.DEPENDENCY_MISSING },
-            postState: preState
-          };
-        }
-      }
     }
 
     const rotation = whichRotation(slot, input.slot, ROTATION_PERIOD);
@@ -290,35 +256,25 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     for (const sig of signatures) {
       const { validator_index, signature } = sig;
 
-      let signatureBytes: Uint8Array;
-      if (typeof signature === "string") {
-        signatureBytes = new Uint8Array(hexStringToBytes(signature));
-      } else {
-        signatureBytes = signature;
-      }
-      
-      // i)
-      // basic checks before verifying signature
-      // check if in range.  (11.24)
-      if (validator_index >= VALIDATOR_COUNT || validator_index < 0) {
-        console.log("bad validator index");
+      let signatureBytes: Uint8Array = (typeof signature === "string")
+        ? new Uint8Array(hexStringToBytes(signature))
+        : signature;
+      // (i) Basic range check for validator_index
+
+      if (validator_index < 0 || validator_index >= VALIDATOR_COUNT) {
         return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
       }
 
-      // ii) check if the validator is in the current or previous validators
-      // (11.25) check if the validator is assigned to the core in this block's time slot or in the most recent previous 
-      // set of assignments. 
-      let pubEdKey: Ed25519Public | null = null
+      // (ii) Based on rotation, select the appropriate validator set
+      let pubEdKey: Ed25519Public | null = null;
       let set: "curr" | "prev";
 
       if (rotation === "curr") {
-        // Must ensure validator_index < curr_validators.length
         if (validator_index >= postState.curr_validators.length) {
           return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
         }
         set = "curr";
         pubEdKey = postState.curr_validators[validator_index].ed25519;
-        console.log("checking curr_validators", validator_index, pubEdKey);
       } else if (rotation === "prev") {
         if (validator_index >= postState.prev_validators.length) {
           return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
@@ -326,82 +282,52 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
         set = "prev";
         pubEdKey = postState.prev_validators[validator_index].ed25519;
       } else if (rotation === "too_old") {
-        return {
-          output: { err: ErrorCode.REPORT_EPOCH_BEFORE_LAST },
-          postState: preState
-        };
+        return { output: { err: ErrorCode.REPORT_EPOCH_BEFORE_LAST }, postState: preState };
       } else {
-        return {
-          output: { err: ErrorCode.WRONG_ASSIGNMENT },
-          postState: preState
-        };
+        return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
       }
+
       reporterItems.push({ validatorIndex: validator_index, pubEdKey, set });
 
       if (typeof pubEdKey === "string") {
         pubEdKey = new Uint8Array(hexStringToBytes(pubEdKey));
-
-        console.log("converted pubEdKey", pubEdKey.length);
-      } 
-
-      let isValidSignature = false;
-
-      // iii) check signature is valid
-      if (pubEdKey) {
-
-        // basic validation checks
-        if (pubEdKey.length !== 32 || signatureBytes.length !== 64) {
-          console.log("bad signature length", pubEdKey.length, signatureBytes.length );
-          return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
-        }
-
-        // check if the signature is valid
-        const isVerified = await verifyReportSignature(report, signatureBytes, pubEdKey);
-        if (isVerified) {
-          isValidSignature = true;
-          console.log("signature is valid");
-        } 
-        if (!isValidSignature) {
-          console.log("bad signature");
-          isValidSignature = false;
-          return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
-        }
       }
 
-      //... whichCore WRONG_ASSIGNMENT... TODO
-      // // ii) Check assignment => (11.26)
-      // const coreNow = whichCore(validator_index, postState.curr_validators, input.slot);
-      // const corePrev = whichCore(validator_index, postState.prev_validators, input.slot);
-      // if (core !== coreNow && core !== corePrev) {
-      //   return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
-      // }        
-      
+      if (pubEdKey.length !== 32 || signatureBytes.length !== 64) {
+        console.log("bad signature length", pubEdKey.length, signatureBytes.length);
+        return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
+      }
+
+      const isVerified = await verifyReportSignature(report, signatureBytes, pubEdKey);
+
+      if (!isVerified) {
+        console.log("bad signature in ", sig.validator_index, toHex(sig.signature));
+        return { output: { err: ErrorCode.BAD_SIGNATURE }, postState: preState };
+      }
+      // (TODO: add an assignment check via a whichCore function for WRONG_ASSIGNMENT. Requires Fisher Yates Shuffle algorithm)
     }
 
     finalReporters = finalizeReporters(reporterItems);
     console.log("finalReporters", convertToReadableFormat(finalReporters));
 
-    // If the entire guarantee is good, push to "reported"
-    const segRootBytes = report.package_spec.exports_root;
-
+    // 11) If the entire guarantee is good, push to "reported"
     reported.push({
       work_package_hash: pkgHashBytes,
-      segment_tree_root: segRootBytes
+      segment_tree_root: report.package_spec.exports_root
     });
 
-    postState.avail_assignments[core] = {
+    // 12) Update avail_assignments for this core
+    postState.avail_assignments[report.core_index] = {
       report,
       timeout: input.slot
     };
   } 
-   // 3) Update state
-  return {
-    output: {
-      ok: {
-        reported,                 
-        reporters: finalReporters
-        }
-    },
-    postState
-  }
+
+  const outputData = {
+    reported,
+    reporters: finalReporters
+  };
+
+  // 3) Update state
+  return { output: { ok: outputData }, postState };
 }

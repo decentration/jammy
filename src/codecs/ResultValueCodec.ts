@@ -2,12 +2,13 @@ import { Codec } from "scale-ts";
 import { decodeWithBytesUsed } from "./utils/decodeWithBytesUsed";
 import { SingleByteLenCodec } from "./SingleByteLenCodec";
 import { ResultValue } from "../types/types";
+import { VarLenBytesCodec } from "./VarLenBytesCodec";
 
 export const ResultValueCodec: Codec<ResultValue> = [
   // ENCODER
   (rv: ResultValue) => {
     if ("ok" in rv) {
-      const encodedOk = SingleByteLenCodec.enc(rv.ok);
+      const encodedOk = VarLenBytesCodec.enc(rv.ok);
       const out = new Uint8Array(1 + encodedOk.length);
       out[0] = 0x00; // 0 => "ok"
       out.set(encodedOk, 1);
@@ -38,7 +39,7 @@ export const ResultValueCodec: Codec<ResultValue> = [
 
     if (variantByte === 0x00) {
       // "ok" => decode single-byte-len
-      const { value: okBytes } = decodeWithBytesUsed(SingleByteLenCodec, remainder);
+      const { value: okBytes } = decodeWithBytesUsed(VarLenBytesCodec, remainder);
       return { ok: okBytes };
     } else if (variantByte === 0x01) {
       return { placeholder: null };

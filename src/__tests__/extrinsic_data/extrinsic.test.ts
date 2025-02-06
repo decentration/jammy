@@ -2,7 +2,7 @@ import { readFileSync, writeFileSync } from "fs";
 import path from "path";
 
 import { ExtrinsicData } from "../../types/types";
-import { ExtrinsicDataCodec } from "../../block/ExtrinsicData/ExtrinsicData";
+import { ExtrinsicDataCodec } from "../../block/ExtrinsicData/ExtrinsicDataCodec";
 import { convertToReadableFormat, toHex } from "../../utils";
 
 describe("ExtrinsicDataCodec test", () => {

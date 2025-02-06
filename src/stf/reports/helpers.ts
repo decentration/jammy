@@ -1,6 +1,7 @@
-import { arrayEqual, toHex } from '../../utils';
+import { arrayEqual, convertToReadableFormat, toHex } from '../../utils';
 import { BlockItem } from '../types'; 
 import { ReporterItem } from './types';
+import { hexStringToBytes } from '../../codecs';
 
   /**
    *  areSortedAndUniqueByValidatorIndex:
@@ -128,19 +129,40 @@ export function whichRotation(guaranteeSlot: number, blockSlot: number, rotation
   } 
 }
 
-// probably not needed but order by ascending validatorIndex
+
+/**
+ * finalizeReporters:
+ * - Returns a list of unique pubEdKeys from the given ReporterItems. sorted lexicographically
+ * @param items 
+ * @returns 
+ */
 export function finalizeReporters(items: ReporterItem[]): Uint8Array[] {
 
-  const currArray = items.filter(it => it.set === "curr");
-  const prevArray = items.filter(it => it.set === "prev");
+  // const currArray = items.filter(it => it.set === "curr");
+  // const prevArray = items.filter(it => it.set === "prev");
 
-  currArray.sort((a, b) => a.validatorIndex - b.validatorIndex);
-  prevArray.sort((a, b) => a.validatorIndex - b.validatorIndex);
+  // currArray.sort((a, b) => a.validatorIndex - b.validatorIndex);
+  // prevArray.sort((a, b) => a.validatorIndex - b.validatorIndex);
 
-  const combined = [...currArray, ...prevArray];
+  // const combined = [...currArray, ...prevArray];
+
+  // items.sort((a, b) => a.validatorIndex - b.validatorIndex);
+
+  items.sort((a, b) => {
+    const aHex = toHex(a.pubEdKey);
+    const bHex = toHex(b.pubEdKey);
+    // Compare them lexicographically.
+    if (aHex < bHex) return -1;
+    if (aHex > bHex) return 1;
+    return 0;
+  });
+
+  console.log("finalizeReporters sorted items", convertToReadableFormat(items));
+
+
   const finalList: string[] = [];
   const seen = new Set<string>();
-  for (const it of combined) {
+  for (const it of items) {
     const pubEdKeyHex = toHex(it.pubEdKey);
     if (!seen.has(pubEdKeyHex)) {
       seen.add(pubEdKeyHex);
@@ -156,3 +178,45 @@ export function finalizeReporters(items: ReporterItem[]): Uint8Array[] {
   });  
   return finalListUint8
   }
+
+  /**
+   * inRecentBlocksOrNew:
+   * - Returns true if hash is found in newPackages or in any block's "reported" array in recent_blocks.
+   * @param hash 
+   * @param recentBlocks 
+   * @param newPackages 
+   * @returns 
+   */
+  export function inRecentBlocksOrNew(
+    hash: string, 
+    recentBlocks: BlockItem[], 
+    newPackages: Map<string, {exportsRoot: Uint8Array}>
+  ): boolean {
+    if (newPackages.has(hash)) return true;  // in extrinsic
+    return alreadyInRecentBlocks(hexStringToBytes(hash), recentBlocks);
+  }
+
+
+/**
+ * findExportsRoot:
+ * - Returns the exports_root if pkgHash is found in newPackages or in any block's "reported" array in recent_blocks.
+ * @param pkgHash 
+ * @param recentBlocks 
+ * @param newPackages 
+ * @returns 
+ */
+ export function findExportsRoot(
+    pkgHash: string,
+    recentBlocks: BlockItem[],
+    newPackages: Map<string, { exportsRoot: Uint8Array }>
+  ): Uint8Array | null {
+    // 1) Check new extrinsic items
+    if (newPackages.has(pkgHash)) {
+      return newPackages.get(pkgHash)?.exportsRoot ?? null;
+    }
+    // 2) Check chain's reported 
+    const found = findExportedPackage(recentBlocks, hexStringToBytes(pkgHash));
+    return found ? found.exports_root : null;
+  }
+  
+  
