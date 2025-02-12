@@ -1,6 +1,6 @@
 import { MAX_BLOCKS_HISTORY } from "../../consts";
 import { HistoryState, HistoryInput } from "../types";
-import { insertLeaf } from "./mmr/mergePeaks";
+import { insertLeaf } from "../../mmr/mergePeaks";
 
 /**
  * applyHistoryStf: 

@@ -93,7 +93,7 @@ export function insertLeaf(
 
 
 // If value is a hex string, parse it; else if val  is already Uint8Array, just return it. 
-function ensureBytes(val: string | Uint8Array | null): Uint8Array {
+export function ensureBytes(val: string | Uint8Array | null): Uint8Array {
     if (val == null) {
       return new Uint8Array(0);
     }

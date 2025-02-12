@@ -52,42 +52,78 @@ export function encodeProtocolInt(x: number): Uint8Array {
 
 // For decode:
 export function decodeProtocolInt(data: Uint8Array): { value: number; bytesRead: number } {
-  if (data.length === 0) throw new Error("decodeProtocolInt: no data to decode");
+  if (data.length === 0) {
+    throw new Error("decodeProtocolInt: no data to decode");
+  }
 
   const b0 = data[0];
 
+  // Single-byte (x <= 127)
   if ((b0 & 0b10000000) === 0) {
-    // Single-byte case (x <= 127)
     return { value: b0, bytesRead: 1 };
-  } else if ((b0 & 0b11000000) === 0b10000000) {
-    // Two-byte case
-    if (data.length < 2) throw new Error("decodeProtocolInt: need more bytes");
+  }
+  
+  // Two-byte case  (x <= 16383 => 14-bit)
+  else if ((b0 & 0b11000000) === 0b10000000) {
+    if (data.length < 2) {
+      throw new Error("decodeProtocolInt (2-byte): need more bytes");
+    }
     const b1 = data[1];
+    
+    // LSB is b1, upper 6 bits are in (b0 & 0x3F).
+    const high6 = (b0 & 0x3F);
+    const low8 = b1;
+    
+    // So x = (high6 << 8) + low8
+    const value = (high6 << 8) | low8;
 
-    // Extract in little-endian order
-    const value = (b1 << 8) | (b0 & 0x3F);
     return { value, bytesRead: 2 };
-  } else if ((b0 & 0b11100000) === 0b11000000) {
-    // Three-byte case
-    if (data.length < 3) throw new Error("decodeProtocolInt: need more bytes");
+  }
+  
+  // Three-byte case (x <= 2,097,151 => 21 bits)
+  else if ((b0 & 0b11100000) === 0b11000000) {
+    if (data.length < 3) {
+      throw new Error("decodeProtocolInt (3-byte): need more bytes");
+    }
     const b1 = data[1];
     const b2 = data[2];
-
-    // Extract little-endian
-    const value = (b2 << 16) | (b1 << 8) | (b0 & 0x1F);
+    
+    // top 5 bits => (b0 & 0x1F)
+    // next 8 bits => b2
+    // lowest 8 bits => b1
+    // x = ( (b0 & 0x1F) << 16 ) + (b2 << 8 ) + b1
+    const high5 = (b0 & 0x1F);
+    const mid8  = b2;
+    const low8  = b1;
+    const value = (high5 << 16) | (mid8 << 8) | low8;
+    
     return { value, bytesRead: 3 };
-  } else if ((b0 & 0b11110000) === 0b11100000) {
-    // Four-byte case
-    if (data.length < 4) throw new Error("decodeProtocolInt: need more bytes");
+  }
+  
+  // Four-byte case (x <= 268,435,455 => 28 bits)
+  else if ((b0 & 0b11110000) === 0b11100000) {
+    if (data.length < 4) {
+      throw new Error("decodeProtocolInt (4-byte): need more bytes");
+    }
     const b1 = data[1];
     const b2 = data[2];
     const b3 = data[3];
-
-    // Extract little-endian
-    const value = (b3 << 24) | (b2 << 16) | (b1 << 8) | (b0 & 0x0F);
+    
+    // top 4 bits => (b0 & 0x0F)
+    // next 8 bits => b3
+    // next 8 bits => b2
+    // lowest 8 bits => b1
+    // x = ( (b0 & 0x0F)<<24 ) + ( b3<<16 ) + ( b2<<8 ) + b1
+    const high4 = (b0 & 0x0F);
+    const h8    = b3;
+    const m8    = b2;
+    const l8    = b1;
+    const value = (high4 << 24) | (h8 << 16) | (m8 << 8) | l8;
+    
     return { value, bytesRead: 4 };
-  } else {
+  }
+  
+  else {
     throw new Error("decodeProtocolInt: unsupported format");
   }
 }
-

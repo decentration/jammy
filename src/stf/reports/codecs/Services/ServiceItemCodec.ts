@@ -10,19 +10,19 @@ import { concatAll, toUint8Array, decodeWithBytesUsed} from "../../../../codecs/
  */
 export const ServiceItemCodec: Codec<ServiceItem> = [
   // ENCODER
-  (item: ServiceItem): Uint8Array => {
+  (data: ServiceItem): Uint8Array => {
     // id => u32
-    const encId = u32.enc(item.id);
+    const encId = u32.enc(data.id);
 
-    // info => see ServiceInfoCodec
-    const encInfo = ServiceInfoCodec.enc(item.info);
+    // data => see ServiceInfoCodec
+    const encInfo = ServiceInfoCodec.enc(data.data);
 
     return concatAll(encId, encInfo);
   },
 
   // DECODER
-  (data: ArrayBuffer | Uint8Array | string): ServiceItem => {
-    const uint8 = toUint8Array(data);
+  (input: ArrayBuffer | Uint8Array | string): ServiceItem => {
+    const uint8 = toUint8Array(input);
     let offset = 0;
 
     function read<T>(codec: Codec<T>): T {
@@ -32,9 +32,9 @@ export const ServiceItemCodec: Codec<ServiceItem> = [
     }
 
     const id = Number(read(u32));
-    const info = read(ServiceInfoCodec);
+    const data = read(ServiceInfoCodec);
 
-    return { id, info };
+    return { id, data };
   },
 ] as unknown as Codec<ServiceItem>;
 

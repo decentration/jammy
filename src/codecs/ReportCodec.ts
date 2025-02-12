@@ -16,7 +16,7 @@ export const SegmentArrayCodec = DiscriminatorCodec(SegmentItemCodec);
  *  - context: Context
  *  - core_index: number (u16)
  *  - authorizer_hash: Uint8Array (32 bytes)
- *  - auth_output: Uint8Array (single-byte-len)
+ *  - auth_output: Uint8Array (variable length bytes) 
  *  - segment_root_lookup: Uint8Array[] (Vector of 32 bytes)
  *  - results: Result[] (DiscriminatorCodec(ResultCodec))
  */

@@ -19,7 +19,7 @@ export interface ReportsState {
     offenders: Uint8Array[],
     recent_blocks: BlockItem[],
     auth_pools: Uint8Array[][],
-    services: ServiceItem[]
+    accounts: ServiceItem[]
 }
 
 export interface OkData {
@@ -84,17 +84,19 @@ export enum ErrorCode {
 
 
   export interface ServiceInfo {
+    service: {
     code_hash: Uint8Array; // 32 bytes
     balance: number;       // u64
     min_item_gas: number;   // u32
     min_memo_gas: number;   // u32
     bytes: number;         // u64
-    items: number;         // u32
+    items: number; 
+    }        // u32
   }
 
   export interface ServiceItem {
     id: number;  // u32
-    info: ServiceInfo;
+    data: ServiceInfo;
   }
 
   export interface Reports {

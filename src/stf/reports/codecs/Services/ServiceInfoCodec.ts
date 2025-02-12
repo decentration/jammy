@@ -12,24 +12,26 @@ import { ServiceInfo } from "../../types";
  * */
 export const ServiceInfoCodec: Codec<ServiceInfo> = [
     // ENCODE
-    (info: ServiceInfo): Uint8Array => {
+    (data: ServiceInfo): Uint8Array => {
+
+      const service = data.service
         // 1) code_hash => 32 bytes
-        const encHash = Bytes(32).enc(info.code_hash);
+        const encHash = Bytes(32).enc(service.code_hash);
     
         // 2) balance => u64
-        const encBalance = u64.enc(BigInt(info.balance));
+        const encBalance = u64.enc(BigInt(service.balance));
     
         // 3) min_item_gas => u64
-        const encMinItemGas = u64.enc(BigInt(info.min_item_gas));
+        const encMinItemGas = u64.enc(BigInt(service.min_item_gas));
     
         // 4) min_memo_gas => u64
-        const encMinMemoGas = u64.enc(BigInt(info.min_memo_gas));
+        const encMinMemoGas = u64.enc(BigInt(service.min_memo_gas));
     
         // 5) bytes => u64
-        const encBytes = u64.enc(BigInt(info.bytes));
+        const encBytes = u64.enc(BigInt(service.bytes));
 
         // 6) items => u32
-        const encItems = u32.enc(info.items);
+        const encItems = u32.enc(service.items);
   
     // concat
     return concatAll(encHash, encBalance, encMinItemGas, encMinMemoGas, encBytes, encItems);
@@ -71,12 +73,14 @@ export const ServiceInfoCodec: Codec<ServiceInfo> = [
       const items = Number(itemsBI);
 
       return {
-        code_hash,
-        balance,
-        min_item_gas,
-        min_memo_gas,
-        bytes: bytesVal,
-        items,
+        service: {          
+          code_hash,
+          balance,
+          min_item_gas,
+          min_memo_gas,
+          bytes: bytesVal,
+          items,
+        }
       };
     },
   ] as unknown as Codec<ServiceInfo>;

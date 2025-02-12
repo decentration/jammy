@@ -14,7 +14,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const encOffenders = DiscriminatorCodec(Bytes(32)).enc(state.offenders);
     const encRecentBlocks = DiscriminatorCodec(BlockItemCodec).enc(state.recent_blocks);
     const encAuthPools = AuthPoolsCodec.enc(state.auth_pools);
-    const encServices = ServicesCodec.enc(state.services);
+    const encServices = ServicesCodec.enc(state.accounts);
 
     return concatAll(
       encAvail,
@@ -46,7 +46,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const offenders         = read(DiscriminatorCodec(Bytes(32)));
     const recent_blocks     = read(DiscriminatorCodec(BlockItemCodec));
     const auth_pools        = read(AuthPoolsCodec);
-    const services          = read(ServicesCodec);
+    const accounts          = read(ServicesCodec);
 
     return {
       avail_assignments,
@@ -56,7 +56,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
       offenders,
       recent_blocks,
       auth_pools,
-      services
+      accounts
     };
   },
 ] as unknown as Codec<ReportsState>;

@@ -43,6 +43,7 @@ export function convertToReadableFormat(obj: any): any {
  * @returns 
  */
 export function arrayEqual(h: Uint8Array, a: Uint8Array): boolean {
+  // console.log("arrayEqual: h and a", h, a);
   if (h.length !== a.length) return false;
   for (let i = 0; i < h.length; i++) {
     if (h[i] !== a[i]) return false;
