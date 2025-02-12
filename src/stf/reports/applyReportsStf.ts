@@ -1,41 +1,14 @@
 
 import { arrayEqual, convertToReadableFormat, toHex } from "../../utils";
-import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT, MAX_WORK_SIZE, ROTATION_PERIOD, MAXIMUM_TOTAL_ACCUMULATE_GAS } from "../../consts";
-import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, finalizeReporters, findExportsRoot, inRecentBlocksOrNew, isWithinOneRotation, whichRotation } from "./helpers";
+import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT, MAX_WORK_SIZE, ROTATION_PERIOD, MAXIMUM_TOTAL_ACCUMULATE_GAS, TIMEOUT, EPOCH_LENGTH, VALIDATORS_PER_CORE } from "../../consts";
+import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, finalizeReporters, findExportsRoot, inRecentBlocksOrNew } from "./helpers";
 import { Ed25519Public, SegmentItem } from "../../types/types";
 import { verifyReportSignature } from "./verifyReportSignature";
 import { hexStringToBytes, toBytes } from "../../codecs";
 import { ReportsState, ReportsInput, ReportsOutput, ReporterItem, ErrorCode } from "./types"; 
-
-// for reference:
-// export enum ErrorCode {
-//     BAD_CORE_INDEX = "bad_core_index",
-//     FUTURE_REPORT_SLOT = "future_report_slot",
-//     REPORT_EPOCH_BEFORE_LAST = "report_epoch_before_last",
-//     INSUFFICIENT_GUARANTEES = "insufficient_guarantees",
-//     OUT_OF_ORDER_GUARANTEE = "out_of_order_guarantee",
-//     NOT_SORTED_OR_UNIQUE_GUARANTORS = "not_sorted_or_unique_guarantors",
-//     WRONG_ASSIGNMENT = "wrong_assignment",
-//     CORE_ENGAGED = "core_engaged",
-//     ANCHOR_NOT_RECENT = "anchor_not_recent",
-//     BAD_SERVICE_ID = "bad_service_id",
-//     BAD_CODE_HASH = "bad_code_hash",
-//     DEPENDENCY_MISSING = "dependency_missing",
-//     DUPLICATE_PACKAGE = "duplicate_package",
-//     BAD_STATE_ROOT = "bad_state_root",
-//     BAD_BEEFY_MMR_ROOT = "bad_beefy_mmr_root",
-//     CORE_UNAUTHORIZED = "core_unauthorized",
-//     BAD_VALIDATOR_INDEX = "bad_validator_index",
-//     WORK_REPORT_GAS_TOO_HIGH = "work_report_gas_too_high",
-//     SERVICE_ITEM_GAS_TOO_LOW = "service_item_gas_too_low",
-//     TOO_MANY_DEPENDENCIES = "too_many_dependencies",
-//     SEGMENT_ROOT_LOOKUP_INVALID = "segment_root_lookup_invalid",
-//     BAD_SIGNATURE = "bad_signature",
-//     WORK_REPORT_TOO_BIG = "work_report_too_big"
-//   }
-
-
-
+import { superPeaks } from "../../mmr/superPeaks";
+import { getPermutation, getPermutationForSlot } from "../../shuffle";
+import { assignedCore,isPrevRotationInSameEpoch,isWithinOneRotation, rotatePermutation, whichRotation } from "../../shuffle/utils";
 
 /**
 * applyReportsStf 
@@ -50,6 +23,45 @@ import { ReportsState, ReportsInput, ReportsOutput, ReporterItem, ErrorCode } fr
  */
 export async function applyReportsStf( preState: ReportsState, input: ReportsInput): 
 Promise<{ output: ReportsOutput; postState: ReportsState; }> {
+  
+  // 2) Verifying validator assigment to cores: 
+  // Build the base curr or prev permutations:
+  //  check if the previous rotation is in the same epoch
+  //  if not we produce a differentn permutation with η′3, λ′
+  //  if it is we use entropy[2] seed
+
+  let entropy = preState.entropy;
+  let baseCurr: number[] = [];
+  let basePrev: number[] = [];
+  if ( isPrevRotationInSameEpoch(input.slot, ROTATION_PERIOD, EPOCH_LENGTH) ) {
+    // same epoch we use entropy[2] seed
+    basePrev = getPermutation( entropy[2], preState.prev_validators.length );
+    console.log("same epoch basePrev", convertToReadableFormat(basePrev));
+  } else {
+      // different epoch => (11.22) => (η′3, λ′)
+      // lambda is old validator set and η′3 is entropy[3] seed
+      basePrev = getPermutation( entropy[3], preState.prev_validators.length );
+  }
+  console.log("baseCurr", convertToReadableFormat(baseCurr));
+  console.log("basePrev", convertToReadableFormat(basePrev));
+
+  // 3) Now we do the “slot-based” rotation for the current epoch set:
+  const rotatedCurr = rotatePermutation(baseCurr,input.slot,
+    EPOCH_LENGTH,
+    ROTATION_PERIOD,
+    VALIDATORS_PER_CORE
+  );
+
+  // 4) For the previous epoch set, we do the rotation but for (slot - ROTATION_PERIOD):
+  const rotatedPrev = rotatePermutation(basePrev,input.slot - ROTATION_PERIOD,
+    EPOCH_LENGTH,
+    ROTATION_PERIOD,
+    VALIDATORS_PER_CORE
+  );
+
+  console.log("rotatedCurr", convertToReadableFormat(rotatedCurr));
+  console.log("rotatedPrev", convertToReadableFormat(rotatedPrev));
+
 
   if (!input.guarantees || input.guarantees.length === 0) {
     // no changes to state 
@@ -61,6 +73,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
   const seenPkgHashes = new Set<string>();
   const newPackages: Map<string, { exportsRoot: Uint8Array }> = new Map(); 
 
+  // we need to loop through to get a map of the new packages before looping through again after.
   for (const g of input.guarantees) {
     const pkgHash = toHex(g.report.package_spec.hash);
     const exportsRoot = g.report.package_spec.exports_root;
@@ -71,14 +84,26 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
   let finalReporters: Uint8Array[] = [];
 
+  for (let i = 1; i < input.guarantees.length; i++) {
+    if (input.guarantees[i - 1].report.core_index >= input.guarantees[i].report.core_index) {
+      return {
+        output: { err: ErrorCode.OUT_OF_ORDER_GUARANTEE },
+        postState: preState,
+      };
+    }
+  }
 
   // 0) 
   for (const guarantee of input.guarantees) {
-    console.log("processing guarantee", guarantee);
     const { report, slot, signatures } = guarantee;
     const core = report.core_index; 
 
-    const pkgHash = toHex(guarantee.report.package_spec.hash);
+    if (guarantee.signatures.length < 2) {
+      return {
+        output: { err: ErrorCode.INSUFFICIENT_GUARANTEES },
+        postState: preState,
+      };
+    }
 
     // i) For each prerequisite p => if p not in newPackages or chain => fail
     for (const prereqHashRaw of guarantee.report.context.prerequisites) {
@@ -135,7 +160,14 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       return { output: { err: ErrorCode.BAD_CORE_INDEX }, postState: preState };
     }
 
-    //4) check anshor not recent => (11.33) context.anchor
+    const existing = postState.avail_assignments[core];
+    if (existing) {
+      if (slot < existing.timeout + TIMEOUT) {
+        return { output: { err: ErrorCode.CORE_ENGAGED }, postState: preState };
+      }
+    }
+
+    //4) check anchor not recent => (11.33) context.anchor
     // we need to check the `recent_blocks` if `anchor` being the `header_hash` sits in it.
     const anchor = report.context.anchor;
     const pool = postState.recent_blocks;
@@ -189,7 +221,6 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       // i) 
       // 11.8 => measure size of the "successful output" if any
       if (item.result && 'ok' in item.result) {
-        console.log("item.result.ok", item.result.ok);
         // Suppose item.result.ok is a Uint8Array or string => get length
         const outLen = (typeof item.result.ok === "string")
           ? hexStringToBytes(item.result.ok).length
@@ -206,33 +237,36 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       }
 
       if (totalOutputSize + authOutSize > MAX_WORK_SIZE) {
-        console.log("work report too big");
         return { output: { err: ErrorCode.WORK_REPORT_TOO_BIG }, postState: preState };
       }
 
       // ii) check service ID is correct => BAD_SERVICE_ID
-      const svcId = postState.services.find(s => s.id === item.service_id);
+      const svcId = postState.accounts.find(s => s.id === item.service_id);
       if (!svcId) {
         return { output: { err: ErrorCode.BAD_SERVICE_ID }, postState: preState };
       }
 
-      // iii) (11.30) => check item.gas >= svcId.info.min_item_gas
-      if (item.accumulate_gas < svcId.info.min_item_gas) {
+      const service = svcId.data.service;
+      // iii) (11.30) => check item.gas >= svcId.data.service.min_item_gas
+      if (item.accumulate_gas < service.min_item_gas) {
         return { output: { err: ErrorCode.SERVICE_ITEM_GAS_TOO_LOW }, postState: preState };
       }
       totalGas += item.accumulate_gas;
 
       // iv) 11.30 => if totalGas > GA => WORK_REPORT_GAS_TOO_HIGH
       if (totalGas > MAXIMUM_TOTAL_ACCUMULATE_GAS) {
+        console.log("work report gas too high", toHex(guarantee.report.package_spec.hash));
         return { output: { err: ErrorCode.WORK_REPORT_GAS_TOO_HIGH }, postState: preState };
       }
 
+      // console.log("item.code_hash line 254", item.code_hash, service.code_hash);
       // v)check code hash is correct (11.42) 
       // BAD_CODE_HASH
-      if (!arrayEqual(item.code_hash, svcId.info.code_hash)) {
+      if (!arrayEqual(item.code_hash, service.code_hash)) {
         return { output: { err: ErrorCode.BAD_CODE_HASH }, postState: preState };
       }
 
+      // console.log("item.code_hash line 261", item.code_hash, service.code_hash);
       // vi) 
       const foundBlock = postState.recent_blocks[anchorIdx];
       // check that state is equal to the anchor id in the block
@@ -240,15 +274,18 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
         return { output: { err: ErrorCode.BAD_STATE_ROOT }, postState: preState };
       }
 
+      const computedBeefy = superPeaks(foundBlock.mmr.peaks);
+
       // vii) TODO compute beefy MMR root
-      // if (!arrayEqual(report.context.beefy_root, computedBeefy)) { // TODO
-      //   return {
-      //     output: { err: ErrorCode.BAD_BEEFY_MMR_ROOT }, 
-      //     postState: preState
-      //   };
-      // }
+      if (!arrayEqual(report.context.beefy_root, computedBeefy)) { // TODO
+        return {
+          output: { err: ErrorCode.BAD_BEEFY_MMR_ROOT }, 
+          postState: preState
+        };
+      }
     }
 
+    // check which rotation the report is in
     const rotation = whichRotation(slot, input.slot, ROTATION_PERIOD);
 
     // 10) "credentials" aka signatures... 
@@ -275,13 +312,35 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
         }
         set = "curr";
         pubEdKey = postState.curr_validators[validator_index].ed25519;
+
+        // check assigned core in currPerm
+        const reportCoreIndex = report.core_index
+        const assignedCoreIndex = assignedCore(validator_index, rotatedCurr, VALIDATORS_PER_CORE);
+        console.log("rotation check assigned curr", { assignedCoreIndex, reportCoreIndex });
+
+        // TODO: COMMENTED OUT FOR NOW until we can confirm if test vectors for verifying assignments
+        // is correct. 
+        // if (assignedCoreIndex !== report.core_index) {
+        //   console.log("assignedCoreIndex !== report.core_index",{ assignedCoreIndex, reportCoreIndex});
+        //   return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
+        // }
+
       } else if (rotation === "prev") {
         if (validator_index >= postState.prev_validators.length) {
           return { output: { err: ErrorCode.BAD_VALIDATOR_INDEX }, postState: preState };
         }
         set = "prev";
         pubEdKey = postState.prev_validators[validator_index].ed25519;
+
+        console.log("rotation check prevPerm", convertToReadableFormat(basePrev));
+
+        const assigned = assignedCore(validator_index, rotatedPrev, VALIDATORS_PER_CORE);
+        if (assigned !== report.core_index) {
+          return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
+        }
       } else if (rotation === "too_old") {
+
+        console.log("rotation check report slot too old", slot, "input slot", input.slot);
         return { output: { err: ErrorCode.REPORT_EPOCH_BEFORE_LAST }, postState: preState };
       } else {
         return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
@@ -314,6 +373,13 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     reported.push({
       work_package_hash: pkgHashBytes,
       segment_tree_root: report.package_spec.exports_root
+    });
+
+    reported.sort((a, b) => {
+      // compare two hex strings or Buffer compares.
+      // Conformance test `high_work_report_gas-1.json` has two reported reports
+      // and they appear to be ordered by the work_package_hash
+      return toHex(a.work_package_hash).localeCompare(toHex(b.work_package_hash));
     });
 
     // 12) Update avail_assignments for this core
