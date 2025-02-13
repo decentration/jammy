@@ -2,8 +2,6 @@ import fs from "fs";
 import path from "path";
 import { hexStringToBytes } from "../../codecs/utils";
 import { getPermutation } from "../../shuffle"; 
-import { id } from "fp-ts/lib/Refinement";
-
 describe("Shuffle test vectors from shuffle-tests.json", () => {
     const filePath = path.join(__dirname, "../../data/shuffle/shuffle-tests.json");
 
@@ -22,7 +20,7 @@ describe("Shuffle test vectors from shuffle-tests.json", () => {
 
             console.log("seedBytes", seedBytes, tc, idx);
 
-            const finalPermutation = getPermutation(seedBytes, tc.input);
+            const finalPermutation = getPermutation(seedBytes, tc.input );
             expect(finalPermutation).toEqual(tc.output);
         });
     });

@@ -7,22 +7,57 @@ import { verifyReportSignature } from "./verifyReportSignature";
 import { hexStringToBytes, toBytes } from "../../codecs";
 import { ReportsState, ReportsInput, ReportsOutput, ReporterItem, ErrorCode } from "./types"; 
 import { superPeaks } from "../../mmr/superPeaks";
-import { getPermutation, getPermutationForSlot } from "../../shuffle";
-import { assignedCore,isPrevRotationInSameEpoch,isWithinOneRotation, rotatePermutation, whichRotation } from "../../shuffle/utils";
+import { getPermutationSeed } from "../../shuffle";
+import { isPrevRotationInSameEpoch,isWithinOneRotation, rotatePermutation, whichRotation } from "../../shuffle/utils";
 
-/**
-* applyReportsStf 
- * Implements Jam GP 11.2–11.5 (the guarantees extrinsic).
- * This function performs structural checks (e.g. package hash duplication,
- * dependency limits), context checks (e.g. anchor, state root), gas/output checks,
- * prerequisite and segment lookup validations, and then signature (credential) checks.
+/** 
+ * applyReportsStf:
+ * applies the guarantees extrinsic as per jam gp 11.2-11.5
+ *
+ * 1) we clone the prestate so we can mutate freely
+ * 2) we build and rotate two permutations (current and previous), which map each validator to a core
+ *    - builds base permutations using {@link getPermutationSeed}
+ *    - rotates them using {@link rotatePermutation}
+ * 3) we collect any new packages from the guarantees
+ * 4) we check for no empty guarantees list; if empty, we skip changes
+ * 5) for each guarantee, we check dependencies and block references
+ *    - checks against recent blocks using {@link inRecentBlocksOrNew}
+ *    - finds export roots using {@link findExportsRoot}
+ * 6) we ensure the report slot is within one rotation of the block slot
+ *    - uses {@link isWithinOneRotation} to validate slot range
+ * 7) we verify no duplicate packages, and that the core index is valid
+ *    - checks core bounds against {@link CORES_COUNT}
+ * 8) we ensure anchor blocks, state roots, and mmr roots are recent and correct
+ *    - uses {@link superPeaks} for mmr validation
+ * 9) we ensure the reported items do not exceed gas or output size limits
+ *    - verifies gas limits using {@link MAXIMUM_TOTAL_ACCUMULATE_GAS}
+ * 10) we verify signatures, ensuring each validator is assigned to the correct core
+ *    - checks validator assignment against rotated permutations
+ *    - verifies signature using {@link verifyReportSignature}
+ * 11) if all checks pass, we add the work package to the reported list
+ * 12) we update avail_assignments for the core that was guaranteed
+ * 13) we produce an output object with the reported items and final list of reporters, and return the updated state
  * 
- * On success, the guarantee is recorded in avail_assignments and the output includes:
- *    - reported: a list of { work_package_hash, segment_tree_root }
- *    - reporters: a finalized list of reporter public keys.
- */
+ * 
+ * @see {@link getPermutationSeed}
+ * @see {@link rotatePermutation}
+ * @see {@link isWithinOneRotation}
+ * @see {@link verifyReportSignature}
+ * @see {@link inRecentBlocksOrNew}
+ * @see {@link findExportsRoot}
+ * @see {@link CORES_COUNT}
+ * @see {@link MAXIMUM_TOTAL_ACCUMULATE_GAS}
+ * @see {@link superPeaks}
+ * @see [Report 38 Conformance Tests](../../__tests__/stf/conformance/reportConformance.test.ts) 
+*/
+
 export async function applyReportsStf( preState: ReportsState, input: ReportsInput): 
 Promise<{ output: ReportsOutput; postState: ReportsState; }> {
+
+  // 1) Clone preState
+  const postState = structuredClone(preState) as ReportsState;
+  const seenPkgHashes = new Set<string>();
+  const newPackages: Map<string, { exportsRoot: Uint8Array }> = new Map(); 
   
   // 2) Verifying validator assigment to cores: 
   // Build the base curr or prev permutations:
@@ -34,29 +69,42 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
   let baseCurr: number[] = [];
   let basePrev: number[] = [];
   if ( isPrevRotationInSameEpoch(input.slot, ROTATION_PERIOD, EPOCH_LENGTH) ) {
+
     // same epoch we use entropy[2] seed
-    basePrev = getPermutation( entropy[2], preState.prev_validators.length );
-    console.log("same epoch basePrev", convertToReadableFormat(basePrev));
+    basePrev = getPermutationSeed(
+      entropy[2], preState.prev_validators.length, CORES_COUNT
+    );    
+    
+    console.log("same epoch baseCurr", convertToReadableFormat(baseCurr));
   } else {
       // different epoch => (11.22) => (η′3, λ′)
       // lambda is old validator set and η′3 is entropy[3] seed
-      basePrev = getPermutation( entropy[3], preState.prev_validators.length );
+      basePrev = getPermutationSeed(entropy[3],preState.prev_validators.length, CORES_COUNT);  
   }
-  console.log("baseCurr", convertToReadableFormat(baseCurr));
+ 
   console.log("basePrev", convertToReadableFormat(basePrev));
 
+  baseCurr = getPermutationSeed(
+    entropy[2],
+    preState.curr_validators.length,
+    CORES_COUNT
+  );
+
+  console.log("baseCurr", convertToReadableFormat(baseCurr));
+
+
   // 3) Now we do the “slot-based” rotation for the current epoch set:
-  const rotatedCurr = rotatePermutation(baseCurr,input.slot,
+  const rotatedCurr = rotatePermutation(baseCurr, input.slot,
     EPOCH_LENGTH,
     ROTATION_PERIOD,
-    VALIDATORS_PER_CORE
+    CORES_COUNT
   );
 
   // 4) For the previous epoch set, we do the rotation but for (slot - ROTATION_PERIOD):
-  const rotatedPrev = rotatePermutation(basePrev,input.slot - ROTATION_PERIOD,
+  const rotatedPrev = rotatePermutation(basePrev, input.slot - ROTATION_PERIOD,
     EPOCH_LENGTH,
     ROTATION_PERIOD,
-    VALIDATORS_PER_CORE
+    CORES_COUNT
   );
 
   console.log("rotatedCurr", convertToReadableFormat(rotatedCurr));
@@ -68,10 +116,6 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     return { output: null, postState: preState };
   }
 
-  // Clone preState
-  const postState = structuredClone(preState) as ReportsState;
-  const seenPkgHashes = new Set<string>();
-  const newPackages: Map<string, { exportsRoot: Uint8Array }> = new Map(); 
 
   // we need to loop through to get a map of the new packages before looping through again after.
   for (const g of input.guarantees) {
@@ -315,15 +359,15 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
         // check assigned core in currPerm
         const reportCoreIndex = report.core_index
-        const assignedCoreIndex = assignedCore(validator_index, rotatedCurr, VALIDATORS_PER_CORE);
+        const assignedCoreIndex = rotatedCurr[validator_index];
         console.log("rotation check assigned curr", { assignedCoreIndex, reportCoreIndex });
 
         // TODO: COMMENTED OUT FOR NOW until we can confirm if test vectors for verifying assignments
         // is correct. 
-        // if (assignedCoreIndex !== report.core_index) {
-        //   console.log("assignedCoreIndex !== report.core_index",{ assignedCoreIndex, reportCoreIndex});
-        //   return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
-        // }
+        if (assignedCoreIndex !== report.core_index) {
+          console.log("assignedCoreIndex !== report.core_index",{ assignedCoreIndex, reportCoreIndex});
+          return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
+        }
 
       } else if (rotation === "prev") {
         if (validator_index >= postState.prev_validators.length) {
@@ -334,8 +378,8 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
         console.log("rotation check prevPerm", convertToReadableFormat(basePrev));
 
-        const assigned = assignedCore(validator_index, rotatedPrev, VALIDATORS_PER_CORE);
-        if (assigned !== report.core_index) {
+        const assignedCoreIndex = rotatedPrev[validator_index];
+        if (assignedCoreIndex !== report.core_index) {
           return { output: { err: ErrorCode.WRONG_ASSIGNMENT }, postState: preState };
         }
       } else if (rotation === "too_old") {
@@ -394,6 +438,6 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     reporters: finalReporters
   };
 
-  // 3) Update state
+  // 13) Update state
   return { output: { ok: outputData }, postState };
 }

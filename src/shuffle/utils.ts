@@ -68,27 +68,38 @@ export function isPrevRotationInSameEpoch(slot: number, rotationPeriod: number, 
 
 /**
  * rotatePermutation:
- *   Left-rotate an array of length n by offset=chunkCount*chunkSize,
+ *   Rotate (or re-map) the basePermutation by chunkCount,
+ * 
  *   where chunkCount = floor((slot % epochLength)/ rotationPeriod).
+ *   The rotation is done modulo totalCores.
+ * 
+ *  If we were using validator indices instead of cores, we would rotate
+ *  to the left by chunkCount * chunkSize.
  */
 export function rotatePermutation(
   basePermutation: number[],
   slot: number,
   epochLength: number,
   rotationPeriod: number,
-  chunkSize: number
+  totalCores: number // C
 ): number[] {
   const epochPhase = slot % epochLength;
-  const chunkCount = Math.floor(epochPhase / rotationPeriod);
-  
-  console.log("slot, epochPhase, chunkCount, chunkSize", {slot, epochPhase, chunkCount, chunkSize, rotationPeriod});
-  
-  const offset = chunkCount * chunkSize;
-  const n = basePermutation.length;
+  const chunkCount = Math.floor(epochPhase / rotationPeriod);  // n 
 
-  // safe if n=0 => no shift
-  if (n === 0) return basePermutation;
+  if (chunkCount === 0) {
+    console.log("rotatePermutation: no rotation needed");
+    return basePermutation;
+  }
 
-  const actual = offset % n;
-  return basePermutation.slice(actual).concat(basePermutation.slice(0, actual));
+  // the formula R(c, n) says, for each element x in c => (x + n) mod C
+  // so offset = chunkCount, and we do (x + chunkCount) mod totalCores
+  const result = [];
+  for (let i = 0; i < basePermutation.length; i++) {
+    result.push((basePermutation[i] + chunkCount) % totalCores);
+  } // or use map TODO
+
+  console.log("rotatePermutation: result", result);
+
+  return result;
 }
+

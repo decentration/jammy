@@ -132,31 +132,47 @@ export function getPermutation(seed: Uint8Array, length: number): number[] {
 
 
 /**
- * getPermutationForSlot:
- *   1) getPermutation(epochSeed, totalVal) => (F.3)
- *   2) rotate left by chunkCount * chunkSize
- *   3) return final
+ * getPermutation:
+ *   Builds the "repeated cores" array of length totalVal (like [0,0,0,1,1,1]),
+ *   then uses the randomExpandBlockwise + Fisher-Yates to shuffle it.
+ *
+ * @param seed          32-byte random seed
+ * @param totalValidators     total number of validators
+ * @param totalCores    number of cores
+ * @returns             array of length totalVal, where
+ *                      result[v] = which core that validator v is assigned to
  */
-export function getPermutationForSlot(
-  slot: number,
-  epochSeed: Uint8Array,
-  epochLength: number,
-  rotationPeriod: number,
-  totalVal: number,
-  chunkSize: number
+export function getPermutationSeed(
+  seed: Uint8Array,
+  totalValidators: number,
+  totalCores: number
 ): number[] {
-  // 1) produce the base permutation from (F.3):
-  const perm = getPermutation(epochSeed, totalVal);
+  // 1) Build the repeated-cores array, e.g. [0,0,0,1,1,1] for 6/2
+  const s = buildRepeatedCores(totalCores, totalValidators);
+  // 2) Expand the seed into random integers
+  const r = randomExpandBlockwise(seed, totalValidators);
+  // 3) Shuffle the repeated-cores array
+  return shuffle(s, r);
+}
 
-  // 2) compute how many “chunk rotations” we do for this slot
-  const epochPhase = slot % epochLength;
-  const chunkCount = Math.floor(epochPhase / rotationPeriod);
-  const offset = chunkCount * chunkSize;
 
-  // 3) left-rotate perm by offset
-  const n = perm.length;
-  const actual = offset % n;
-  const rotated = perm.slice(actual).concat(perm.slice(0, actual));
-
-  return rotated;
+/**
+ * buildRepeatedCores
+ * 
+ * Builds an array of length totalValidators in which each core index
+ * is repeated (totalValidators/totalCores) times. For example:
+ *   buildRepeatedCores(2, 6) => [0,0,0,1,1,1]
+ */
+function buildRepeatedCores(totalCores: number, totalValidators: number): number[] {
+  if (totalValidators % totalCores !== 0) {
+    throw new Error(`Total validators must be a multiple of totalCores.`);
+  }
+  const repeats = totalValidators / totalCores;
+  const arr: number[] = [];
+  for (let c = 0; c < totalCores; c++) {
+    for (let i = 0; i < repeats; i++) {
+      arr.push(c);
+    }
+  }
+  return arr;
 }
