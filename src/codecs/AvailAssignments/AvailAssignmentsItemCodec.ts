@@ -36,7 +36,7 @@ export const AvailAssignmentsItemCodec: Codec<AvailAssignment | null> = [
     }
 
     const tag = uint8[0];
-    console.log("avail assignment tag: ", tag);
+   // console.log("avail assignment tag: ", tag);
     if (tag === 0x00) {
       // None
       return null;

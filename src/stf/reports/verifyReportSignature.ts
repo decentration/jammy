@@ -1,8 +1,7 @@
 import nacl from "tweetnacl";
 import { buildSignatureMessage } from "./buildSignatureMessage";
-import { Guarantee, Report } from "../../types/types";
-import { deepConvertHexToBytes, hexStringToBytes, ReportCodec } from "../../codecs";
-import { toHexToggle } from "../../utils";
+import { Report } from "../../types/types";
+
 
 
 /**

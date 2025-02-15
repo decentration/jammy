@@ -1,2 +1,2 @@
-export * from './tiny';
-// export * from './full';
+// export * from './tiny';
+export * from './full';

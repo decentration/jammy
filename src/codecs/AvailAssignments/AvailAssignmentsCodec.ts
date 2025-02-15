@@ -2,7 +2,7 @@ import { Codec } from "scale-ts";
 import { AvailAssignment } from "../../types/types";
 import { AvailAssignmentsItemCodec } from "./AvailAssignmentsItemCodec";
 import { decodeWithBytesUsed } from "..";
-import { CORES_COUNT } from "../../consts/tiny";
+import { CORES_COUNT } from "../../consts";
 
 /**
  * AvailAssignmentsCodec:
@@ -50,6 +50,8 @@ export const AvailAssignmentsCodec: Codec<Array<AvailAssignment | null>> = [
       assignments.push(item);
       offset += bytesUsed;
     }
+
+    // console.log("avail assignments: ", assignments);
 
     // check for leftover
     if (offset < uint8.length) {

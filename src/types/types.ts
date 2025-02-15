@@ -1,5 +1,5 @@
 import { Struct, u8, u16, u32, Bytes, Vector, bool, _void, Codec} from 'scale-ts';
-import { SingleByteLenCodec } from '../codecs/SingleByteLenCodec';
+import { VarLenBytesCodec } from '../codecs';
 import { BITFIELD_LENGTH } from '../consts/tiny';
 
 export const BandersnatchRingVrfSignatureCodec = Bytes(784); 
@@ -37,6 +37,9 @@ export interface TicketsMark {
   attempt: number; // u8
 }
 
+export type OffendersMark = Uint8Array; // Bytes(32)
+  
+
 export interface Header {
   parent: Uint8Array;             // Hp: Parent hash
   parent_state_root: Uint8Array;         // Hr: Prior state root
@@ -44,7 +47,7 @@ export interface Header {
   slot: number;          // Ht: Time-slot index
   epoch_mark: EpochMark | null;                // He: Epoch marker 
   tickets_mark: TicketsMark[] | null;    // Hw: Winning-tickets apparent when epoch mark is null
-  offenders_mark: Uint8Array[];            // Ho: Offenders
+  offenders_mark: OffendersMark[];            // Ho: Offenders
   author_index: number;       // Hi: Bandersnatch block author index u16
   entropy_source: Uint8Array;           // Hv: Entropy-yielding VRF signature
   seal: Uint8Array | null;              // Hs: Block seal
@@ -65,10 +68,10 @@ export interface Preimage {
   blob: Uint8Array;
 }
 
-export const PreimageCodec = Struct({
-  requester: u32,
-  blob: SingleByteLenCodec,
-});
+// export const PreimageCodec = Struct({
+//   requester: u32,
+//   blob: VarLenBytesCodec,
+// });
 
 export interface Assurance {
   anchor: Uint8Array; // Bytes(32)

@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { WorkItem } from "../../types/types";
-import { SingleByteLenCodec, decodeWithBytesUsed } from "../index";
+import { VarLenBytesCodec, decodeWithBytesUsed } from "../index";
 import { Bytes } from "scale-ts";
 import { DiscriminatorCodec } from "../DiscriminatorCodec";
 import { ImportSpecCodec } from "./ImportSpecCodec";
@@ -10,7 +10,7 @@ import { ExtrinsicSpecCodec } from "./ExtrinsicSpecCodec";
  * WorkItem encoding steps:
  * 1) service (u32, little-endian)
  * 2) code_hash (32 bytes)
- * 3) payload (SingleByteLenCodec)
+ * 3) payload (VarLenBytesCodec)
  * 4) refine_gas_limit (u64, little-endian)
  * 5) accumulate_gas_limit (u64, little-endian)
  * 6) import_segments => DiscriminatorCodec(ImportSpecCodec)
@@ -28,7 +28,7 @@ export const WorkItemCodec: Codec<WorkItem> = [
     const codeHashBuf = Bytes(32).enc(wi.code_hash);
 
     // 3) payload => SingleByteLen
-    const payloadBuf = SingleByteLenCodec.enc(wi.payload);
+    const payloadBuf = VarLenBytesCodec.enc(wi.payload);
 
     // 4) refine_gas_limit => 8 bytes
     const refineBuf = new Uint8Array(8);
@@ -102,11 +102,11 @@ export const WorkItemCodec: Codec<WorkItem> = [
     const code_hash = uint8.slice(offset, offset + 32);
     offset += 32;
 
-    // 3) payload => SingleByteLenCodec
+    // 3) payload => VarLenBytesCodec
     {
       const slice = uint8.slice(offset);
       const { value: payload, bytesUsed } = decodeWithBytesUsed(
-        SingleByteLenCodec,
+        VarLenBytesCodec,
         slice
       );
       offset += bytesUsed;

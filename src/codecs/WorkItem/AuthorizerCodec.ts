@@ -1,15 +1,15 @@
 import { Codec } from "scale-ts";
 import { Authorizer } from "../../types/types";
 import { Bytes } from "scale-ts";
-import { SingleByteLenCodec, decodeWithBytesUsed } from "../index";
+import { VarLenBytesCodec, decodeWithBytesUsed } from "../index";
 
 export const AuthorizerCodec: Codec<Authorizer> = [
   // ENCODER
   (auth: Authorizer): Uint8Array => {
     // code_hash => 32 bytes
-    // params => SingleByteLenCodec
+    // params => VarLenBytesCodec
     const codeHashBytes = Bytes(32).enc(auth.code_hash);
-    const paramsBytes = SingleByteLenCodec.enc(auth.params);
+    const paramsBytes = VarLenBytesCodec.enc(auth.params);
 
     const out = new Uint8Array(codeHashBytes.length + paramsBytes.length);
     out.set(codeHashBytes, 0);
@@ -31,10 +31,10 @@ export const AuthorizerCodec: Codec<Authorizer> = [
     }
     const code_hash = uint8.slice(0, 32);
 
-    // 2) decode params => SingleByteLenCodec
+    // 2) decode params => VarLenBytesCodec
     const remainder = uint8.slice(32);
     const { value: params, bytesUsed } = decodeWithBytesUsed(
-      SingleByteLenCodec,
+      VarLenBytesCodec,
       remainder
     );
 

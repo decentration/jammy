@@ -1,14 +1,12 @@
-import { Codec, Encoder, Decoder } from "scale-ts";
-import { Verdict, Culprit, Dispute, Fault } from '../types/types';
+import { Codec } from "scale-ts";
+import { Dispute } from '../types/types';
 import { VerdictCodec, CulpritCodec, FaultCodec } from "./index";
 import { DiscriminatorCodec, decodeWithBytesUsed } from ".";
-
-
+import { convertToReadableFormat } from "../utils";
 
 export const DisputeCodec: Codec<Dispute> = [
   // enc
   (dispute: Dispute) => {
-
 
     // Encode verdicts, culprits, and faults as separate parts
     const encodedVerdicts = DiscriminatorCodec(VerdictCodec).enc(dispute.verdicts);
@@ -52,6 +50,7 @@ export const DisputeCodec: Codec<Dispute> = [
         DiscriminatorCodec(VerdictCodec),
         uint8.slice(offset)
       )
+      console.log("verdictsArr: ", convertToReadableFormat(verdictsArr));
       offset += bytesUsed
       // store them
       var verdicts = verdictsArr
@@ -63,6 +62,7 @@ export const DisputeCodec: Codec<Dispute> = [
         DiscriminatorCodec(CulpritCodec),
         uint8.slice(offset)
       )
+      console.log("culpritsArr: ", convertToReadableFormat(culpritsArr));
       offset += bytesUsed
       var culprits = culpritsArr
     }
@@ -73,6 +73,7 @@ export const DisputeCodec: Codec<Dispute> = [
         DiscriminatorCodec(FaultCodec),
         uint8.slice(offset)
       )
+      // console.log("faultsArr: ", faultsArr);  
       offset += bytesUsed
       var faults = faultsArr
     }
@@ -84,8 +85,4 @@ export const DisputeCodec: Codec<Dispute> = [
 
 DisputeCodec.enc = DisputeCodec[0];
 DisputeCodec.dec = DisputeCodec[1];
-
-function buf2hex(buffer: Uint8Array): string {
-    return Array.prototype.map.call(buffer, x => ('00' + x.toString(16)).slice(-2)).join('');
-}
 

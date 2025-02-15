@@ -25,4 +25,5 @@ export * from './EntropyBufferCodec';
 export * from './ValidatorsInfoCodec';
 export * from './AvailAssignments/AvailAssignmentsCodec';
 export * from './IntegerCodec';
-export * from './VarLenBytesCodec'
+export * from './VarLenBytesCodec';
+export * from './OffendersMarkCodec';

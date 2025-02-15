@@ -1,4 +1,5 @@
 import { Codec } from "scale-ts";
+import { convertToReadableFormat } from "../../utils";
 
 /**
  * decodeWithBytesUsed: 
@@ -19,7 +20,7 @@ export function decodeWithBytesUsed<T>(
     // 2) Re-encode to measure how many bytes were consumed
     const reencoded = codec.enc(value)
     const bytesUsed = reencoded.length
-
+    // console.log("bytesUsed: ", bytesUsed, convertToReadableFormat(value));
     return { value, bytesUsed }
   }
 

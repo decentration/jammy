@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { WorkPackage } from "../types/types";
-import { decodeWithBytesUsed, SingleByteLenCodec } from "./index";
+import { decodeWithBytesUsed, VarLenBytesCodec } from "./index";
 import { DiscriminatorCodec } from "./DiscriminatorCodec";
 import { AuthorizerCodec } from "./WorkItem/AuthorizerCodec";
 import { ContextCodec } from "./ContextCodec";
@@ -9,8 +9,8 @@ import { WorkItemCodec } from "./WorkItem/WorkItemCodec";
 export const WorkPackageCodec: Codec<WorkPackage> = [
   // ENCODER
   (wp: WorkPackage): Uint8Array => {
-    // 1) authorization => SingleByteLenCodec
-    const encAuth = SingleByteLenCodec.enc(wp.authorization);
+    // 1) authorization => VarLenBytesCodec
+    const encAuth = VarLenBytesCodec.enc(wp.authorization);
 
     // 2) auth_code_host => u32
     const authCodeBuf = new Uint8Array(4);
@@ -54,11 +54,11 @@ export const WorkPackageCodec: Codec<WorkPackage> = [
         : new Uint8Array(data);
     let offset = 0;
 
-    // 1) authorization => SingleByteLenCodec
+    // 1) authorization => VarLenBytesCodec
     {
       const slice = uint8.slice(offset);
       const { value: authVal, bytesUsed } = decodeWithBytesUsed(
-        SingleByteLenCodec,
+        VarLenBytesCodec,
         slice
       );
       offset += bytesUsed;

@@ -5,7 +5,7 @@ import { convertToReadableFormat, toHex } from "../../../utils";
 import { hexStringToBytes, toUint8Array } from "../../../codecs/utils";
 import { blake2b } from "blakejs";
 import { ReportCodec } from "../../../codecs";
-import { parseReportFromJson } from "./parseReportsGuaranteeFromJson";
+import { parseReportFromJson } from "../../../parsers/parseReportsGuaranteeFromJson";
 
 describe("Debug signature for reports", () => {
   it("checks the signature from first report item (with blake2b + label)", () => {

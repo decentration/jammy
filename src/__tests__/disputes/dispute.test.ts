@@ -84,3 +84,25 @@ describe("DisputeCodec test", () => {
     expect(decoded).toStrictEqual(dispute);
   });
 });
+
+
+describe("DisputeCodec conformance .bin", () => {
+  it("decodes an official .bin => re-encodes => must match exactly", () => {
+    // 1) read official .bin file
+    const binPath = path.resolve(__dirname, "../../data/disputes/disputes_extrinsic.bin");
+    const binData = readFileSync(binPath);
+    const binUint8 = new Uint8Array(binData);
+
+    console.log("Original bin (hex) =", toHex(binUint8));
+
+    // 2) decode
+    const decoded: Dispute = DisputeCodec.dec(binUint8);
+
+    // 3) re-encode
+    const reEncoded = DisputeCodec.enc(decoded);
+    console.log("Re-encoded bin (hex) =", toHex(reEncoded));
+
+    // 4) compare
+    expect(reEncoded).toEqual(binUint8);
+  });
+});

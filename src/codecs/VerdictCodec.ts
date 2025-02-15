@@ -1,47 +1,40 @@
-import { Codec } from 'scale-ts';
-import { Vote, VoteCodec, Verdict } from '../types/types';
-import { SetCodec } from '.';
-
-
+import { Codec } from "scale-ts";
+import { Vote, Verdict, VoteCodec } from "../types/types";
+import {  VOTE_COUNT } from "../consts";
 
 const VERDICT_TARGET_SIZE = 32;
 const VERDICT_AGE_SIZE = 4;
 const VOTE_SIZE = 67;
 
 export const VerdictCodec: Codec<Verdict> = [
-  // enc
-  (verdict: Verdict) => {
-    // 1) target: 32 bytes
+  // ENCODER
+  (verdict: Verdict): Uint8Array => {
     if (verdict.target.length !== VERDICT_TARGET_SIZE) {
       throw new Error(`VerdictCodec enc: target must be 32 bytes`);
     }
+    // Age => 4 bytes
+    const ageBuf = new Uint8Array(VERDICT_AGE_SIZE);
+    new DataView(ageBuf.buffer).setUint32(0, verdict.age, true);
 
-    // 2) age: 4 bytes
-    const ageBuf = new Uint8Array(4);
-    const dv = new DataView(ageBuf.buffer);
-    dv.setUint32(0, verdict.age, true);
-
-    // 3) votes... rely on index increments on decode.
+    // Votes
+    if (verdict.votes.length !== VOTE_COUNT) {
+      throw new Error(
+        `VerdictCodec enc: expected exactly ${VOTE_COUNT} votes, got ${verdict.votes.length}`
+      );
+    }
     const encodedVotes = verdict.votes.map((v) => VoteCodec.enc(v));
     const votesTotalLen = encodedVotes.reduce((acc, e) => acc + e.length, 0);
-    // console.log('votesTotalLen:', votesTotalLen);
-    
-    if (votesTotalLen % VOTE_SIZE !== 0) {
-      console.error(`Votes total length mismatch: ${votesTotalLen}, Expected: ${VOTE_SIZE}`);
-    }
-    
-    // total out
-    const out = new Uint8Array(VERDICT_TARGET_SIZE + VERDICT_AGE_SIZE + votesTotalLen);
 
-    // copy target
+    const out = new Uint8Array(
+      VERDICT_TARGET_SIZE + VERDICT_AGE_SIZE + votesTotalLen
+    );
+    // 1) copy target
     out.set(verdict.target, 0);
-    // copy age
+    // 2) copy age
     out.set(ageBuf, VERDICT_TARGET_SIZE);
-
-    // copy votes
+    // 3) copy votes
     let offset = VERDICT_TARGET_SIZE + VERDICT_AGE_SIZE;
     for (const ev of encodedVotes) {
-      // console.log('ev:', ev);
       out.set(ev, offset);
       offset += ev.length;
     }
@@ -49,54 +42,41 @@ export const VerdictCodec: Codec<Verdict> = [
     return out;
   },
 
-  // dec
-  (data: ArrayBuffer) => {
+  // DECODER
+  (data: ArrayBuffer | Uint8Array | string): Verdict => {
     const uint8 =
       data instanceof Uint8Array
         ? data
-        : typeof data === 'string'
+        : typeof data === "string"
         ? new TextEncoder().encode(data)
         : new Uint8Array(data);
 
     if (uint8.length < VERDICT_TARGET_SIZE + VERDICT_AGE_SIZE) {
       throw new Error(`VerdictCodec dec: not enough bytes for target + age`);
     }
-
     // 1) read target(32)
     const target = uint8.slice(0, VERDICT_TARGET_SIZE);
 
     // 2) read age(4)
     const ageBuf = uint8.slice(VERDICT_TARGET_SIZE, VERDICT_TARGET_SIZE + VERDICT_AGE_SIZE);
-    const dv = new DataView(ageBuf.buffer, ageBuf.byteOffset, ageBuf.byteLength);
-    const age = dv.getUint32(0, true);
+    const age = new DataView(ageBuf.buffer, ageBuf.byteOffset, 4).getUint32(0, true);
 
-    // 3) read votes until out-of-data or next index != current index+1
+    // 3) read votes
     const votesData = uint8.slice(VERDICT_TARGET_SIZE + VERDICT_AGE_SIZE);
-
     const votes: Vote[] = [];
-    let offset = 0;
-    let expectedIndex = 0;
+    const neededBytes = VOTE_COUNT * VOTE_SIZE;
+    if (votesData.length < neededBytes) {
+      throw new Error(
+        `VerdictCodec dec: not enough data for ${VOTE_COUNT} votes (need ${neededBytes} bytes, got ${votesData.length})`
+      );
+    }
 
-    while (true) {
-      if (offset + VOTE_SIZE > votesData.length) {
-        // no more full votes => break
-        break;
-      }
-      // decode potential vote
+    let offset = 0;
+    for (let i = 0; i < VOTE_COUNT; i++) {
       const slice = votesData.slice(offset, offset + VOTE_SIZE);
       const v = VoteCodec.dec(slice);
-
-      // check if v.index == expectedIndex
-      if (v.index !== expectedIndex) {
-        // not the next index => this is the start of the next verdict or next field
-        // so we do not consume it here
-        break;
-      }
-
-      // accept this vote
       votes.push(v);
       offset += VOTE_SIZE;
-      expectedIndex++;
     }
 
     return { target, age, votes };

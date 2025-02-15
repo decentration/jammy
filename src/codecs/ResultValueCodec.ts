@@ -1,8 +1,7 @@
 import { Codec } from "scale-ts";
 import { decodeWithBytesUsed } from "./utils/decodeWithBytesUsed";
-import { SingleByteLenCodec } from "./SingleByteLenCodec";
-import { ResultValue } from "../types/types";
 import { VarLenBytesCodec } from "./VarLenBytesCodec";
+import { ResultValue } from "../types/types";
 
 export const ResultValueCodec: Codec<ResultValue> = [
   // ENCODER

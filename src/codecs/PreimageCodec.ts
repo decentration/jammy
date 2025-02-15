@@ -1,6 +1,6 @@
 import { Codec } from "scale-ts";
 import { Preimage } from "../types/types";
-import { SingleByteLenCodec, decodeWithBytesUsed } from ".";
+import { VarLenBytesCodec, decodeWithBytesUsed } from ".";
 
 
 export const PreimageCodec: Codec<Preimage> = [
@@ -11,7 +11,8 @@ export const PreimageCodec: Codec<Preimage> = [
       new DataView(requesterBuf.buffer).setUint32(0, p.requester, true);
   
       // 2) encode `blob` with single-byte-len
-      const encBlob = SingleByteLenCodec.enc(p.blob);
+      const encBlob = VarLenBytesCodec.enc(p.blob);
+
   
       // 3) concatenate
       const out = new Uint8Array(requesterBuf.length + encBlob.length);
@@ -40,9 +41,9 @@ export const PreimageCodec: Codec<Preimage> = [
       const requester = requesterView.getUint32(0, true);
       const leftover = uint8.slice(4);
   
-      // 2) decode the blob with decodeWithBytesUsed(SingleByteLenCodec, leftover)
+      // 2) decode the blob with decodeWithBytesUsed(VarLenBytesCodec, leftover)
       const { value: blob, bytesUsed } = decodeWithBytesUsed(
-        SingleByteLenCodec,
+        VarLenBytesCodec,
         leftover
       );
   

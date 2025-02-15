@@ -3,7 +3,7 @@ import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec";
 
 export const VarLenBytesCodec: Codec<Uint8Array> = createCodec(
   (value: Uint8Array) => {
-    console.log("about to encoded value.length", value.length); 
+    // console.log("about to encoded value.length", value.length); 
     // 1) encode length
     const lenEncoded = encodeProtocolInt(value.length);
     // 2) concat

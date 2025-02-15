@@ -5,7 +5,7 @@ import { ResultCodec } from "./ResultCodec";
 import { DiscriminatorCodec } from "./DiscriminatorCodec";
 import { SegmentItemCodec } from "./SegmentItemCodec";
 import { ContextCodec } from "./ContextCodec";
-import { SingleByteLenCodec, VarLenBytesCodec, decodeWithBytesUsed } from "./index";
+import { VarLenBytesCodec, decodeWithBytesUsed } from "./index";
 import { Bytes, Vector } from "scale-ts";
 
 export const SegmentArrayCodec = DiscriminatorCodec(SegmentItemCodec);
@@ -36,12 +36,12 @@ export const ReportCodec: Codec<Report> = [
     // 4) encode authorizer_hash (32 bytes)
     const encAuthHash = Bytes(32).enc(report.authorizer_hash);
 
-    console.log("encAuthHash", Buffer.from(encAuthHash).toString("hex"));
+    // console.log("encAuthHash", Buffer.from(encAuthHash).toString("hex"));
     // 5) encode auth_output with VarLenBytesCodec
     const encAuthOutput = VarLenBytesCodec.enc(report.auth_output);
 
 
-    console.log("encAuthOutput", encAuthOutput);
+    // console.log("encAuthOutput", encAuthOutput);
     // 6) encode segment_root_lookup with Vector(Bytes(32))
 
     const encSegLookup = DiscriminatorCodec(SegmentItemCodec).enc(report.segment_root_lookup);
@@ -75,7 +75,7 @@ export const ReportCodec: Codec<Report> = [
     out.set(encAuthHash, offset);
     offset += encAuthHash.length;
 
-    console.log("encAuthOutput", encAuthOutput);
+    // console.log("encAuthOutput", encAuthOutput);
     out.set(encAuthOutput, offset);
     offset += encAuthOutput.length;
 

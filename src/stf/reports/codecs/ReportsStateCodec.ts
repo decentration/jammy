@@ -1,5 +1,5 @@
 import { Codec, Bytes } from "scale-ts";
-import { AuthPoolsCodec, DiscriminatorCodec, decodeWithBytesUsed, AvailAssignmentsCodec, ValidatorsInfoCodec, EntropyBufferCodec, BlockItemCodec } from "../../../codecs";
+import { AuthPoolsCodec, DiscriminatorCodec, decodeWithBytesUsed, AvailAssignmentsCodec, ValidatorsInfoCodec, EntropyBufferCodec, BlockItemCodec, OffendersMarkCodec } from "../../../codecs";
 import { toUint8Array, concatAll } from "../../../codecs/utils";
 import { ReportsState } from "../types";
 import { ServicesCodec } from "./Services/ServicesCodec";
@@ -43,7 +43,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const curr_validators   = read(ValidatorsInfoCodec);
     const prev_validators   = read(ValidatorsInfoCodec);
     const entropy           = read(EntropyBufferCodec);
-    const offenders         = read(DiscriminatorCodec(Bytes(32)));
+    const offenders         = read(OffendersMarkCodec);
     const recent_blocks     = read(DiscriminatorCodec(BlockItemCodec));
     const auth_pools        = read(AuthPoolsCodec);
     const accounts          = read(ServicesCodec);
