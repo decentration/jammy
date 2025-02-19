@@ -55,15 +55,35 @@ export interface OkData {
   tickets_mark: TicketsMark[] | null;
 }
 
+// export enum ErrorCode {
+//   bad_slot = 0,
+//   unexpected_ticket = 1,
+//   bad_ticket_order = 2,
+//   bad_ticket_proof = 3,
+//   bad_ticket_attempt = 4,
+//   reserved = 5,
+//   duplicate_ticket = 6
+// }
+
 export enum ErrorCode {
-  bad_slot = 0,
-  unexpected_ticket = 1,
-  bad_ticket_order = 2,
-  bad_ticket_proof = 3,
-  bad_ticket_attempt = 4,
-  reserved = 5,
-  duplicate_ticket = 6
+  BAD_SLOT = "bad_slot",  
+  UNEXPECTED_TICKET = "unexpected_ticket",
+  BAD_TICKET_ORDER = "bad_ticket_order",
+  BAD_TICKET_PROOF = "bad_ticket_proof",
+  BAD_TICKET_ATTEMPT = "bad_ticket_attempt",
+  RESERVED = "reserved",
+  DUPLICATE_TICKET = "duplicate_ticket"
 }
+
+export const SAFROLE_ERROR_CODES: ErrorCode[] = [
+  ErrorCode.BAD_SLOT,
+  ErrorCode.UNEXPECTED_TICKET,
+  ErrorCode.BAD_TICKET_ORDER,
+  ErrorCode.BAD_TICKET_PROOF,
+  ErrorCode.BAD_TICKET_ATTEMPT,
+  ErrorCode.RESERVED,
+  ErrorCode.DUPLICATE_TICKET
+]
 
 export interface EpochMark {
   entropy: Uint8Array;          // 32 bytes

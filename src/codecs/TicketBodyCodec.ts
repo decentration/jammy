@@ -24,11 +24,22 @@ export const TicketBodyCodec: Codec<TicketBody> = [
   // DECODER
   (data: ArrayBuffer | Uint8Array | string): TicketBody => {
     const uint8 = toUint8Array(data);
-    if (uint8.length !== 33) {
-      throw new Error(`TicketBodyCodec: expected 33 bytes, got ${uint8.length}`);
-    }
-    const id = uint8.slice(0, 32);
-    const attempt = uint8[32];
+   // Check total size
+   if (uint8.length < 33) {
+    throw new Error(`TicketBodyCodec: expected >=33 bytes, got ${uint8.length}`);
+  }
+
+  let offset = 0;
+
+  const id = uint8.slice(offset, offset + 32);
+  offset += 32;
+
+  const attempt = uint8[offset];
+  offset += 1;
+
+  if (offset < uint8.length) {
+    console.warn(`TicketBodyCodec leftover bytes: offset=${offset}, total=${uint8.length}`);
+  }
     return { id, attempt };
   },
 ] as unknown as Codec<TicketBody>;

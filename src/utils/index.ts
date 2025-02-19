@@ -12,7 +12,7 @@ export function toHexToggle(bytes: Uint8Array, includePrefix: boolean=false): st
 }
 
 export function toHexNoPrefix(bytes: Uint8Array): string {
-  return `0x${Buffer.from(bytes).toString("hex")}`;
+  return `${Buffer.from(bytes).toString("hex")}`;
 }
 
 export function stripHexPrefix(hex: string): string {

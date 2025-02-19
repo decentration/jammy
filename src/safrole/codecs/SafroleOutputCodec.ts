@@ -1,5 +1,5 @@
 import { Codec } from "scale-ts";
-import { SafroleOutput, OkData, ErrorCode } from "../types";
+import { SafroleOutput, OkData, ErrorCode, SAFROLE_ERROR_CODES } from "../types";
 import { OkDataCodec } from "./OkDataCodec";
 import { toHex } from "../../utils";
 
@@ -19,11 +19,13 @@ export const SafroleOutputCodec: Codec<SafroleOutput> = [
   (out: SafroleOutput): Uint8Array => {
     // If it's an "err"
     if ("err" in out) {
-      const errCode = out.err as ErrorCode; 
-      // 0x01 => "err" tag
-      // next byte => numeric error code
-      return new Uint8Array([0x01, errCode & 0xff]);
-    }
+          const errStr = out.err as ErrorCode;
+          const errByte = errorCodeToByte.get(errStr);
+          if (errByte === undefined) {
+            throw new Error(`OutputCodec.enc: unknown error code='${errStr}'`);
+          }
+          return new Uint8Array([0x01, errByte]);
+        }
 
     // Otherwise must be "ok"
     // 0x00 => "ok" tag
@@ -65,8 +67,9 @@ export const SafroleOutputCodec: Codec<SafroleOutput> = [
       if (uint8.length < 2) {
         throw new Error("SafroleOutputCodec.dec: insufficient data for 'err' variant");
       }
-      const errCode = uint8[1];
-      return { err: errCode as ErrorCode };
+      const errByte = uint8[1];
+      const errStr = byteToErrorCode(errByte);
+      return { err: errStr };
     }
 
     throw new Error(`SafroleOutputCodec.dec: invalid tag byte ${tag}`);
@@ -75,3 +78,14 @@ export const SafroleOutputCodec: Codec<SafroleOutput> = [
 
 SafroleOutputCodec.enc = SafroleOutputCodec[0];
 SafroleOutputCodec.dec = SafroleOutputCodec[1];
+
+const errorCodeToByte = new Map<ErrorCode, number>();
+SAFROLE_ERROR_CODES.forEach((code, i) => errorCodeToByte.set(code, i));
+
+// reverse lookup 
+function byteToErrorCode(b: number): ErrorCode {
+  if (b < 0 || b >= SAFROLE_ERROR_CODES.length) {
+    throw new Error(`OutputCodec: invalid error code byte=${b}`);
+  }
+  return SAFROLE_ERROR_CODES[b];
+}
