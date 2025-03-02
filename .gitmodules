@@ -1,0 +1,3 @@
+[submodule "ring-vrf"]
+	path = ring-vrf
+	url = https://github.com/decentration/ring-vrf.git

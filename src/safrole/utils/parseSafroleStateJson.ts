@@ -1,6 +1,6 @@
 import { SafroleState } from "../types";
 import { hexStringToBytes } from "../../codecs/utils/"; 
-import { TicketsMark } from "../../types/types";
+import type { TicketsMark } from "../../types/types.js";
 
 /** 
  * parseSafroleStateJson: Convert a raw JSON object into a typed SafroleState

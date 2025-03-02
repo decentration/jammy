@@ -1,7 +1,11 @@
 import { SafroleState, SafroleInput, SafroleOutput, ErrorCode, EpochMark } from "./types";
 import { TicketsMark } from "../types/types";
-import { toHex } from "../utils";
-import { blake2bConcat } from "./helpers";
+import { convertToReadableFormat, toHex } from "../utils";
+import { blake2bConcat, zeroOutOffenders } from "./helpers";
+import { EPOCH_LENGTH } from "../consts";
+import { rebuildGammaSForEpochChange } from "./gamma";
+import { computeGammaZ, produceGammaZ } from "./computeGammaZ";
+import { aggregator } from "../ring-vrf-ffi/ring_vrf_ffi"
 
 
 export function applySafroleStf(
@@ -19,14 +23,23 @@ export function applySafroleStf(
   // 2) tau
   postState.tau = input.slot;
 
-  // 3) Update primary entropy accumulator
+  // (3) Update primary entropy accumulator
   // (6.22): η'[0] = H(η[0] || input.entropy)
-  const oldEta0 = preState.eta[0];
-  postState.eta[0] = blake2bConcat(oldEta0, input.entropy);
+  // Save pre‐rotation entropy values for later use in the rotation.
+  const preEta0 = preState.eta[0];
+  const preEta1 = preState.eta[1];
+  const preEta2 = preState.eta[2];
+
+  console.log("inputEntropy", preEta0, input.entropy);
+  postState.eta[0] = blake2bConcat(preEta0, input.entropy);
   console.log("eta[0]", postState.eta[0]);
 
   // TODO: Epoch and sub-epoch calculations
-  // TODO: calculate oldEpoch and newEpoch as floor(slot/EPOCH_LENGTH)
+    // (4) Calculate epoch and sub‐epoch indices.
+  // TODO [Timekeeping, Eq. (6.2)]
+  const oldEpoch    = Math.floor(preState.tau / EPOCH_LENGTH);
+  const newEpoch    = Math.floor(input.slot / EPOCH_LENGTH);
+  
   // TODO: calculate oldSubEpoch and newSubEpoch as floor((slot % EPOCH_LENGTH) / ROTATION_PERIOD)
 
   let epochMark: EpochMark | null = null;
@@ -36,9 +49,59 @@ export function applySafroleStf(
   // TODO (6.13): Rotate key sets (gamma_k, kappa, lambda, iota)
   // TODO: (6.34): check if we need to reset the ticket accumulator (gamma_a)
   // TODO:  (6.24): check confition to rebuild gamma_s
+  if (newEpoch > oldEpoch) {
+
+    postState.eta[1] = preState.eta[0];
+    postState.eta[2] = preState.eta[1];
+    postState.eta[3] = preState.eta[2];
+    postState.lambda  = preState.kappa; 
+    postState.kappa   = preState.gamma_k; 
+    postState.gamma_k = zeroOutOffenders(preState.iota, preState.post_offenders); 
+    // iota no change
+    postState.gamma_a = [];
+
+    const justEndedEpoch = newEpoch === oldEpoch + 1;
+    rebuildGammaSForEpochChange(postState, justEndedEpoch);
+  
+    // postState.gamma_z = ringRootOf(postState.gamma_k);
+
+    const aggregatorSecret = preState.eta[2];
+    console.log("aggregatorSecret", aggregatorSecret);
+
+    const ringKeysStr = postState.gamma_k
+      .map(validator => {
+      // Convert the Uint8Array => hex string
+      const hexPub = Buffer.from(validator.bandersnatch).toString("hex");
+      return hexPub;
+    }).join(" ");
+
+    const ringSize    = postState.gamma_k.length;
+    const srsPath     = "./ring-vrf/data/zcash-srs-2-11-uncompressed.bin";
+
+    const aggregatorBytes = aggregator(ringKeysStr, ringSize, srsPath);
+    postState.gamma_z = aggregatorBytes; 
+
+
+    // post offenders no change...
+
+// outpute
+    epochMark = {
+      entropy:        preState.eta[0],  // old "eta[0]" 
+      tickets_entropy: preState.eta[1], // old "eta[1]"
+      validators: postState.gamma_k.map(v => v.bandersnatch)
+    };
+
+  } else {
+    postState.gamma_k = preState.gamma_k;
+    postState.kappa   = preState.kappa;
+    postState.lambda  = preState.lambda;
+    postState.gamma_z = preState.gamma_z;
+  }
+  
 
   // TODO: process extrinsic tickets
   // TODO: Process extrinsic tickets, attempt checks, duplicate detection, appending to gamma_a
+
 
   const usedTicketIds = new Set<string>();
   for (const ticketEnv of input.extrinsic) {
@@ -64,6 +127,10 @@ export function applySafroleStf(
       tickets_mark: null,
     },
   };
+
+  // console.log("output", convertToReadableFormat(output));
+
+  // console.log("postState", convertToReadableFormat(postState));
 
   // 7) return output and postState
   return { output, postState };

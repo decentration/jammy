@@ -1,15 +1,20 @@
 import fs from "fs";
 import path from "path";
-import { applySafroleStf } from "../../../safrole/applySafroleStfWIP";
+import { applySafroleStf } from "../../../safrole/applySafroleStf";
 import { convertToReadableFormat } from "../../../utils";
 import { deepConvertHexToBytes } from "../../../codecs";
+import { loadTrustedSetup } from "c-kzg";
 
-describe("Disputes STF conformance", () => {
+beforeAll(() => {
+  loadTrustedSetup(0);
+});
+
+describe("Safrole STF conformance", () => {
   const testFiles = [
     "enact-epoch-change-with-no-tickets-1",
-    // "enact-epoch-change-with-no-tickets-2",
-    // "enact-epoch-change-with-no-tickets-3",
-    // "enact-epoch-change-with-no-tickets-4",
+    "enact-epoch-change-with-no-tickets-2",
+    "enact-epoch-change-with-no-tickets-3",
+    "enact-epoch-change-with-no-tickets-4",
     // "enact-epoch-change-with-padding-1",
     // "publish-tickets-no-mark-1",
     // "publish-tickets-no-mark-2",
@@ -18,14 +23,14 @@ describe("Disputes STF conformance", () => {
     // "publish-tickets-no-mark-5",
     // "publish-tickets-no-mark-6",
     // "publish-tickets-no-mark-7",
-    // "publish-tickets-no-mark-8",
-    // "publish-tickets-no-mark-9",
+     "publish-tickets-no-mark-8",
+     "publish-tickets-no-mark-9",
     // "publish-tickets-with-mark-1",
     // "publish-tickets-with-mark-2",
     // "publish-tickets-with-mark-3",
     // "publish-tickets-with-mark-4",
     // "publish-tickets-with-mark-5",
-    // "skip-epoch-tail-1",
+    "skip-epoch-tail-1",
     // "skip-epochs-1"
   ];
 

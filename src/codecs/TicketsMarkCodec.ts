@@ -1,7 +1,7 @@
 // src/codecs/TicketsMarkCodec.ts
 import { Codec } from "scale-ts";
 import { toUint8Array, concatAll } from "../codecs/utils";
-import { TicketsMark } from "../types/types";
+import type { TicketsMark } from "../types/types";
 
 export const TicketsMarkCodec: Codec<TicketsMark[]> = [
   // ENCODER
@@ -60,4 +60,4 @@ TicketsMarkCodec.enc = TicketsMarkCodec[0];
 TicketsMarkCodec.dec = TicketsMarkCodec[1];
 
 
-export { TicketsMark } from "../types/types";
+export type { TicketsMark } from "../types/types";

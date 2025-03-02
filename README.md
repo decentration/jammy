@@ -30,3 +30,23 @@ From 4.1:
 Notes 
 
 use npx tsx ./src/... to run script in the command line. 
+
+# Install
+
+
+```bash
+
+// if you dont have bun already installed.
+curl -fsSL https://bun.sh/install | bash
+
+// if the paths are not already added
+BUN_INSTALL=/root/.bun
+PATH=$BUN_INSTALL/bin:$PATH
+
+// upgrade bun
+bun upgrade
+
+// install the package.json packages.
+bun install
+```
+

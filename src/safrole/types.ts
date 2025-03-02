@@ -1,6 +1,6 @@
 import { u32 } from "scale-ts";
 import { ValidatorInfo } from '../stf/types';
-import { BandersnatchRingVrfSignature, BandersnatchPublic, Ed25519PublicCodec, TicketsMark } from '../types/types';
+import { BandersnatchRingVrfSignature, BandersnatchPublic, Ed25519PublicCodec, TicketsMark, BandersnatchRingRoot } from '../types/types';
 import { DiscriminatorCodec } from "../codecs";
 
 export const TimeSlotCodec = u32;
@@ -21,7 +21,7 @@ export interface SafroleState {
   iota: ValidatorInfo[];
   gamma_a: TicketsMark[];  // can be empty 
   gamma_s: TicketsOrKeys; // tickets or keys => 12 x 32 bytes
-  gamma_z: Uint8Array;   // 144 bytes
+  gamma_z: BandersnatchRingRoot;   // 144 bytes
   post_offenders: Uint8Array[]; // sequence of Ed25519Public => array of 32
 }
 
@@ -43,7 +43,7 @@ export interface TicketEnvelope {
 }
 
 
-export { TicketsMark } from "../types/types";
+export type { TicketsMark } from "../types/types";
 
 
 export type SafroleOutput = 

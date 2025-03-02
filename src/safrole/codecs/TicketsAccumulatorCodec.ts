@@ -1,5 +1,6 @@
 import { Codec } from "scale-ts";
-import { TicketsMark, TicketBodyCodec } from "../../codecs";
+import { TicketBodyCodec } from "../../codecs";
+import type { TicketsMark } from "../../types/types";
 import { DiscriminatorCodec } from "../../codecs/DiscriminatorCodec";
 import { EPOCH_LENGTH } from "../../consts/tiny";
 /** 

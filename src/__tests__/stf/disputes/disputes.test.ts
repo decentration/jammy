@@ -39,7 +39,7 @@ describe("DisputesCodec roundtrip", () => {
   testFiles.forEach((fileName) => {
     it(`encodes/decodes from ${fileName}`, () => {
       // 1) load JSON
-      const filePath = path.join(__dirname, "../../../stf/disputes/data/full", fileName.concat('.json'));
+      const filePath = path.join(__dirname, "../../../stf/disputes/data/tiny", fileName.concat('.json'));
       const raw = JSON.parse(fs.readFileSync(filePath, "utf-8"));
 
       // 2) convert all 0x  => Uint8Arrays
@@ -57,7 +57,7 @@ describe("DisputesCodec roundtrip", () => {
 
       // compare encoded with .bin 
 
-      const binPath = path.join(__dirname, "../../../stf/disputes/data/full", fileName.concat(".bin"));
+      const binPath = path.join(__dirname, "../../../stf/disputes/data/tiny", fileName.concat(".bin"));
       const binData = new Uint8Array(fs.readFileSync(binPath));
 
       // bin file

@@ -11,6 +11,7 @@ export const Ed25519SignatureCodec = Bytes(64);
 export const Ed25519PublicCodec = Bytes(32);
 export const ValidatorMetadataCodec = Bytes(128)
 export const ServiceIdCodec = u32;
+export const BandersnatchRingRootCodec = Bytes(144);
 
 export type OpaqueHash = Uint8Array; // 32 bytes  
 export type BandersnatchRingVrfSignature = Uint8Array; // 784 byte
@@ -21,6 +22,7 @@ export type Ed25519Signature = Uint8Array; // 64 bytes
 export type Ed25519Public = Uint8Array; // 32 bytes
 export type ValidatorMetadata = Uint8Array; // 128 bytes  
 export type ServiceId = number; // u32  
+export type BandersnatchRingRoot = Uint8Array; // 144 bytes
 
 export interface Validators {
   public_key: BandersnatchPublic; // 32 bytes
@@ -32,7 +34,7 @@ export interface EpochMark {
   validators: Uint8Array[]; // [kb | k ∈ γk'] // 32 bytes bandersnatch public keys of VALIDATORS_COUNT
 }
 
-export interface TicketsMark {
+export type TicketsMark = {
   id: Uint8Array; // Bytes(32)
   attempt: number; // u8
 }
