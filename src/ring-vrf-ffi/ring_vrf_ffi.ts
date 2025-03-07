@@ -53,7 +53,9 @@ export function aggregator(ringKeys: string | string[], ringSize: number, srsPat
 
   let ringKeysStr = typeof ringKeys === 'string'
     ? ringKeys
-    : ringKeys.join(" ");
+    : ringKeys.join("");
+
+    console.log("ringKeysStr in aggregator", ringKeysStr);
 
   // 1) Build null-terminated buffers for ringKeys + srsPath
   const ringKeysBuf = new Uint8Array(Buffer.from(ringKeysStr, "utf-8"));
@@ -61,6 +63,11 @@ export function aggregator(ringKeys: string | string[], ringSize: number, srsPat
 
   // out_len as int*
   const outLenBuf = new Int32Array(1);
+
+  console.log("out length buffer", outLenBuf);  
+
+  console.log("ringKeysBuf", ringKeysBuf);
+
 
   // 2) call aggregator
   const ptrOut = symbols.ring_vrf_ffi_aggregator(
@@ -79,7 +86,7 @@ export function aggregator(ringKeys: string | string[], ringSize: number, srsPat
 
   // 3) free pointer
   symbols.ring_vrf_ffi_free(ptrOut, length);
-
+console.log("finalBytes", finalBytes);
   return finalBytes;
 }
 

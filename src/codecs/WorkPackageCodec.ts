@@ -23,7 +23,7 @@ export const WorkPackageCodec: Codec<WorkPackage> = [
     const encContext = ContextCodec.enc(wp.context);
 
     // 5) items => DiscriminatorCodec(WorkItemCodec)
-    const encItems = DiscriminatorCodec(WorkItemCodec).enc(wp.items);
+    const encItems = DiscriminatorCodec(WorkItemCodec, { minSize: 1, maxSize: 16 } ).enc(wp.items);
 
     // concat
     const totalSize =

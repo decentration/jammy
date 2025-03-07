@@ -8,7 +8,7 @@ describe("Disputes STF conformance", () => {
   const testFiles = [
     "progress_invalidates_avail_assignments-1",
     "progress_with_bad_signatures-1",
-    "progress_with_bad_signatures-2",
+    "progress_with_bad_signatures-2", // TODO there was an error in this conformance test by davxy, maybe he has updated it in a later version. 
     "progress_with_culprits-1",
     "progress_with_culprits-2",
     "progress_with_culprits-3",

@@ -11,12 +11,18 @@ import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec"
  */
 export function DiscriminatorCodec<T>(
   itemCodec: Codec<T>,
-  options?: { maxSize?: number }
+  options?: { maxSize?: number, minSize?: number }
 
 ): Codec<T[]> {
   // 1) The encoder function
   const encode: Encoder<T[]> = (items: T[]): Uint8Array => {
 
+    if (options?.minSize !== undefined && items.length < options.minSize) {
+      throw new Error(
+        `DiscriminatorCodec: too few items (got=${items.length}, min=${options.minSize})`
+      )
+    }
+    
     if (options?.maxSize !== undefined && items.length > options.maxSize) {
       throw new Error(
         `DiscriminatorCodec: too many items (got=${items.length}, max=${options.maxSize})`

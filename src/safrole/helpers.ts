@@ -4,6 +4,7 @@ import { EPOCH_LENGTH } from "../consts";
 import { SafroleState } from "./types";
 import { ValidatorInfo } from "../stf/types";
 import { BandersnatchPublic, BandersnatchRingRoot, OffendersMark } from "../types/types";
+import { arrayEqual, convertToReadableFormat } from "../utils";
 
 export function blake2bConcat(x: Uint8Array | string, y: Uint8Array | string, bytesOutput: number = 32): Uint8Array {
 
@@ -58,28 +59,36 @@ export function zeroOutOffenders(
    iotaArray: ValidatorInfo[], 
    offenders: OffendersMark[]
  ): ValidatorInfo[] {
-   
+
+  console.log("offenders", offenders);
+  //  console.log("iotaArray", Buffer.from(Uint8Array.from(iotaArray.map((v) => Array.from(v.bandersnatch)).flat())).toString("hex"));
    if (!offenders.length) {
     console.log("no offenders");
      return structuredClone(iotaArray); 
    }
    
-   // Build a set for faster membership checks
-   const offenderSet = new Set(offenders.map(off => off));
- 
-   return iotaArray.map((val) => {
-     // If val.bandersnatch is in the offender set => zero out
-     if (offenderSet.has(val.bandersnatch)) {
-       const zeroKey: ValidatorInfo = {
-         bandersnatch: new Uint8Array(32), // all zero  
-         ed25519:      new Uint8Array(32), // all zero        
-         bls:        new Uint8Array(144), // all zero
-         metadata:     new Uint8Array(128),
-       };
-       return zeroKey;
-     } else {
-       return structuredClone(val);
-     }
-   });
+  //  const OffenderSetStrings = convertToReadableFormat(offenders);
+  //  console.log("OffenderSetStrings", OffenderSetStrings);
+  //  // Build a set for faster membership checks
+  //  const offenderSet = new Set(
+  //   OffenderSetStrings.map((off: string) => off.replace(/^0x/, "").toLowerCase())
+  // ); 
+  
+  return iotaArray.map((val) => {
+    // We want to check if val.ed25519 is *any* of the offenderKeys
+    const isOffender = offenders.some((offKey) => arrayEqual(offKey, val.ed25519));
+  
+    if (isOffender) {
+      // zero out 
+      return {
+        bandersnatch: new Uint8Array(32),
+        ed25519:      new Uint8Array(32),
+        bls:          new Uint8Array(144),
+        metadata:     new Uint8Array(128),
+      };
+    } else {
+      return structuredClone(val);
+    }
+  });  
  }
 

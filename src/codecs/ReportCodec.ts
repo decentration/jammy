@@ -48,7 +48,7 @@ export const ReportCodec: Codec<Report> = [
     // log string hex
 
     // 7) encode results with DiscriminatorCodec(ResultCodec)
-    const encResults = DiscriminatorCodec(ResultCodec).enc(report.results);
+    const encResults = DiscriminatorCodec(ResultCodec, { minSize: 1, maxSize: 16 }).enc(report.results);
 
     // 8) Concatenate all
     const totalSize =
