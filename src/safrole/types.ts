@@ -99,3 +99,14 @@ export interface SafroleStf {
 }
 
 
+// from verifyTicketSignature function
+export interface TicketVerifyContext {
+  ringKeysStr: string;      // space-separated bandersnatch pubkeys in hex
+  entropy2: string;         // eta[2] in hex
+  attempt: number;         
+}
+
+export interface VerifyTicketOutput {
+  ok: boolean;
+  vrfOutput: Uint8Array;
+}

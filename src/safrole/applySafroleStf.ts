@@ -1,10 +1,11 @@
-import { SafroleState, SafroleInput, SafroleOutput, ErrorCode, EpochMark } from "./types";
+import { SafroleState, SafroleInput, SafroleOutput, ErrorCode, EpochMark, TicketVerifyContext } from "./types";
 import { TicketsMark } from "../types/types";
 import { convertToReadableFormat, toHex } from "../utils";
-import { blake2bConcat, zeroOutOffenders } from "./helpers";
-import { EPOCH_LENGTH } from "../consts";
+import { blake2bConcat, outsideIn, zeroOutOffenders } from "./helpers";
+import { CONTEST_DURATION, EPOCH_LENGTH } from "../consts";
 import { rebuildGammaSForEpochChange } from "./gamma";
 import { aggregator } from "../ring-vrf-ffi/ring_vrf_ffi"
+import { verifyTicketSignature } from "./verifyTicketSignature";
 
 
 export function applySafroleStf(
@@ -25,112 +26,172 @@ export function applySafroleStf(
   // 2) tau
   postState.tau = input.slot;
 
-
-  // 3) TODO Check extrinsic attempts, before rotating 
-  for (const ticketEnv of input.extrinsic || []) {
-   // BAD_TICKET_ATTEMPT
+  if (postState.tau >= CONTEST_DURATION && input.extrinsic?.length > 0) {
+      return { output: { err: ErrorCode.UNEXPECTED_TICKET }, postState: preState };
   }
 
-  // (4) Update primary entropy accumulator
-  // (6.22): η'[0] = H(η[0] || input.entropy)
-  // Save pre‐rotation entropy values for later use in the rotation.
+  // 3) Update primary entropy accumulator
+  // (6.22) -  Save pre‐rotation entropy values for later use in the rotation.
   const preEta0 = preState.eta[0];
   postState.eta[0] = blake2bConcat(preEta0, input.entropy);
 
-    // (4) Calculate epoch and sub‐epoch indices.
-  const oldEpoch    = Math.floor(preState.tau / EPOCH_LENGTH);
-  const newEpoch    = Math.floor(input.slot / EPOCH_LENGTH);
   
-  // TODO: calculate oldSubEpoch and newSubEpoch as floor((slot % EPOCH_LENGTH) / ROTATION_PERIOD)
+  // (4) Calculate old/new epochs
+  const oldEpoch = Math.floor(preState.tau / EPOCH_LENGTH);
+  const newEpoch = Math.floor(input.slot / EPOCH_LENGTH);
+  let epochDiff  = newEpoch - oldEpoch;
 
   let epochMark: EpochMark | null = null;
-  let epochDiff = newEpoch - oldEpoch;
 
-
-  // TODO: Epoch boundary rotation
-  // TODO: (6.23): Rotate entropy values: (η'[1], η'[2], η'[3]) = (η[0], η[1], η[2])
-  // TODO (6.13): Rotate key sets (gamma_k, kappa, lambda, iota)
-  // TODO: (6.34): check if we need to reset the ticket accumulator (gamma_a)
-  // TODO:  (6.24): check confition to rebuild gamma_s
   if (epochDiff > 0) {
-
-    let intermediatePreState = structuredClone(preState);
-    const originalOldEpoch = oldEpoch;
-
-    while (epochDiff > 0) {
-      handleSingleEpochChange(
-        intermediatePreState,
-        postState,
-        originalOldEpoch + (newEpoch - oldEpoch) - (epochDiff - 1)
-      );
-     //    post offenders no change...
-
+    // capture the old epoch’s original entropies, because we 
+    // seemingly don't need to make ephemoral shifts for skipped epochs...
+    const originalOldEta0 = preState.eta[0];
+    const originalOldEta1 = preState.eta[1];
+   
+    handleSingleEpochChange(
+      preState,
+      postState,
+      oldEpoch,       // old epoch
+      newEpoch       // new epoch
+    );
   
-      epochMark = {
-        entropy: intermediatePreState.eta[0],    // old eta[0]
-        tickets_entropy: intermediatePreState.eta[1], // old eta[1]
-        validators: postState.gamma_k.map((v) => v.bandersnatch),
-      };
 
-      // Next iteration "preState" for the subsequent jump is actually the postState from this iteration
-      intermediatePreState = structuredClone(postState);
+  // final new epoch mark
+  epochMark = {
+    entropy:         originalOldEta0,
+    tickets_entropy: originalOldEta1,
+    validators:      postState.gamma_k.map(v => v.bandersnatch),
+  };
 
-      epochDiff--;
-    }
-  } else {
-    // => newEpoch == oldEpoch => no epoch boundary 
-    postState.gamma_k = preState.gamma_k;
-    postState.kappa = preState.kappa;
-    postState.lambda = preState.lambda;
-    postState.gamma_z = preState.gamma_z;
-  }
+} else {
+  // => no epoch boundary 
+  postState.gamma_k = preState.gamma_k;
+  postState.kappa   = preState.kappa;
+  postState.lambda  = preState.lambda;
+  postState.gamma_z = preState.gamma_z;
+}
 
-  // TODO: process extrinsic tickets
-  // TODO: Process extrinsic tickets, attempt checks, duplicate detection, appending to gamma_a
-  // 5) Handle extrinsic
-  let isPublishWithMark = false;
-  let isPublishNoMark = false;
+// 5) Handle extrinsic
+
+  // i) Gather and verify new tickets
+  const newTickets: { id: Uint8Array; attempt: number }[] = [];
 
   if (input.extrinsic && input.extrinsic.length > 0) {
 
+   for (const ticketEnv of input.extrinsic) {
+ 
+    // console.log("ticketEnv", ticketEnv);
+     if (ticketEnv.attempt > 2) {
+      //  console.log("ticketEnv.attempt too high", ticketEnv.attempt);
+       return { output: { err: ErrorCode.BAD_TICKET_ATTEMPT }, postState: preState };
+     }
+ 
+     // ring VRF verify ...
+     const ringKeysStr = preState.gamma_k
+       .map(v => Buffer.from(v.bandersnatch).toString("hex"))
+       .join(" ");
+ 
+     const verifyResult = verifyTicketSignature({
+       ringKeysStr,
+       entropy2: Buffer.from(preState.eta[2]).toString("hex"),
+       attempt: ticketEnv.attempt,
+     }, ticketEnv.signature);
+ 
+     if (!verifyResult.ok) {
+       return { output: { err: ErrorCode.BAD_TICKET_PROOF }, postState: preState };
+     }
+ 
+     newTickets.push({
+       id: verifyResult.vrfOutput,
+       attempt: ticketEnv.attempt,
+     });
+   }
+ 
+   console.log("newTickets", convertToReadableFormat(newTickets));
+ 
+   // ii) Check new tickets among themselves for ascending ID
+   for (let i = 1; i < newTickets.length; i++) {
+       const prev = newTickets[i - 1].id;
+       const curr = newTickets[i].id;
+       if (!isLexicographicallyAscending(prev, curr)) {
+       return { output: { err: ErrorCode.BAD_TICKET_ORDER }, postState: preState };
+       }
+   }
   }
+   // iii) Merge old + new => single array
+   const merged = [...postState.gamma_a, ...newTickets];
+ 
+ 
+   // iv) Sort merged by ID
+   merged.sort((a, b) => compareTicketID(a.id, b.id));
+ 
+   console.log("merged", convertToReadableFormat(merged));
+ 
+ 
+   for (let i = 1; i < merged.length; i++) {
+       const prev = merged[i - 1];
+       const curr = merged[i];
+   
+       // If same ID
+       if (compareTicketID(prev.id, curr.id) === 0) {
+         // If same attempt => DUPLICATE
+         if (prev.attempt === curr.attempt) {
+           return { output: { err: ErrorCode.DUPLICATE_TICKET }, postState: preState };
+         }
+         // If new attempt <= old => BAD_TICKET_ATTEMPT
+         if (curr.attempt <= prev.attempt) {
+           return { output: { err: ErrorCode.BAD_TICKET_ATTEMPT }, postState: preState };
+         }
+       }
+     }
 
-
-  const usedTicketIds = new Set<string>();
-  for (const ticketEnv of input.extrinsic) {
-    if (ticketEnv.attempt !== 1) {
-      return {
-        output: { err: ErrorCode.BAD_TICKET_ATTEMPT },
-        postState: preState,
-      };
+     while (merged.length > EPOCH_LENGTH) {
+      merged.pop(); 
     }
-    
-    const ticketHex = toHex(ticketEnv.signature);
-    if (usedTicketIds.has(ticketHex)) {
-      return { output: { err: ErrorCode.DUPLICATE_TICKET }, postState: preState };
-    }
-    usedTicketIds.add(ticketHex);
-    const newMark: TicketsMark = {
-      id: ticketEnv.signature.slice(0, 32),
-      attempt: ticketEnv.attempt,
-    };
-    postState.gamma_a.push(newMark);
-  }
-
-  // 6) Output
-  const output: SafroleOutput = {
-    ok: {
-      epoch_mark: epochMark,
-      tickets_mark: null,
-    },
-  };
+   
+ 
+   // Step 6) Store final
+   postState.gamma_a = merged;
+ 
+  //  console.log("final gamma_a", convertToReadableFormat(postState.gamma_a));    
 
   // 7) If publish with mark, add tickets to output
-  let ticketsMark: TicketsMark[] = [];
+  let tickets_mark: TicketsMark[] | null = null;
+  let isPublishWithMark = false;
+
+
+  if (postState.tau > CONTEST_DURATION && !newEpoch) {
+    console.log("postState.tau > CONTEST_DURATION");
+    isPublishWithMark = true;
+
+    // shallow copy....
+    const finalTickets = postState.gamma_a.map(m => ({ ...m })); 
+    // finalTickets is sorted ascending from steps above
+    let outsideInArr = outsideIn(finalTickets); 
+
+    if (outsideInArr.length === 0) {
+      tickets_mark = null;
+    } else {
+      tickets_mark = outsideInArr.map((m) => ({
+        id: m.id,
+        attempt: m.attempt,
+      }));
+    }
+
+  }
 
   if (isPublishWithMark && isTicketsType(postState.gamma_s)) {
-    ticketsMark = postState.gamma_s.tickets;
+    tickets_mark = postState.gamma_s.tickets;
   }
+
+    // 7) Output
+    const output: SafroleOutput = {
+      ok: {
+        epoch_mark: epochMark,
+        tickets_mark,
+      },
+    };
 
 
   // console.log("output", convertToReadableFormat(output));
@@ -145,24 +206,25 @@ export function applySafroleStf(
 function handleSingleEpochChange(
   preState: SafroleState,
   postState: SafroleState,
-  oldEpochIndex: number
+  oldEpoch: number,
+  newEpoch: number
 ) {
-
+  // 6.23 
   postState.eta[1] = preState.eta[0];
   postState.eta[2] = preState.eta[1];
   postState.eta[3] = preState.eta[2];
+
+  // 6.13 
   postState.lambda = preState.kappa;
-  postState.kappa = preState.gamma_k;
-  console.log("zeroOutOffenders", preState.iota, preState.post_offenders);
+  postState.kappa  = preState.gamma_k;
   postState.gamma_k = zeroOutOffenders(preState.iota, preState.post_offenders);
 
-  // console.log("zeroOutOffenders", postState.gamma_k.map((v) => Buffer.from(v.bandersnatch).toString("hex")));
-  // iota no change
+  // reset gamma_a
   postState.gamma_a = [];
 
-  // Rebuild gamma_s for epoch changes (like you do):
-  const justEndedEpoch = true; // or newEpoch== oldEpoch+1 if you want logic
-  rebuildGammaSForEpochChange(postState, justEndedEpoch);
+  // 6.24
+  rebuildGammaSForEpochChange(preState, postState, oldEpoch, newEpoch);
+
 
   // aggregator TODO move to a separate function called getAggregatorBytes()
   const aggregatorSecret = preState.eta[2];
@@ -182,7 +244,22 @@ function handleSingleEpochChange(
 
 }
 
-
 function isTicketsType(gamma_s: SafroleState["gamma_s"]): gamma_s is { tickets: TicketsMark[] } {
   return "tickets" in gamma_s;
 }
+
+function compareTicketID(a: Uint8Array, b: Uint8Array): number {
+
+  for (let i = 0; i < 32; i++) {
+    if (a[i] !== b[i]) 
+      return a[i] - b[i];
+  }
+  return 0;
+}
+
+
+function isLexicographicallyAscending(prev: Uint8Array, curr: Uint8Array): boolean {
+  return compareTicketID(prev, curr) < 0;
+}
+
+

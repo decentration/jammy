@@ -15,3 +15,4 @@ export const MAX_AGE_IN_TIMESLOTS = 14000 // Production: L = 14, 400: The maximu
 export const PEAK_PREFIX = "node"; // in later version this will be "peak".
 export const VALIDATORS_PER_CORE = 3; 
 export const VOTE_COUNT = (2/3 * VALIDATOR_COUNT) + 1; 
+export const CONTEST_DURATION = 500 // Y

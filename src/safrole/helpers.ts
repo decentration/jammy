@@ -3,7 +3,7 @@ import { blake2b } from "blakejs";
 import { EPOCH_LENGTH } from "../consts";
 import { SafroleState } from "./types";
 import { ValidatorInfo } from "../stf/types";
-import { BandersnatchPublic, BandersnatchRingRoot, OffendersMark } from "../types/types";
+import {  OffendersMark } from "../types/types";
 import { arrayEqual, convertToReadableFormat } from "../utils";
 
 export function blake2bConcat(x: Uint8Array | string, y: Uint8Array | string, bytesOutput: number = 32): Uint8Array {
@@ -92,3 +92,32 @@ export function zeroOutOffenders(
   });  
  }
 
+
+
+ /**
+ * outsideIn:
+ * Reorders sorted array [s0, s1, ..., s_{n-1}] into
+ * [s0, s_{n-1}, s1, s_{n-2}, ...]
+ * This matches the "Z(...) => outside-in" function from GP 6.25.
+ */
+export function outsideIn<T>(arr: T[]): T[] {
+  const result: T[] = [];
+  let left = 0;
+  let right = arr.length - 1;
+  let toggle = true;
+
+  while (left <= right) {
+    if (toggle) {
+      // pick from the "left" end
+      result.push(arr[left]);
+      left++;
+    } else {
+      // pick from the "right" end
+      result.push(arr[right]);
+      right--;
+    }
+    toggle = !toggle;
+  }
+
+  return result;
+}
