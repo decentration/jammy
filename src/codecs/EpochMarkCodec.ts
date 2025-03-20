@@ -1,6 +1,6 @@
 import { Codec, Bytes } from "scale-ts";
 import { EpochMark, BandersnatchPublic, BandersnatchPublicCodec } from "../types/types";
-import { VALIDATOR_COUNT } from "../consts/tiny";
+import { VALIDATOR_COUNT } from "../consts";
 import { concatAll, toUint8Array } from "../codecs/utils";
 
 /**

@@ -1,5 +1,5 @@
 import { EpochMark } from "../../types/types";
-import { EPOCH_LENGTH } from "../../consts/tiny";
+import { EPOCH_LENGTH } from "../../consts";
 
 // Returns true if the given slot is the first block of a new epoch.
 export function isEpochBoundary(slot: number): boolean {

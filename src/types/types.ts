@@ -1,6 +1,6 @@
 import { Struct, u8, u16, u32, Bytes, Vector, bool, _void, Codec} from 'scale-ts';
 import { VarLenBytesCodec } from '../codecs';
-import { BITFIELD_LENGTH } from '../consts/tiny';
+import { BITFIELD_LENGTH } from '../consts';
 
 export const BandersnatchRingVrfSignatureCodec = Bytes(784); 
 export const BandersnatchVrfSignaturesCodec = Bytes(96);

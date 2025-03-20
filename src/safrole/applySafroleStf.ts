@@ -2,7 +2,7 @@ import { SafroleState, SafroleInput, SafroleOutput, ErrorCode, EpochMark, Ticket
 import { TicketsMark } from "../types/types";
 import { convertToReadableFormat, toHex } from "../utils";
 import { blake2bConcat, outsideIn, zeroOutOffenders } from "./helpers";
-import { CONTEST_DURATION, EPOCH_LENGTH } from "../consts";
+import { CONTEST_DURATION, EPOCH_LENGTH, TICKETS_PER_VALIDATOR } from "../consts";
 import { rebuildGammaSForEpochChange } from "./gamma";
 import { aggregator } from "../ring-vrf-ffi/ring_vrf_ffi"
 import { verifyTicketSignature } from "./verifyTicketSignature";
@@ -82,7 +82,7 @@ export function applySafroleStf(
    for (const ticketEnv of input.extrinsic) {
  
     // console.log("ticketEnv", ticketEnv);
-     if (ticketEnv.attempt > 2) {
+     if (ticketEnv.attempt >= TICKETS_PER_VALIDATOR) {
       //  console.log("ticketEnv.attempt too high", ticketEnv.attempt);
        return { output: { err: ErrorCode.BAD_TICKET_ATTEMPT }, postState: preState };
      }
@@ -139,8 +139,9 @@ export function applySafroleStf(
          if (prev.attempt === curr.attempt) {
            return { output: { err: ErrorCode.DUPLICATE_TICKET }, postState: preState };
          }
-         // If new attempt <= old => BAD_TICKET_ATTEMPT
+         // If new attempt <= old => BAD_TICKET_ATTEMPT and if
          if (curr.attempt <= prev.attempt) {
+          
            return { output: { err: ErrorCode.BAD_TICKET_ATTEMPT }, postState: preState };
          }
        }

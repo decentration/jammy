@@ -2,7 +2,7 @@
 import { Codec } from "scale-ts";
 import { Assurance } from "../../../../types/types";
 import { decodeWithBytesUsed } from "../../../../codecs"; // Ensure correct path
-import { BITFIELD_LENGTH } from "../../../../consts/tiny";
+import { BITFIELD_LENGTH } from "../../../../consts";
 
 
 /**
