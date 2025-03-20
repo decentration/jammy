@@ -1,6 +1,5 @@
 import { Codec } from 'scale-ts';
-import { ExtrinsicData } from '../../types/types';
-import { TicketCodec, AssuranceCodec } from '../../types/types';
+import { ExtrinsicData, TicketCodec, AssuranceCodec } from '../../types/types';
 import { GuaranteeCodec, DisputeCodec, PreimageCodec } from '../../codecs';
 import { DiscriminatorCodec, decodeWithBytesUsed } from '../../codecs';
 import { CORES_COUNT, MAX_TICKET_PER_BLOCK } from '../../consts/tiny';
@@ -45,7 +44,6 @@ export const ExtrinsicDataCodec: Codec<ExtrinsicData> = [
 
   // 2) DECODER
   (input: ArrayBuffer | Uint8Array | string): ExtrinsicData => {
-    console.log('ExtrinsicDataCodec input:', input);
     // Convert input to Uint8Array
     const uint8 =
       input instanceof Uint8Array
@@ -55,7 +53,7 @@ export const ExtrinsicDataCodec: Codec<ExtrinsicData> = [
         : new Uint8Array(input);
 
     let offset = 0;
-console.log('ExtrinsicDataCodec before a:');
+    // console.log('ExtrinsicDataCodec before a:');
     // a) decode tickets
     {
       const { value: ticketsVal, bytesUsed } = 
@@ -65,11 +63,11 @@ console.log('ExtrinsicDataCodec before a:');
         uint8.slice(offset)
       );
 
-      console.log('ExtrinsicDataCodec ticketsVal:', ticketsVal);
+      // console.log('ExtrinsicDataCodec ticketsVal:', ticketsVal);
       offset += bytesUsed;
       var tickets = ticketsVal;
     }
-    console.log('ExtrinsicDataCodec before b and offset bytesUsed:', offset);
+    // console.log('ExtrinsicDataCodec before b and offset bytesUsed:', offset);
 
     // b) decode preimages
     {
@@ -78,7 +76,7 @@ console.log('ExtrinsicDataCodec before a:');
         uint8.slice(offset)
       );
 
-      console.log('ExtrinsicDataCodec preimagesVal:', preimagesVal);
+      // console.log('ExtrinsicDataCodec preimagesVal:', preimagesVal);
       offset += bytesUsed;
       var preimages = preimagesVal;
     }
@@ -89,7 +87,7 @@ console.log('ExtrinsicDataCodec before a:');
         DiscriminatorCodec(GuaranteeCodec),
         uint8.slice(offset)
       );
-      console.log('ExtrinsicDataCodec guaranteesVal:', guaranteesVal);
+      // console.log('ExtrinsicDataCodec guaranteesVal:', guaranteesVal);
       offset += bytesUsed;
       var guarantees = guaranteesVal;
     }
@@ -100,20 +98,20 @@ console.log('ExtrinsicDataCodec before a:');
         DiscriminatorCodec(AssuranceCodec),
         uint8.slice(offset)
       );
-      console.log('ExtrinsicDataCodec assurancesVal:', assurancesVal);
+      // console.log('ExtrinsicDataCodec assurancesVal:', assurancesVal);
       offset += bytesUsed;
       var assurances = assurancesVal;
     }
 
     
     // e) decode disputes
-    console.log('e: ExtrinsicDataCodec before disputes');
+    // console.log('e: ExtrinsicDataCodec before disputes');
     {
       const { value: disputesVal, bytesUsed } = decodeWithBytesUsed(
         DisputeCodec,
         uint8.slice(offset)
       );
-      console.log('ExtrinsicDataCodec disputesVal:', disputesVal);
+      // console.log('ExtrinsicDataCodec disputesVal:', disputesVal);
       offset += bytesUsed;
       var disputes = disputesVal;
     }
@@ -125,4 +123,4 @@ console.log('ExtrinsicDataCodec before a:');
 ExtrinsicDataCodec.enc = ExtrinsicDataCodec[0];
 ExtrinsicDataCodec.dec = ExtrinsicDataCodec[1];
 
-export { ExtrinsicData } from '../../types/types';
+// export { ExtrinsicData } from '../../types/types';

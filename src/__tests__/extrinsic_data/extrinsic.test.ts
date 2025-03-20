@@ -22,7 +22,6 @@ describe("ExtrinsicDataCodec test", () => {
         blob: Uint8Array.from(Buffer.from(p.blob.slice(2), "hex")),
       })),
       guarantees: raw.guarantees.map((g: any) => ({
-
         report: {
           package_spec: {
             hash: Uint8Array.from(Buffer.from(g.report.package_spec.hash.slice(2), "hex")),
@@ -109,7 +108,7 @@ describe("ExtrinsicDataCodec test", () => {
 
     // // 4) Decode
     const decoded = ExtrinsicDataCodec.dec(encoded);
-console.log('decoded:', JSON.stringify(decoded, null, 2));
+// console.log('decoded:', JSON.stringify(decoded, null, 2));
     // 5) Debug logs
     writeFileSync(
       path.resolve(__dirname, "../../__tests__/output/extrinsic/extrinsic_encoded.txt"),
