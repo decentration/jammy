@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { applyAuthorizationsStf } from "../../../stf/authorizations/applyAuthorizationsStf";
 import { convertToReadableFormat } from "../../../utils";
+import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 
 describe("Authorizations STF conformance", () => {
 
@@ -15,11 +16,8 @@ describe("Authorizations STF conformance", () => {
   testFiles.forEach((fileName) => {
     it(`should pass ${fileName}`, () => {
       // 1) Read JSON test vector
-      const filePath = path.join(
-        __dirname,
-        "../../../stf/authorizations/data",
-        fileName
-      );
+
+      const filePath = path.join(`${JAM_TEST_VECTORS}/authorizations`, `${CHAIN_TYPE}`,  fileName);
       const rawJson = fs.readFileSync(filePath, "utf8");
 
       // 2) Parse top-level shape: { input, pre_state, output, post_state }

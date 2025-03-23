@@ -1,6 +1,14 @@
 import { createCodec, Codec } from "scale-ts";
 import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec";
 
+
+/**
+ * VarLenBytesCodec
+ * - Encodes a Uint8Array as a length-prefixed byte array
+ * - Length is encoded as a ProtocolInt
+
+ * 
+ */
 export const VarLenBytesCodec: Codec<Uint8Array> = createCodec<Uint8Array>(
   (value: Uint8Array) => {
     // console.log("about to encoded value.length", value.length); 

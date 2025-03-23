@@ -1,7 +1,7 @@
 # jammy
 An implementation of the JAM protocol
 
-
+# M1
 1. Block/header data structures and serialization
 2. State data structures and serialization
 3. In-memory DB and Merklization
@@ -9,30 +9,41 @@ An implementation of the JAM protocol
 5. PVM instancing, execution and host-functions
 6. Block-import tests
 
-Reading for 1: 4.0, 5.0, 10.3, etc. 
 
-From 4.1:
+To run script in the command line, use: 
 
-# The Block
-
-
-(13) B≡(H,E)
-(14) E≡(ET,ED,EP,EA,EG)
+``` 
+npx tsx ./src/... 
+```
 
 
-- **tickets:** Tickets, used for the mechanism which manages the selection of validators for the permissioning of block authoring. This component is denoted ET.
-- **judgements:** Votes, by validators, on dispute(s) arising between them presently taking place. This is denoted ED. 
-- **preimages:** Static data which is presently being requested to be available for workloads to be able to fetch on demand. This is denoted EP. 
-- **availability:** Assurances by each validator concerning which of the input data of workloads they have correctly received and are storing locally. This is denoted EA. 
-- **reports:** Reports of newly completed workloads whose accuracy is guaranteed by specific validators. This is denoted EG.
+After cloning this repo you need to make sure the submodules are accessible:
+
+## After cloning the main repo
+```
+git submodule update --init --recursive
+```
+
+# To update later on:
+
+```
+## ring-vrf FFI
+cd ring-vrf
+git pull origin main 
+cd ..
+git commit -am "Update ring-vrf to latest"
+```
+
+```
+## Jam Test Vectors
+cd external/jam-test-vectors
+git pull origin main
+cd ../..
+git commit -am "Update jam-test-vectors to latest"
+```
 
 
-Notes 
-
-use npx tsx ./src/... to run script in the command line. 
-
-# Install
-
+## Install
 
 ```bash
 
@@ -49,4 +60,6 @@ bun upgrade
 // install the package.json packages.
 bun install
 ```
+
+
 

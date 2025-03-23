@@ -1,4 +1,29 @@
-export * from './tiny';
-// export * from './full';
+import chainConfig from "./chainConfigs";
 
 export const CHAIN_TYPE = 'tiny';
+export const JAM_TEST_VECTORS = 'external/jam-test-vectors';  
+
+export const {
+    VALIDATOR_COUNT,
+    CORES_COUNT,
+    BITFIELD_LENGTH,
+    EPOCH_LENGTH,
+    MAX_TICKET_PER_BLOCK,
+    TICKETS_PER_VALIDATOR,
+    MAX_BLOCKS_HISTORY,
+    TIMESLOT_DELAY_PERIOD,
+    AUTH_QUEUE_SIZE,
+    AUTH_POOL_MAX_SIZE,
+    MAXIMUM_TOTAL_ACCUMULATE_GAS,
+    MAX_WORK_SIZE,
+    TIMEOUT,
+    ROTATION_PERIOD,
+    MAX_AGE_IN_TIMESLOTS,
+    PEAK_PREFIX,
+    VALIDATORS_PER_CORE,
+    VOTE_COUNT,
+    CONTEST_DURATION,
+    VALIDATOR_SUPERMAJORITY 
+   
+  } = chainConfig;
+

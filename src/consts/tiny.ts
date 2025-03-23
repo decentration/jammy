@@ -17,3 +17,5 @@ export const PEAK_PREFIX = "peak";
 export const VALIDATORS_PER_CORE = VALIDATOR_COUNT / CORES_COUNT; // 1023 / 341 or 6 / 2 = 3  
 export const VOTE_COUNT = (2/3 * VALIDATOR_COUNT) + 1; 
 export const CONTEST_DURATION = 10; // Y
+ export const VALIDATOR_SUPERMAJORITY = 5; // ceiling(2/3 * 6) + 1
+

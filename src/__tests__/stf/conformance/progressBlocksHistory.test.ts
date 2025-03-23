@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { applyHistoryStf } from "../../../stf/history/applyHistoryStf";
 import { convertToReadableFormat, toHex } from "../../../utils"; 
+import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 
 describe("History STF conformance", () => {
   const testFiles = [
@@ -14,11 +15,8 @@ describe("History STF conformance", () => {
   testFiles.forEach((fileName) => {
     it(`should pass ${fileName}`, () => {
       // 1) read JSON
-      const filePath = path.join(
-        __dirname,
-        "../../../stf/history/data",
-        fileName
-      );
+      const filePath = path.join(`${JAM_TEST_VECTORS}/history`, `data`, fileName);
+      
       const rawJson = fs.readFileSync(filePath, "utf8");
 
       const { input, pre_state, output, post_state } = JSON.parse(rawJson);

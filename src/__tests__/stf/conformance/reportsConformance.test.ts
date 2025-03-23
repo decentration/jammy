@@ -3,6 +3,7 @@ import path from "path";
 import { applyReportsStf } from "../../../stf/reports/applyReportsStf";
 import { convertToReadableFormat } from "../../../utils";
 import { deepConvertHexToBytes } from "../../../codecs";
+import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 
 describe("Reports STF - conformance tests", () => {
 
@@ -50,9 +51,7 @@ describe("Reports STF - conformance tests", () => {
     testFiles.forEach((fileName) => {
         it(`should pass ${fileName}`, async () => {
             // 1) Read JSON test vector from file
-            const filePath = path.join(__dirname, "../../../stf/reports/data/tiny",
-            fileName
-            );
+            const filePath = path.join(`${JAM_TEST_VECTORS}/reports`, `${CHAIN_TYPE}`, fileName);
             console.log("checking filePath", filePath);
             const rawJson = fs.readFileSync(filePath, "utf8");
 

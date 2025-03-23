@@ -3,6 +3,7 @@ import path from "path";
 import { applyDisputesStf } from "../../../stf/disputes/applyDisputesStf";
 import { convertToReadableFormat } from "../../../utils";
 import { deepConvertHexToBytes } from "../../../codecs";
+import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 
 describe("Disputes STF conformance", () => {
   const testFiles = [
@@ -36,7 +37,8 @@ describe("Disputes STF conformance", () => {
 
   testFiles.forEach((fileName) => {
     it(`should pass ${fileName}`, () => {
-      const filePath = path.join(__dirname, "../../../stf/disputes/data/tiny", fileName.concat('.json'));
+      const filePath = path.join(`${JAM_TEST_VECTORS}/disputes`, `${CHAIN_TYPE}`,  fileName.concat('.json'));
+      
       const rawJson = fs.readFileSync(filePath, "utf8");
 
       const { input, pre_state, output, post_state } = JSON.parse(rawJson);

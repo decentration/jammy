@@ -4,7 +4,7 @@ import { applySafroleStf } from "../../../safrole/applySafroleStf";
 import { convertToReadableFormat } from "../../../utils";
 import { deepConvertHexToBytes } from "../../../codecs";
 import { loadTrustedSetup } from "c-kzg";
-import { CHAIN_TYPE } from "../../../consts";
+import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 
 beforeAll(() => {
   loadTrustedSetup(0);
@@ -37,7 +37,7 @@ describe("Safrole STF conformance", () => {
 
   testFiles.forEach((fileName) => {
     it(`should pass ${fileName}`, () => {
-      const filePath = path.join(__dirname, `../../../safrole/data/${CHAIN_TYPE}`, fileName.concat('.json'));
+      const filePath = path.join(`${JAM_TEST_VECTORS}/safrole`, `${CHAIN_TYPE}`, fileName.concat('.json'));
       const rawJson = fs.readFileSync(filePath, "utf8");
 
       const { input, pre_state, output, post_state } = JSON.parse(rawJson);
