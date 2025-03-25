@@ -5,7 +5,7 @@ import { ResultCodec } from "./ResultCodec";
 import { DiscriminatorCodec } from "./DiscriminatorCodec";
 import { SegmentItemCodec } from "./SegmentItemCodec";
 import { ContextCodec } from "./ContextCodec";
-import { VarLenBytesCodec, decodeWithBytesUsed } from "./index";
+import { VarLenBytesCodec, decodeProtocolInt, decodeWithBytesUsed, encodeProtocolInt } from "./index";
 import { Bytes, Vector } from "scale-ts";
 
 export const SegmentArrayCodec = DiscriminatorCodec(SegmentItemCodec);
@@ -50,6 +50,12 @@ export const ReportCodec: Codec<Report> = [
     // 7) encode results with DiscriminatorCodec(ResultCodec)
     const encResults = DiscriminatorCodec(ResultCodec, { minSize: 1, maxSize: 16 }).enc(report.results);
 
+
+    // 8) newly added auth-gas-used (u64)
+    const authGasUsedBuf = encodeProtocolInt(report.auth_gas_used);
+    
+    // new DataView(authGasUsedBuf.buffer).setBigUint64(0, report.auth_gas_used, true);
+
     // 8) Concatenate all
     const totalSize =
       encPkg.length +
@@ -58,7 +64,8 @@ export const ReportCodec: Codec<Report> = [
       encAuthHash.length +
       encAuthOutput.length +
       encSegLookup.length +
-      encResults.length;
+      encResults.length +
+      authGasUsedBuf.length;
 
     const out = new Uint8Array(totalSize);
     let offset = 0;
@@ -165,6 +172,11 @@ export const ReportCodec: Codec<Report> = [
       var results = resultsVal;
     }
 
+    // 8) decode auth_gas_used (u64)
+    const { value: authGasValue, bytesRead } = decodeProtocolInt(uint8.slice(offset));
+    offset += bytesRead;
+    const auth_gas_used = authGasValue;
+
     // 8) Return final object
     return {
       package_spec: pkg,
@@ -174,6 +186,7 @@ export const ReportCodec: Codec<Report> = [
       auth_output,
       segment_root_lookup,
       results,
+      auth_gas_used
     };
   },
 ] as unknown as Codec<Report>;

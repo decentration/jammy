@@ -1,6 +1,7 @@
-import { AvailAssignment, Ed25519Public, Guarantee, SegmentItem } from "../../types/types";
+import { AvailAssignment, Ed25519Public, Guarantee, SegmentItem, ServicesStatisticsMapEntry } from "../../types/types";
 import { ValidatorInfo } from "../types";
 import { BlockItem } from "../types";
+import { Struct, u16, u32, u64 } from "scale-ts";
 
 export interface ReportsInput { 
     guarantees: Guarantee[], 
@@ -11,6 +12,8 @@ export interface ReportsInput {
 export type ReportsOutput = 
 { err: ErrorCode } | { ok: OkData } | null;
 
+
+
 export interface ReportsState { 
     avail_assignments: (AvailAssignment | null)[],
     curr_validators:ValidatorInfo[],
@@ -19,7 +22,9 @@ export interface ReportsState {
     offenders: Uint8Array[],
     recent_blocks: BlockItem[],
     auth_pools: Uint8Array[][],
-    accounts: ServiceItem[]
+    accounts: ServiceItem[],
+    cores_statistics: CoresActivityRecord[],
+    services_statistics: ServicesStatisticsMapEntry[]
 }
 
 export interface OkData {
@@ -98,6 +103,50 @@ export enum ErrorCode {
     id: number;  // u32
     data: ServiceInfo;
   }
+
+  // CoreActivityRecord ::= SEQUENCE {
+  //   -- Total gas consumed by core for reported work. Includes all refinement and authorizations.
+  //   gas-used        U64,
+  //   -- Number of segments imported from DA made by core for reported work.
+  //   imports         U16,
+  //   -- Total number of extrinsics used by core for reported work.
+  //   extrinsic-count U16,
+  //   -- Total size of extrinsics used by core for reported work.
+  //   extrinsic-size  U32,
+  //   -- Number of segments exported into DA made by core for reported work.
+  //   exports         U16,
+  //   -- The work-bundle size. This is the size of data being placed into Audits DA by the core.
+  //   bundle-size     U32,
+  //   -- Amount of bytes which are placed into either Audits or Segments DA.
+  //   -- This includes the work-bundle (including all extrinsics and imports) as well as all
+  //   -- (exported) segments.
+  //   da-load         U32,
+  //   -- Number of validators which formed super-majority for assurance.
+  //   popularity      U16
+  // }
+  export interface CoresActivityRecord {
+    gas_used: number,
+    imports: number,
+    extrinsic_count: number,
+    extrinsic_size: number,
+    exports: number, 
+    bundle_size: number,
+    da_load: number,
+    popularity: number
+  }
+
+  export const CoreActivityRecordCodec = Struct({
+    gas_used: u64,
+    imports: u16,
+    extrinsic_count: u16,
+    extrinsic_size: u32,
+    exports: u16,
+    bundle_size: u32,
+    da_load: u32,
+    popularity: u16
+  })
+
+
 
   export interface Reports {
     input: ReportsInput;

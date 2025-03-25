@@ -5,6 +5,8 @@ import { ReportCodec } from "../../codecs";
 import { toHex, convertToReadableFormat } from "../../utils";  
 
 function parseReportJSON(raw: any): Report {
+
+  const reportObj = raw.report;
   return {
     package_spec: {
       hash: Uint8Array.from(Buffer.from(raw.package_spec.hash.slice(2), "hex")),
@@ -44,7 +46,16 @@ function parseReportJSON(raw: any): Report {
           return { placeholder: null };
         }
       })(),
+      refine_load: {
+        gas_used: r.refine_load.gas_used,
+        imports: r.refine_load.imports,
+        extrinsic_count: r.refine_load.extrinsic_count,
+        extrinsic_size: r.refine_load.extrinsic_size,
+        exports: r.refine_load.exports,
+      },
     })),
+    auth_gas_used: raw.auth_gas_used, // u64
+
   };
 }
 
@@ -53,8 +64,8 @@ describe("ReportCodec test", () => {
   console.log("ReportCodec test");
   
   it("encodes/decodes report-1 from JSON and compares with its known hex dump", () => {
-    // 1) Read JSON
-    const jsonPath = path.resolve(__dirname, "../../data/reports/report-1.json");
+    // 1) Read JSON    
+    const jsonPath = path.resolve(__dirname, "./report-1.json");
     const raw = JSON.parse(readFileSync(jsonPath, "utf-8"));
     const report: Report = parseReportJSON(raw);
 
@@ -62,7 +73,7 @@ describe("ReportCodec test", () => {
     const encoded = ReportCodec.enc(report);
 
     // 3) Compare with known hex dump
-    const hexPath = path.resolve(__dirname, "../../data/reports/report-1-hex.txt");
+    const hexPath = path.resolve(__dirname, "./report-1-hex.txt");
     // change knownTxtObt to read txt not json
     const knownHexStr = readFileSync(hexPath, "utf-8");
     // get actualHex and remove 0x
