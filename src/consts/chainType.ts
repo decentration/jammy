@@ -1,7 +1,7 @@
 import * as tiny from "./tiny";
 import * as full from "./full";
 
-// Please change this constant to switch between "tiny" or "full"
+// USER/REVIEWER: Please change this constant to switch between "tiny" or "full"
 export const CHAIN_TYPE = "tiny";
 
 const chains = { tiny, full };

@@ -10,12 +10,12 @@ export function applyStatsStf(
   preState: StatsState,
   input: StatsInput
 ): { output: StatsOutput; postState: StatsState } {
-    const e = Math.floor(preState.tau / EPOCH_LENGTH);
+    const e = Math.floor(preState.slot / EPOCH_LENGTH);
     const ePrime = Math.floor(input.slot / EPOCH_LENGTH);
   
     // old references
-    const oldAccumulator = preState.pi.current;
-    const oldPrevious = preState.pi.last;
+    const oldAccumulator = preState.statistics.vals_current;
+    const oldPrevious = preState.statistics.vals_last;
   
     let newAccumulator: PerformanceRecord[];
     let newPrevious: PerformanceRecord[];
@@ -70,12 +70,14 @@ export function applyStatsStf(
     // TODO: confirm that post state for tau and kappa prime is the same as the pre_state because
     // they are not modified in this function
     const postState: StatsState = {
-      pi: {
-        current: newAccumulator,
-        last: newPrevious,
+      statistics: {
+        vals_current: newAccumulator,
+        vals_last: newPrevious,
+        cores: preState.statistics.cores,
+        services: preState.statistics.services,
       },
-      tau: preState.tau,
-      kappa_prime: preState.kappa_prime,
+      slot: preState.slot,
+      curr_validators: preState.curr_validators,
     };
   
     // Always null output
