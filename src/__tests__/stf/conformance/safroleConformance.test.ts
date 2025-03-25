@@ -25,7 +25,7 @@ describe("Safrole STF conformance", () => {
     "publish-tickets-no-mark-6",
     "publish-tickets-no-mark-7",
     "publish-tickets-no-mark-8",
-    "publish-tickets-no-mark-9",
+     "publish-tickets-no-mark-9",
     "publish-tickets-with-mark-1",
     "publish-tickets-with-mark-2",
     "publish-tickets-with-mark-3",
