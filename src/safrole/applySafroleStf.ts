@@ -61,7 +61,7 @@ export function applySafroleStf(
   epochMark = {
     entropy:         originalOldEta0,
     tickets_entropy: originalOldEta1,
-    validators:      postState.gamma_k.map(v => v.bandersnatch),
+    validators:      postState.gamma_k.map(v => ({ bandersnatch: v.bandersnatch, ed25519: v.ed25519 })),
   };
 
 } else {

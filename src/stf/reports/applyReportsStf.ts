@@ -9,6 +9,7 @@ import { ReportsState, ReportsInput, ReportsOutput, ReporterItem, ErrorCode } fr
 import { superPeaks } from "../../mmr/superPeaks";
 import { getPermutationSeed } from "../../shuffle";
 import { isPrevRotationInSameEpoch,isWithinOneRotation, rotatePermutation, whichRotation } from "../../shuffle/utils";
+import { updateStatistics } from "./updateStatistics";
 
 /** 
  * applyReportsStf:
@@ -221,8 +222,6 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       return { output: { err: ErrorCode.ANCHOR_NOT_RECENT }, postState: preState };
     } 
 
-    // TODO REPORT_EPOCH_BEFORE_LAST 
-
     // 5)  check if reports are in ascending order and unique => (11.24) and (11.23)
     // NOT_SORTED_OR_UNIQUE_GUARANTORS
     if (!areSortedAndUniqueByValidatorIndex(signatures)) {
@@ -320,7 +319,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
       const computedBeefy = superPeaks(foundBlock.mmr.peaks);
 
-      // vii) TODO compute beefy MMR root
+      // vii)
       if (!arrayEqual(report.context.beefy_root, computedBeefy)) { // TODO
         return {
           output: { err: ErrorCode.BAD_BEEFY_MMR_ROOT }, 
@@ -431,6 +430,10 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       report,
       timeout: input.slot
     };
+
+    // 13) TODO update cores_statistics and services_statistics
+    // update 
+    updateStatistics(report, signatures.length, postState);
   } 
 
   const outputData = {

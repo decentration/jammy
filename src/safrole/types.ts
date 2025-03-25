@@ -1,6 +1,6 @@
 import { u32 } from "scale-ts";
 import { ValidatorInfo } from '../stf/types';
-import { BandersnatchRingVrfSignature, BandersnatchPublic, Ed25519PublicCodec, TicketsMark, BandersnatchRingRoot } from '../types/types';
+import { BandersnatchRingVrfSignature, BandersnatchPublic, Ed25519PublicCodec, TicketsMark, BandersnatchRingRoot, Ed25519Public } from '../types/types';
 import { DiscriminatorCodec } from "../codecs";
 
 export const TimeSlotCodec = u32;
@@ -85,10 +85,16 @@ export const SAFROLE_ERROR_CODES: ErrorCode[] = [
   ErrorCode.DUPLICATE_TICKET
 ]
 
+
+export interface ValidatorsEpochMark {
+  bandersnatch: BandersnatchPublic; // Bytes(32)
+  ed25519: Ed25519Public;     // Bytes(32)
+}
+
 export interface EpochMark {
   entropy: Uint8Array;          // 32 bytes
   tickets_entropy: Uint8Array;  // 32 bytes
-  validators: Uint8Array[];     
+  validators: ValidatorsEpochMark[];  // 32 bytes each     
 }
 
 export interface SafroleStf {

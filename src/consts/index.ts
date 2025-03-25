@@ -1,7 +1,7 @@
-import chainConfig from "./chainConfigs";
+import chainConfig from "./chainType";
 
-export const CHAIN_TYPE = 'tiny';
 export const JAM_TEST_VECTORS = 'external/jam-test-vectors';  
+export { CHAIN_TYPE } from "./chainType";
 
 export const {
     VALIDATOR_COUNT,
@@ -23,7 +23,10 @@ export const {
     VALIDATORS_PER_CORE,
     VOTE_COUNT,
     CONTEST_DURATION,
-    VALIDATOR_SUPERMAJORITY 
+    VALIDATOR_SUPERMAJORITY,
+   
    
   } = chainConfig;
+
+
 

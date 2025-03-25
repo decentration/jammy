@@ -27,3 +27,5 @@ export * from './AvailAssignments/AvailAssignmentsCodec';
 export * from './IntegerCodec';
 export * from './VarLenBytesCodec';
 export * from './OffendersMarkCodec';
+export * from './CoresStatisticsCodec';
+export * from './ServicesStatisticsCodec';

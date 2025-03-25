@@ -10,13 +10,6 @@ An implementation of the JAM protocol
 6. Block-import tests
 
 
-To run script in the command line, use: 
-
-``` 
-npx tsx ./src/... 
-```
-
-
 After cloning this repo you need to make sure the submodules are accessible:
 
 ## After cloning the main repo
@@ -60,6 +53,41 @@ bun upgrade
 // install the package.json packages.
 bun install
 ```
+
+## Run
+
+To run script in the command line, use: 
+
+``` 
+bun ./src/... 
+```
+
+## Run tests
+
+- Switch between chain types
+To switch from `tiny` to `full`, go to `./src/consts/chainType` and change the `CHAIN_TYPE`.
+
+- **To run all tests run:**
+```
+bun test
+```
+
+- **To run specific tests:**
+```
+bun test ./{PATH TO FILE NAME}
+```
+
+Conformance Tests
+
+To run STF tests at the same time:
+
+```
+bun test ./src/__tests__/stf/conformance/safroleConformance.test.ts ./src/__tests__/stf/conformance/reportsConformance.test.ts ./src/__tests__/stf/conformance/disputesConformance.test.ts ./src/__tests__/stf/conformance/assurancesConformance.test.ts ./src/__tests__/stf/conformance/authorizationsConformance.test.ts ./src/__tests__/stf/conformance/historyConformance.test.ts ./src/__tests__/stf/conformance/statisticsConformance.test.ts
+```
+
+
+
+
 
 
 

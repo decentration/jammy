@@ -1,4 +1,4 @@
-import { Struct, u8, u16, u32, Bytes, Vector, bool, _void, Codec} from 'scale-ts';
+import { Struct, u8, u16, u32, Bytes, Vector, bool, _void, Codec, u64} from 'scale-ts';
 import { VarLenBytesCodec } from '../codecs';
 import { BITFIELD_LENGTH } from '../consts';
 
@@ -92,12 +92,28 @@ export const AssuranceCodec = Struct({
   signature: Ed25519SignatureCodec,
 });
 
+// gas-used U64,
+// imports U16,
+// extrinsic-count U16,
+// extrinsic-size U32,
+// exports U16
+
+export interface RefineLoad {
+  gas_used: number; // u64
+  imports: number; // u16
+  extrinsic_count: number; // u16
+  extrinsic_size: number; // u32
+  exports: number; // u16
+}
+
+
 export interface Result {
   service_id: number; // 
   code_hash: Uint8Array; // Bytes(32)
   payload_hash: Uint8Array; // Bytes(32)
   accumulate_gas: number; // u64
   result: ResultValue;
+  refine_load: RefineLoad;
 }
 
 // the result value is an enum with variants.
@@ -148,6 +164,7 @@ export interface Report {
   auth_output: Uint8Array;
   segment_root_lookup: SegmentItem[]; // Array of Bytes(32)
   results: Result[];
+  auth_gas_used: number; // u64
 }
 
 export interface Signature {
@@ -289,6 +306,81 @@ export const AuthorizerHashCodec = Bytes(32);
 export interface AvailAssignment {
   report: Report;
   timeout: number; // 4 bytes
+}
+
+
+
+  export interface CoresActivityRecord {
+    gas_used: number,
+    imports: number,
+    extrinsic_count: number,
+    extrinsic_size: number,
+    exports: number, 
+    bundle_size: number,
+    da_load: number,
+    popularity: number
+  }
+
+  export const CoreActivityRecordCodec = Struct({
+    gas_used: u64,
+    imports: u16,
+    extrinsic_count: u16,
+    extrinsic_size: u32,
+    exports: u16,
+    bundle_size: u32,
+    da_load: u32,
+    popularity: u16
+  })
+
+
+
+// ServiceActivityRecord ::= SEQUENCE {
+// 	-- Number of preimages provided to this service.
+// 	provided-count        U16,
+// 	-- Total size of preimages provided to this service.
+// 	provided-size         U32,
+// 	-- Number of work-items refined by service for reported work.
+// 	refinement-count      U32,
+// 	-- Amount of gas used for refinement by service for reported work.
+// 	refinement-gas-used   U64,
+// 	-- Number of segments imported from the DL by service for reported work.
+// 	imports               U32,
+// 	-- Total number of extrinsics used by service for reported work.
+// 	extrinsic-count       U32,
+// 	-- Total size of extrinsics used by service for reported work.
+// 	extrinsic-size        U32,
+// 	-- Number of segments exported into the DL by service for reported work.
+// 	exports               U32,
+// 	-- Number of work-items accumulated by service.
+// 	accumulate-count      U32,
+// 	-- Amount of gas used for accumulation by service.
+// 	accumulate-gas-used   U64,
+// 	-- Number of transfers processed by service.
+// 	on-transfers-count    U32,
+// 	-- Amount of gas used for processing transfers by service.
+// 	on-transfers-gas-used U64
+// }
+
+
+export interface ServiceActivityRecord {
+  provided_count: number, 
+  provided_size: number, 
+  refinement_count: number,
+  refinement_gas_used: number, 
+  imports: number,
+  extrinsic_count: number,
+  extrinsic_size: number, 
+  exports: number, 
+  accumulate_count: number,
+  accumulate_gas_used: number,
+  on_transfers_count: number, 
+  on_transfers_gas_used: number
+}
+
+
+export interface ServicesStatisticsMapEntry {
+  id: number;
+  record: ServiceActivityRecord;
 }
 
 

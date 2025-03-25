@@ -1,8 +1,9 @@
 import { Codec, Bytes } from "scale-ts";
-import { AuthPoolsCodec, DiscriminatorCodec, decodeWithBytesUsed, AvailAssignmentsCodec, ValidatorsInfoCodec, EntropyBufferCodec, BlockItemCodec, OffendersMarkCodec } from "../../../codecs";
+import { AuthPoolsCodec, DiscriminatorCodec, decodeWithBytesUsed, AvailAssignmentsCodec, ValidatorsInfoCodec, EntropyBufferCodec, BlockItemCodec, OffendersMarkCodec, CoresStatisticsCodec } from "../../../codecs";
 import { toUint8Array, concatAll } from "../../../codecs/utils";
 import { ReportsState } from "../types";
 import { ServicesCodec } from "./Services/ServicesCodec";
+import { ServicesStatisticsCodec } from "../../../codecs/ServicesStatisticsMapEntryCodec";
 
 export const ReportsStateCodec: Codec<ReportsState> = [
   // --- ENCODER ---
@@ -16,6 +17,12 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const encAuthPools = AuthPoolsCodec.enc(state.auth_pools);
     const encServices = ServicesCodec.enc(state.accounts);
 
+
+    const encCoresStats    = CoresStatisticsCodec.enc(state.cores_statistics);
+    const encServicesStats = ServicesStatisticsCodec.enc(state.services_statistics);
+
+
+
     return concatAll(
       encAvail,
       encCurrVal,
@@ -24,7 +31,10 @@ export const ReportsStateCodec: Codec<ReportsState> = [
       encOffenders,
       encRecentBlocks,
       encAuthPools,
-      encServices
+      encServices,
+      encCoresStats,
+      encServicesStats,
+
     );
   },
 
@@ -47,6 +57,8 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const recent_blocks     = read(DiscriminatorCodec(BlockItemCodec));
     const auth_pools        = read(AuthPoolsCodec);
     const accounts          = read(ServicesCodec);
+    const cores_statistics    = read(CoresStatisticsCodec);
+    const services_statistics = read(ServicesStatisticsCodec);
 
     return {
       avail_assignments,
@@ -56,7 +68,9 @@ export const ReportsStateCodec: Codec<ReportsState> = [
       offenders,
       recent_blocks,
       auth_pools,
-      accounts
+      accounts,
+      cores_statistics,
+      services_statistics
     };
   },
 ] as unknown as Codec<ReportsState>;

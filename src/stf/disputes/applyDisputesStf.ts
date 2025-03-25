@@ -201,12 +201,12 @@ export function applyDisputesStf(
 
       if (classification === "bad" || classification === "wonky") {
         // if occupant has the same hash as the new bad/wonky, remove it
-        if (isSameHash) {
+        if (!isSameHash) {
           postState.rho[coreIndex] = null;
         }
       } else if (classification === "good") {
         // if occupant is a different hash than the new good, remove it
-        if (!isSameHash) {
+        if (isSameHash) {
           postState.rho[coreIndex] = null;
         }
       }
