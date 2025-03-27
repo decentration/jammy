@@ -61,3 +61,18 @@ export function ensureBinary(field: any, expectedLength: number, fieldName: stri
   }
   return field;
 }
+
+
+  // helper to compare two byte arrays lexicographically, 
+  // returns number
+  export function compareBytes(a: Uint8Array, b: Uint8Array): number {
+
+    // len gets the minimum length of the two arrays
+    const len = Math.min(a.length, b.length);
+    for (let i = 0; i < len; i++) {
+      if (a[i] !== b[i]) {
+        return a[i] - b[i];
+      }
+    }
+    return a.length - b.length;
+  }
