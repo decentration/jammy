@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { applySafroleStf } from "../../../safrole/applySafroleStf";
+import { applySafroleStf } from "../../../stf/safrole/applySafroleStf";
 import { convertToReadableFormat } from "../../../utils";
 import { deepConvertHexToBytes } from "../../../codecs";
 import { loadTrustedSetup } from "c-kzg";

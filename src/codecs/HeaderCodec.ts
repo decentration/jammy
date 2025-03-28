@@ -3,7 +3,8 @@ import { decodeWithBytesUsed, DiscriminatorCodec, SetCodec } from ".";
 import { Bytes, u32 } from "scale-ts";
 import { EpochMarkCodec } from "./EpochMarkCodec"; 
 import { TicketsMarkCodec } from "./TicketsMarkCodec";
-import { Header, EpochMark, TicketsMark } from "../types/types";
+import { Header, TicketsMark } from "../types/types";
+import { EpochMark } from "../stf/safrole/types";
 
 export const HeaderCodec: Codec<Header> = [
   // ENCODER
@@ -165,9 +166,6 @@ export const HeaderCodec: Codec<Header> = [
         // Calculate bytes used as the length of the encoded EpochMark
         const bytesUsed = 64 + epoch_mark.validators.length * 32;
         offset += bytesUsed;
-
-        console.log('HeaderCodec decoded epoch_mark validators:', epoch_mark.validators.map((v) => Buffer.from(v).toString('hex')));
-        console.log('HeaderCodec epoch_mark offset after decoding:', offset, 'epoch_mark:', epoch_mark);
 
     } else if (epochByte === 0x00) {
       console.log('HeaderCodec epoch_mark is null');

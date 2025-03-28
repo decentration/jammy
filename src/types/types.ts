@@ -1,6 +1,7 @@
 import { Struct, u8, u16, u32, Bytes, Vector, bool, _void, Codec, u64} from 'scale-ts';
 import { VarLenBytesCodec } from '../codecs';
 import { BITFIELD_LENGTH } from '../consts';
+import { EpochMark } from '../stf/safrole/types';
 
 export const BandersnatchRingVrfSignatureCodec = Bytes(784); 
 export const BandersnatchVrfSignaturesCodec = Bytes(96);
@@ -12,6 +13,10 @@ export const Ed25519PublicCodec = Bytes(32);
 export const ValidatorMetadataCodec = Bytes(128)
 export const ServiceIdCodec = u32;
 export const BandersnatchRingRootCodec = Bytes(144);
+export const EpochMarkValidatorsCodec = Struct({
+  bandersnatch: BandersnatchPublicCodec,
+  ed25519: Ed25519PublicCodec,
+});
 
 export type OpaqueHash = Uint8Array; // 32 bytes  
 export type BandersnatchRingVrfSignature = Uint8Array; // 784 byte
@@ -23,16 +28,22 @@ export type Ed25519Public = Uint8Array; // 32 bytes
 export type ValidatorMetadata = Uint8Array; // 128 bytes  
 export type ServiceId = number; // u32  
 export type BandersnatchRingRoot = Uint8Array; // 144 bytes
+export type EpochMarkValidators = {
+  bandersnatch: BandersnatchPublic;
+  ed25519: Ed25519Public;
+}; // 64 bytes
+
+
 
 export interface Validators {
   public_key: BandersnatchPublic; // 32 bytes
   stake: number; // u64
 }
-export interface EpochMark {
-  entropy: Uint8Array; // η1'
-  tickets_entropy: Uint8Array; // η2'
-  validators: Uint8Array[]; // [kb | k ∈ γk'] // 32 bytes bandersnatch public keys of VALIDATORS_COUNT
-}
+// export interface EpochMark {
+//   entropy: Uint8Array; // η1'
+//   tickets_entropy: Uint8Array; // η2'
+//   validators: Uint8Array[]; // [kb | k ∈ γk'] // 32 bytes bandersnatch public keys of VALIDATORS_COUNT
+// }
 
 export type TicketsMark = {
   id: Uint8Array; // Bytes(32)

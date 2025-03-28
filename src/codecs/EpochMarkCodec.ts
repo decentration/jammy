@@ -1,7 +1,8 @@
 import { Codec, Bytes } from "scale-ts";
-import { EpochMark, BandersnatchPublic, BandersnatchPublicCodec } from "../types/types";
+import { BandersnatchPublic, BandersnatchPublicCodec, EpochMarkValidators, EpochMarkValidatorsCodec } from "../types/types";
 import { VALIDATOR_COUNT } from "../consts";
 import { concatAll, toUint8Array } from "../codecs/utils";
+import { EpochMark } from "../stf/safrole/types";
 
 /**
  * We require:
@@ -32,11 +33,11 @@ export const EpochMarkCodec: Codec<EpochMark> = [
         `EpochMarkCodec: expected ${VALIDATOR_COUNT} validators, got ${mark.validators.length}`
       );
     }
-    // each validator => 32 bytes => BandersnatchPublicCodec
+    // each validator => 32 bytes => EpochMarkValidatorsCodec
     const encodedValidators: Uint8Array[] = [];
     for (let i = 0; i < mark.validators.length; i++) {
-      const val = mark.validators[i];
-      const encVal = BandersnatchPublicCodec.enc(val);
+      const vals = mark.validators[i];
+      const encVal = EpochMarkValidatorsCodec.enc(vals);
       encodedValidators.push(encVal);
     }
 
@@ -62,9 +63,9 @@ export const EpochMarkCodec: Codec<EpochMark> = [
     const tickets_entropy = uint8.slice(offset, offset + 32);
     offset += 32;
 
-    // 3) validators => exactly VALIDATOR_COUNT x 32
-    const validators: BandersnatchPublic[] = [];
-    const needed = VALIDATOR_COUNT * 32;
+    // 3) validators => exactly VALIDATOR_COUNT x 64
+    const validators: EpochMarkValidators[] = [];
+    const needed = VALIDATOR_COUNT * 64;
     if (offset + needed > uint8.length) {
       throw new Error(
         `EpochMarkCodec: not enough data for ${VALIDATOR_COUNT} validators => need ${needed}, got ${uint8.length - offset}`
@@ -72,10 +73,10 @@ export const EpochMarkCodec: Codec<EpochMark> = [
     }
     for (let i = 0; i < VALIDATOR_COUNT; i++) {
       // decode exactly 32 bytes per validator
-      const sliceVal = uint8.slice(offset, offset + 32);
-      offset += 32;
-      // decode the bandersnatch pub key
-      const val = BandersnatchPublicCodec.dec(sliceVal);
+      const sliceVal = uint8.slice(offset, offset + 64);
+      offset += 64;
+      // decode the validators object
+      const val = EpochMarkValidatorsCodec.dec(sliceVal);
       validators.push(val);
     }
 
