@@ -75,8 +75,7 @@ export const ServiceActivityRecordCodec: Codec<ServiceActivityRecord> = [
     };
 
     return {
-      value: record,
-      bytesUsed: offset,
+      ...record,
     };
   },
 ] as unknown as Codec<ServiceActivityRecord>;

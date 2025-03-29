@@ -12,11 +12,10 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const encCurrVal = ValidatorsInfoCodec.enc(state.curr_validators);
     const encPrevVal = ValidatorsInfoCodec.enc(state.prev_validators);
     const encEntropy = EntropyBufferCodec.enc(state.entropy);
-    const encOffenders = DiscriminatorCodec(Bytes(32)).enc(state.offenders);
+    const encOffenders = OffendersMarkCodec.enc(state.offenders);
     const encRecentBlocks = DiscriminatorCodec(BlockItemCodec).enc(state.recent_blocks);
     const encAuthPools = AuthPoolsCodec.enc(state.auth_pools);
     const encServices = ServicesCodec.enc(state.accounts);
-
 
     const encCoresStats    = CoresStatisticsCodec.enc(state.cores_statistics);
     const encServicesStats = ServicesStatisticsCodec.enc(state.services_statistics);
@@ -45,6 +44,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
 
     function read<T>(codec: Codec<T>): T {
       const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));
+      console.log('read', value, bytesUsed);
       offset += bytesUsed;
       return value;
     }
@@ -57,6 +57,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const recent_blocks     = read(DiscriminatorCodec(BlockItemCodec));
     const auth_pools        = read(AuthPoolsCodec);
     const accounts          = read(ServicesCodec);
+
     const cores_statistics    = read(CoresStatisticsCodec);
     const services_statistics = read(ServicesStatisticsCodec);
 

@@ -41,8 +41,7 @@ export const ServicesStatisticsMapEntryCodec: Codec<ServicesStatisticsMapEntry> 
     };
 
     return {
-      value: mapEntry,
-      bytesUsed: offset,
+      ...mapEntry
     };
   },
 ] as unknown as Codec<ServicesStatisticsMapEntry>;
