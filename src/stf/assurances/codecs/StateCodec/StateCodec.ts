@@ -1,5 +1,5 @@
 import { Codec } from "scale-ts";
-import { State } from "../../types"; 
+import { AssuranceState, } from "../../types"; 
 import { AvailAssignmentsCodec } from "../../../../codecs/AvailAssignments/AvailAssignmentsCodec";
 import { CurrValidatorsCodec } from "./CurrValidatorsCodec"; 
 import { decodeWithBytesUsed } from "../../../../codecs";
@@ -10,9 +10,9 @@ import { decodeWithBytesUsed } from "../../../../codecs";
  * - `avail_assignments`: Fixed-size array of AvailabilityAssignmentsItem
  * - `curr_validators`: Encoded via CurrValidatorsCodec
  */
-export const StateCodec: Codec<State> = [
+export const StateCodec: Codec<AssuranceState> = [
   // ENCODER
-  (state: State): Uint8Array => {
+  (state: AssuranceState): Uint8Array => {
     // Encode
     const encAvailAssignments = AvailAssignmentsCodec.enc(state.avail_assignments);
     const encCurrValidators = CurrValidatorsCodec.enc(state.curr_validators);
@@ -27,7 +27,7 @@ export const StateCodec: Codec<State> = [
   },
 
   // DECODER
-  (data: ArrayBuffer | Uint8Array | string): State => {
+  (data: ArrayBuffer | Uint8Array | string): AssuranceState => {
     const uint8 =
       data instanceof Uint8Array
         ? data
@@ -65,7 +65,7 @@ export const StateCodec: Codec<State> = [
       curr_validators,
     };
   },
-] as Codec<State>;
+] as Codec<AssuranceState>;
 
 StateCodec.enc = StateCodec[0];
 StateCodec.dec = StateCodec[1];
