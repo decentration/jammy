@@ -1,6 +1,6 @@
-import { SafroleOutput, ErrorCode, TicketsMark } from "../types";
-import { hexStringToBytes } from "../../../codecs/utils";
-import { EpochMarkValidators } from "../../../types";
+import { SafroleOutput, ErrorCode, TicketsMark } from "../../types";
+import { hexStringToBytes } from "../../../../codecs/utils";
+import { EpochMarkValidators } from "../../../../types";
 
 /**
  * parseSafroleOutputJson:

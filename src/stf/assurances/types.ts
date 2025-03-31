@@ -3,21 +3,21 @@ import { BITFIELD_LENGTH } from "../../consts";
 import { Struct, Bytes } from "scale-ts";
 import { AvailAssignment } from "../../types/types";
 
-export interface State {
+export interface AssuranceState {
   avail_assignments: (AvailAssignment | null)[]; 
   curr_validators: ValidatorInfo[];
 }
 
 export interface Assurances {
   input: AssurancesInput;            
-  pre_state: State;
+  pre_state: AssuranceState;
   output: Output;              
-  post_state: State; 
+  post_state: AssuranceState; 
 }
 
 export interface PreAndPostState {
-  pre_state: State;
-  post_state: State;
+  pre_state: AssuranceState;
+  post_state: AssuranceState;
 }
 
 

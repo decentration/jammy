@@ -1,4 +1,4 @@
-import { SafroleStf } from "../types";
+import { SafroleStf } from "../../types";
 import { parseSafroleInputJson } from "./parseSafroleInputJson";
 import { parseSafroleStateJson } from "./parseSafroleStateJson";
 import { parseSafroleOutputJson } from "./parseSafroleOutputJson";

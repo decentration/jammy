@@ -1,5 +1,5 @@
-import { SafroleInput, TicketEnvelope } from "../types";
-import { hexStringToBytes } from "../../../codecs/utils";
+import { SafroleInput, TicketEnvelope } from "../../types";
+import { hexStringToBytes } from "../../../../codecs/utils";
 
 export function parseSafroleInputJson(json: any): SafroleInput {
   const slot = json.slot;

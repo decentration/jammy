@@ -8,13 +8,15 @@ import { OkDataCodec } from "./OkDataCodec";
  *
  * Variants:
  *   - `{ err: ErrorCode }` => [0x01, <byteForErrorIndex>]
- *   - `{ ok: OkData }`     => [0x02, <encodedOkData>...]
+ *   - `{ ok: OkData }`     => [0x00, <encodedOkData>...]
  */
 export const OutputCodec: Codec<Output> = [
   // ---------------------
   // ENCODER
   // ---------------------
   (out: Output): Uint8Array => {
+
+    // console.log("OutputCodec out: ", out);
     // 1) null variant
     if (out === null) {
       throw new Error("OutputCodec.enc: null variant not supported. Shouuld either be Err or Ok");
@@ -30,9 +32,9 @@ export const OutputCodec: Codec<Output> = [
       return new Uint8Array([0x01, errByte]);
     }
 
-    // 3) OK variant => [0x02, <OkDataCodec>...]
+    // 3) OK variant => [0x00, <OkDataCodec>...]
     if ("ok" in out) {
-      const prefix = new Uint8Array([0x02]);
+      const prefix = new Uint8Array([0x00]);
       const encodedOk = OkDataCodec.enc(out.ok as OkData);
       const outBuf = new Uint8Array(prefix.length + encodedOk.length);
       outBuf.set(prefix, 0);
@@ -62,7 +64,7 @@ export const OutputCodec: Codec<Output> = [
     const tag = uint8[0];
 
     // [0x00] => null
-    if (tag === 0x00) {
+    if (tag === 0x02) {
       return null;
     }
 
@@ -77,7 +79,7 @@ export const OutputCodec: Codec<Output> = [
     }
 
     // [0x02, ...OkData] => OK
-    if (tag === 0x02) {
+    if (tag === 0x00) {
       const slice = uint8.slice(1);
       const okData = OkDataCodec.dec(slice);
       return { ok: okData };

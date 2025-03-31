@@ -5,7 +5,7 @@
  */
 export function encodeProtocolInt(x: number | bigint | null | undefined): Uint8Array {
 
-  if (x == null) {
+  if (x == null || x == undefined) {
     x = 0;
   }
 
