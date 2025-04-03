@@ -23,10 +23,22 @@ function byteToErrorCode(b: number): ErrorCode {
 export const OutputCodec: Codec<Output> = [
   // ENCODER
   (out: Output): Uint8Array => {
+
     if (out === null) {
-      // 1) null => [0x00]
-      return new Uint8Array([0x00]);
+      // 1) null => [0x02]
+      return new Uint8Array([0x02]);
     }
+    
+    if ("ok" in out) {
+      // 3) ok variant => [0x00, <OkDataCodec>...]
+      const prefix = new Uint8Array([0x00]);
+      const encodedOk = OkDataCodec.enc(out.ok as OkData);
+      const outBuf = new Uint8Array(prefix.length + encodedOk.length);
+      outBuf.set(prefix, 0);
+      outBuf.set(encodedOk, 1);
+      return outBuf;
+    }
+    
     if ("err" in out) {
       // 2) err variant => [0x01, <errIndex>]
       const errStr = out.err as ErrorCode;
@@ -36,15 +48,9 @@ export const OutputCodec: Codec<Output> = [
       }
       return new Uint8Array([0x01, errIndex]);
     }
-    if ("ok" in out) {
-      // 3) ok variant => [0x02, <OkDataCodec>...]
-      const prefix = new Uint8Array([0x02]);
-      const encodedOk = OkDataCodec.enc(out.ok as OkData);
-      const outBuf = new Uint8Array(prefix.length + encodedOk.length);
-      outBuf.set(prefix, 0);
-      outBuf.set(encodedOk, 1);
-      return outBuf;
-    }
+
+
+
 
     throw new Error("OutputCodec.enc: unrecognized variant");
   },
@@ -62,9 +68,15 @@ export const OutputCodec: Codec<Output> = [
       throw new Error("OutputCodec.dec: no data");
     }
     const tag = uint8[0];
+
     if (tag === 0x00) {
-      return null; // null => [0x00]
-    } else if (tag === 0x01) {
+      // ok => [0x02, ...OkData...]
+      const slice = uint8.slice(1);
+      const okData = OkDataCodec.dec(slice);
+      return { ok: okData };
+    }
+
+      if (tag === 0x01) {
       // err => [0x01, errIndex]
       if (uint8.length < 2) {
         throw new Error("OutputCodec.dec: insufficient data for 'err'");
@@ -72,12 +84,9 @@ export const OutputCodec: Codec<Output> = [
       const errIndex = uint8[1];
       const errStr = byteToErrorCode(errIndex);
       return { err: errStr };
-    } else if (tag === 0x02) {
-      // ok => [0x02, ...OkData...]
-      const slice = uint8.slice(1);
-      const okData = OkDataCodec.dec(slice);
-      return { ok: okData };
-    }
+    } 
+    
+   
 
     throw new Error(`OutputCodec.dec: invalid tag byte=0x${tag.toString(16)}`);
   }

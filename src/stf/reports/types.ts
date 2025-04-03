@@ -12,14 +12,15 @@ export interface ReportsInput {
 export type ReportsOutput = 
 { err: ErrorCode } | { ok: OkData } | null;
 
+export type Entropy = Uint8Array;
 
 
 export interface ReportsState { 
     avail_assignments: (AvailAssignment | null)[],
     curr_validators:ValidatorInfo[],
     prev_validators: ValidatorInfo[],
-    entropy: Uint8Array[],
-    offenders: Uint8Array[],
+    entropy: Entropy[],
+    offenders: Ed25519Public[],
     recent_blocks: BlockItem[],
     auth_pools: Uint8Array[][],
     accounts: ServiceItem[],
@@ -135,16 +136,16 @@ export enum ErrorCode {
     popularity: number
   }
 
-  export const CoreActivityRecordCodec = Struct({
-    gas_used: u64,
-    imports: u16,
-    extrinsic_count: u16,
-    extrinsic_size: u32,
-    exports: u16,
-    bundle_size: u32,
-    da_load: u32,
-    popularity: u16
-  })
+  // export const CoreActivityRecordCodec = Struct({
+  //   gas_used: u64,
+  //   imports: u16,
+  //   extrinsic_count: u16,
+  //   extrinsic_size: u32,
+  //   exports: u16,
+  //   bundle_size: u32,
+  //   da_load: u32,
+  //   popularity: u16
+  // })
 
 
 

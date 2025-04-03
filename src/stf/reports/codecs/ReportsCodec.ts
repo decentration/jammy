@@ -5,6 +5,8 @@ import { ReportsStateCodec } from "./ReportsStateCodec";
 import { OutputCodec } from "./OutputCodec";
 import { decodeWithBytesUsed } from "../../../codecs";
 import { toUint8Array } from "../../../codecs";
+import { cons } from "fp-ts/lib/ReadonlyNonEmptyArray";
+import { convertToReadableFormat } from "../../../utils";
 
 export const ReportsCodec: Codec<Reports> = [
   // ------------------
@@ -80,9 +82,11 @@ export const ReportsCodec: Codec<Reports> = [
       var output = value;
     }
 
+
     // d) decode post_state
     {
       const slice = uint8.slice(offset);
+
       const { value, bytesUsed } = decodeWithBytesUsed(ReportsStateCodec, slice);
       offset += bytesUsed;
       var post_state = value;

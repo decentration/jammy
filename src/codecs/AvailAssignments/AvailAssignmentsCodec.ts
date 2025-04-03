@@ -9,9 +9,11 @@ import { CORES_COUNT } from "../../consts";
  * Encodes/decodes a fixed-size array of AvailabilityAssignmentsItem.
  * Size is determined by `CORES_COUNT`.
  */
-export const AvailAssignmentsCodec: Codec<Array<AvailAssignment | null>> = [
+
+type AvailAssignmentsArray = (AvailAssignment |null)[];
+export const AvailAssignmentsCodec: Codec<AvailAssignmentsArray> = [
   // ENCODER
-  (assignments: Array<AvailAssignment | null>): Uint8Array => {
+  (assignments: AvailAssignmentsArray): Uint8Array => {
     if (assignments.length !== CORES_COUNT) {
       throw new Error(
         `AvailAssignmentsCodec.enc: expected exactly ${CORES_COUNT} items, got ${assignments.length}`
@@ -33,7 +35,7 @@ export const AvailAssignmentsCodec: Codec<Array<AvailAssignment | null>> = [
   },
 
   // DECODER
-  (data: ArrayBuffer | Uint8Array | string): Array<AvailAssignment | null> => {
+  (data: ArrayBuffer | Uint8Array | string): AvailAssignmentsArray => {
     const uint8 =
       data instanceof Uint8Array
         ? data
@@ -41,7 +43,7 @@ export const AvailAssignmentsCodec: Codec<Array<AvailAssignment | null>> = [
         ? new TextEncoder().encode(data)
         : new Uint8Array(data);
 
-    const assignments: Array<AvailAssignment | null> = [];
+    const assignments: AvailAssignmentsArray = [];
     let offset = 0;
 
     for (let i = 0; i < CORES_COUNT; i++) {
@@ -62,7 +64,7 @@ export const AvailAssignmentsCodec: Codec<Array<AvailAssignment | null>> = [
 
     return assignments;
   },
-] as Codec<Array<AvailAssignment | null>>;
+] as Codec<AvailAssignmentsArray>;
 
 AvailAssignmentsCodec.enc = AvailAssignmentsCodec[0];
 AvailAssignmentsCodec.dec = AvailAssignmentsCodec[1];

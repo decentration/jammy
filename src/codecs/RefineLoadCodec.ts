@@ -6,6 +6,17 @@ import { concatAll, toUint8Array } from "./utils";
 export const RefineLoadCodec: Codec<RefineLoad> = [
   // ENCODER 
   (r: RefineLoad): Uint8Array => {
+    console.log("RefineLoadCodec: enc", r);
+
+  //   RefineLoad ::= SEQUENCE {
+  //     gas-used U64,
+  //     imports U16,
+  //     extrinsic-count U16,
+  //     extrinsic-size U32,
+  //     exports U16
+  // }
+
+
     const encGasUsed        = encodeProtocolInt(r.gas_used);
     const encImports        = encodeProtocolInt(r.imports);
     const encExtrinsicCount = encodeProtocolInt(r.extrinsic_count);
@@ -32,18 +43,19 @@ export const RefineLoadCodec: Codec<RefineLoad> = [
       return value;
     }
 
-    const gas_used       = readProtocolInt();
-    const imports        = readProtocolInt();
+    const gas_used        = readProtocolInt();
+    const imports         = readProtocolInt();
     const extrinsic_count = readProtocolInt();
-    const extrinsic_size = readProtocolInt();
-    const exports_       = readProtocolInt();
+    const extrinsic_size  = readProtocolInt();
+    const exports        = readProtocolInt();
 
     return {
         gas_used,
         imports,
         extrinsic_count,
         extrinsic_size,
-        exports: exports_, };
+        exports, 
+    };
   },
 ] as unknown as Codec<RefineLoad>;
 

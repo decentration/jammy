@@ -12,10 +12,9 @@ import { DISPUTES_ERROR_CODES } from "../types";
 export const OutputCodec: Codec<DisputesOutput> = [
   // ENCODER
   (out: DisputesOutput): Uint8Array => {
-    // if (out === null) {
-    //   // 1) null => [0x00]
-    //   return new Uint8Array([0x00]);
-    // }
+    if (out === null) {
+      throw new Error("OutputCodec.enc: null variant not supported. Shouuld either be Err or Ok");
+    }
 
     if ("ok" in out) {
       // 3) ok => [0x00, OkDataCodec...]

@@ -1,29 +1,33 @@
 import { Codec } from "scale-ts";
 import { PerformanceRecord, PerformanceRecordCodec, Statistics } from "../types";
-import { concatAll, decodeWithBytesUsed } from "../../../codecs";
+import { concatAll, CoresStatisticsCodec, decodeWithBytesUsed, ServicesStatisticsCodec } from "../../../codecs";
 import { VALIDATOR_COUNT } from "../../../consts";
 
 export const StatisticsCodec: Codec<Statistics> = [
   // ENCODER
   (stats: Statistics): Uint8Array => {
     // 1) Ensure length is exactly the known count
-    if (stats.current.length !== VALIDATOR_COUNT) {
+    if (stats.vals_current.length !== VALIDATOR_COUNT) {
       throw new Error(
-        `StatisticsCodec: 'current' must have length=${VALIDATOR_COUNT}, got=${stats.current.length}`
+        `StatisticsCodec: 'current' must have length=${VALIDATOR_COUNT}, got=${stats.vals_current.length}`
       );
     }
-    if (stats.last.length !== VALIDATOR_COUNT) {
+    if (stats.vals_last.length !== VALIDATOR_COUNT) {
       throw new Error(
-        `StatisticsCodec: 'last' must have length=${VALIDATOR_COUNT}, got=${stats.last.length}`
+        `StatisticsCodec: 'last' must have length=${VALIDATOR_COUNT}, got=${stats.vals_last.length}`
       );
     }
+
 
     // 2) Encode each PerformanceRecord in current and last
-    const encodedCurrent = stats.current.map((x) => PerformanceRecordCodec.enc(x));
-    const encodedLast = stats.last.map((x) => PerformanceRecordCodec.enc(x));
+    const encodedValsCurrent = stats.vals_current.map((x) => PerformanceRecordCodec.enc(x));
+    const encodedValsLast = stats.vals_last.map((x) => PerformanceRecordCodec.enc(x));
+    const encodedCores = CoresStatisticsCodec.enc(stats.cores);
+    const encodedServices = ServicesStatisticsCodec.enc(stats.services);
 
     // 3) Concatenate all
-    return concatAll(...encodedCurrent, ...encodedLast);
+    return concatAll(...encodedValsCurrent, ...encodedValsLast, encodedCores, encodedServices);
+
   },
 
   // DECODER
@@ -36,27 +40,34 @@ export const StatisticsCodec: Codec<Statistics> = [
       : new Uint8Array(data);
 
     let offset = 0;
-    const current: PerformanceRecord[] = [];
+    const vals_current: PerformanceRecord[] = [];
 
-    // decode VALIDATOR_COUNT items for current
+    // decode VALIDATOR_COUNT items for vals_current
     for (let i = 0; i < VALIDATOR_COUNT; i++) {
       const slice = uint8.slice(offset);
       const { value: perf, bytesUsed } = decodeWithBytesUsed(PerformanceRecordCodec, slice);
-      console.log("perf and bytesUsed:", perf, bytesUsed);
-      current.push(perf);
+      // console.log("perf and bytesUsed:", perf, bytesUsed);
+      vals_current.push(perf);
       offset += bytesUsed;
     }
 
-    // decode VALIDATOR_COUNT items for 'last'
-    const last: PerformanceRecord[] = [];
+    // decode VALIDATOR_COUNT items for 'vals_last'
+    const vals_last: PerformanceRecord[] = [];
     for (let i = 0; i < VALIDATOR_COUNT; i++) {
       const slice = uint8.slice(offset);
       const { value: perf, bytesUsed } = decodeWithBytesUsed(PerformanceRecordCodec, slice);
-      last.push(perf);
+      vals_last.push(perf);
       offset += bytesUsed;
     }
 
-    return { current, last };
+    const cores = CoresStatisticsCodec.dec(uint8.slice(offset));
+    offset += cores.length;
+
+    const services = ServicesStatisticsCodec.dec(uint8.slice(offset));
+    offset += services.length;
+    
+
+    return { vals_current, vals_last, cores, services };
   },
 ] as unknown as Codec<Statistics>;
 

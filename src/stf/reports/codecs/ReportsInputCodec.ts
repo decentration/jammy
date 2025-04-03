@@ -2,6 +2,7 @@ import { Codec } from "scale-ts";
 import { decodeWithBytesUsed, DiscriminatorCodec, GuaranteeCodec } from "../../../codecs";
 import { toUint8Array, concatAll } from "../../../codecs"; 
 import { ReportsInput } from "../types"; 
+import { convertToReadableFormat } from "../../../utils";
 
 export const ReportsInputCodec: Codec<ReportsInput> = [
   // --- ENCODER ---
@@ -13,6 +14,8 @@ export const ReportsInputCodec: Codec<ReportsInput> = [
     const slotBuf = new Uint8Array(4);
     new DataView(slotBuf.buffer).setUint32(0, input.slot, true);
 
+    const result = concatAll(encGuarantees, slotBuf);
+    console.log("ReportsInputCodec: enc", convertToReadableFormat(result));
     // 3) concat
     return concatAll(encGuarantees, slotBuf);
   },
