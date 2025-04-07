@@ -1,5 +1,5 @@
 import { TicketVerifyContext, VerifyTicketOutput } from "./types";
-import { ringVrfVerify } from "../../ring-vrf-ffi/ring_vrf_ffi";
+import { ringVrfVerify } from "../../ffi/ring-vrf-ffi/ring_vrf_ffi";
 import { VALIDATOR_COUNT } from "../../consts";
 
 /**

@@ -105,6 +105,7 @@ export enum ErrorCode {
     data: ServiceInfo;
   }
 
+
   // CoreActivityRecord ::= SEQUENCE {
   //   -- Total gas consumed by core for reported work. Includes all refinement and authorizations.
   //   gas-used        U64,

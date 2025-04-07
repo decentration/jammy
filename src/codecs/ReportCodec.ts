@@ -50,10 +50,6 @@ export const ReportCodec: Codec<Report> = [
     const encSegLookup = DiscriminatorCodec(SegmentItemCodec).enc(report.segment_root_lookup);
     // log string hex
 
-    // console.log("encSegLookup", Buffer.from(encSegLookup).toString("hex"));
-const ReportTillNow = { encPkg, encCtx, coreIndexBuf, encAuthHash, encAuthOutput, encSegLookup };
-    console.log("out before results", convertToReadableFormat(ReportTillNow));
-
     // 7) encode results with DiscriminatorCodec(ResultCodec)
     const encResults = DiscriminatorCodec(ResultCodec, { minSize: 1, maxSize: 16 }).enc(report.results);
 

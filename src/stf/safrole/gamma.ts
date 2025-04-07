@@ -3,7 +3,7 @@ import { SafroleState } from "./types";
 import { CONTEST_DURATION, EPOCH_LENGTH } from "../../consts";
 import { ValidatorInfo } from "../types";
 import { BandersnatchPublic } from "../../types/types";
-import { aggregator } from "../../ring-vrf-ffi/ring_vrf_ffi";
+import { aggregator } from "../../ffi/ring-vrf-ffi/ring_vrf_ffi";
 
 export function rebuildGammaSForEpochChange(
   oldState: SafroleState,

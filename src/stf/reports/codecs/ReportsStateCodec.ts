@@ -23,7 +23,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const encCoresStats    = CoresStatisticsCodec.enc(state.cores_statistics);
     const encServicesStats = ServicesStatisticsCodec.enc(state.services_statistics);
 
-const result = concatAll(
+    const result = concatAll(
       encAvail,
       encCurrVal,
       encPrevVal,

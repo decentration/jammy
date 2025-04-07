@@ -27,9 +27,6 @@ export const ResultCodec: Codec<Result> = [
     // 5) encode result (ResultValueCodec)
     const encResult = ResultValueCodec.enc(r.result);
 
-
-    const ResultTillNow = { encServiceId, encCodeHash, encPayloadHash, encAccumulateGas, encResult };
-    console.log("ResultCodec: enc till now", Buffer.from(encResult).toString("hex"), convertToReadableFormat(ResultTillNow));
     const encRefineLoad = RefineLoadCodec.enc(r.refine_load);
 
     // 6) concatenate all

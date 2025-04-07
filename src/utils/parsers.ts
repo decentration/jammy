@@ -2,10 +2,8 @@ import { hexStringToBytes } from "../codecs";
 import { Context, RefineLoad, Report, Result, ResultValue } from "../types";
 
 
-export function parseReportJson(json: any): (Report | null) {
-    if (!json) {
-      return null;
-    }
+export function parseReportJson(json: any): Report {
+
 
     return {
       package_spec: {
@@ -19,8 +17,12 @@ export function parseReportJson(json: any): (Report | null) {
       core_index: json.core_index,
       authorizer_hash: hexStringToBytes(json.authorizer_hash),
       auth_output: hexStringToBytes(json.auth_output || "0x"), // might be empty
-      segment_root_lookup: (json.segment_root_lookup || []).map((seg: any) =>
-        hexStringToBytes(seg)
+      segment_root_lookup: (json.segment_root_lookup || []).map((seg: any) => {
+        return {
+          segment_tree_root: hexStringToBytes(seg.segment_tree_root || "0x"),
+          work_package_hash: hexStringToBytes(seg.work_package_hash || "0x"), 
+          }
+        }
       ),
       results: (json.results || []).map((res: any) => parseResultsRecordJson(res)),
       auth_gas_used: json.auth_gas_used,
