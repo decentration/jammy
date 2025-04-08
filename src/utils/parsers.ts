@@ -3,8 +3,6 @@ import { Context, RefineLoad, Report, Result, ResultValue } from "../types";
 
 
 export function parseReportJson(json: any): Report {
-
-
     return {
       package_spec: {
         hash: hexStringToBytes(json.package_spec.hash),

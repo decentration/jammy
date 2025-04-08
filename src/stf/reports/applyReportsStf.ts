@@ -1,6 +1,6 @@
 
 import { arrayEqual, convertToReadableFormat, toHex } from "../../utils";
-import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT, MAX_WORK_SIZE, ROTATION_PERIOD, MAXIMUM_TOTAL_ACCUMULATE_GAS, TIMEOUT, EPOCH_LENGTH, VALIDATORS_PER_CORE } from "../../consts";
+import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT, MAX_WORK_SIZE, ROTATION_PERIOD, TOTAL_ACCUMULATE_GAS, TIMEOUT, EPOCH_LENGTH, VALIDATORS_PER_CORE } from "../../consts";
 import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, finalizeReporters, findExportsRoot, inRecentBlocksOrNew } from "./helpers";
 import { Ed25519Public, SegmentItem } from "../../types/types";
 import { verifyReportSignature } from "./verifyReportSignature";
@@ -31,7 +31,7 @@ import { updateStatistics } from "./updateStatistics";
  * 8) we ensure anchor blocks, state roots, and mmr roots are recent and correct
  *    - uses {@link superPeaks} for mmr validation
  * 9) we ensure the reported items do not exceed gas or output size limits
- *    - verifies gas limits using {@link MAXIMUM_TOTAL_ACCUMULATE_GAS}
+ *    - verifies gas limits using {@link TOTAL_ACCUMULATE_GAS}
  * 10) we verify signatures, ensuring each validator is assigned to the correct core
  *    - checks validator assignment against rotated permutations
  *    - verifies signature using {@link verifyReportSignature}
@@ -47,7 +47,7 @@ import { updateStatistics } from "./updateStatistics";
  * @see {@link inRecentBlocksOrNew}
  * @see {@link findExportsRoot}
  * @see {@link CORES_COUNT}
- * @see {@link MAXIMUM_TOTAL_ACCUMULATE_GAS}
+ * @see {@link TOTAL_ACCUMULATE_GAS}
  * @see {@link superPeaks}
  * @see [Report 38 Conformance Tests](../../__tests__/stf/conformance/reportConformance.test.ts) 
 */
@@ -297,7 +297,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       totalGas += item.accumulate_gas;
 
       // iv) 11.30 => if totalGas > GA => WORK_REPORT_GAS_TOO_HIGH
-      if (totalGas > MAXIMUM_TOTAL_ACCUMULATE_GAS) {
+      if (totalGas > TOTAL_ACCUMULATE_GAS) {
         console.log("work report gas too high", toHex(guarantee.report.package_spec.hash));
         return { output: { err: ErrorCode.WORK_REPORT_GAS_TOO_HIGH }, postState: preState };
       }

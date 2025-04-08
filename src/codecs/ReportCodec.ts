@@ -8,7 +8,6 @@ import { ContextCodec } from "./ContextCodec";
 import { VarLenBytesCodec, decodeProtocolInt, decodeWithBytesUsed, encodeProtocolInt } from "./index";
 import { Bytes, Vector } from "scale-ts";
 import { convertToReadableFormat } from "../utils";
-import { parseReportFromJson } from "../parsers/parseReportsGuaranteeFromJson";
 
 export const SegmentArrayCodec = DiscriminatorCodec(SegmentItemCodec);
 

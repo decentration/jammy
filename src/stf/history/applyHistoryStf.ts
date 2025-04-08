@@ -1,5 +1,5 @@
 import { MAX_BLOCKS_HISTORY } from "../../consts";
-import { HistoryState, HistoryInput } from "../types";
+import { HistoryState, HistoryInput, BlockItem } from "../types";
 import { insertLeaf } from "../../mmr/mergePeaks";
 
 /**
@@ -37,7 +37,7 @@ export function applyHistoryStf(
     const newPeaks = insertLeaf(oldPeaks, input.accumulate_root);
   
     // 5) Create new block with updated MMR
-    const newBlockEntry = {
+    const newBlockEntry: BlockItem  = {
       header_hash: input.header_hash,
       mmr: { peaks: newPeaks },
       state_root: new Uint8Array(32).fill(0),
@@ -55,7 +55,7 @@ export function applyHistoryStf(
     const H = MAX_BLOCKS_HISTORY;
 
     if (postState.beta.length > H) {
-        postState.beta.shift();
+        postState.beta.shift(); // remove oldest block
       }
 
     // output=null

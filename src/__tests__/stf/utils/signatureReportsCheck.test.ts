@@ -5,7 +5,7 @@ import { convertToReadableFormat, toHex } from "../../../utils";
 import { hexStringToBytes, toUint8Array } from "../../../codecs/utils";
 import { blake2b } from "blakejs";
 import { ReportCodec } from "../../../codecs";
-import { parseReportFromJson } from "../../../parsers/parseReportsGuaranteeFromJson";
+import { parseReportJson } from "../../../utils/parsers";
 
 describe("Debug signature for reports", () => {
   it("checks the signature from first report item (with blake2b + label)", () => {
@@ -17,7 +17,7 @@ describe("Debug signature for reports", () => {
 
     // 2) get the first assurance
     const [guarantee0] = testVector.input.guarantees;
-    const reportObj = parseReportFromJson(guarantee0.report);
+    const reportObj = parseReportJson(guarantee0.report);
     console.log("reportObj", reportObj);
 
     const report0Encoded = ReportCodec.enc(reportObj);
