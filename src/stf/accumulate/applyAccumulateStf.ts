@@ -1,7 +1,7 @@
 
 import { arrayEqual, convertToReadableFormat, toHex } from "../../utils";
 import { hexStringToBytes, toBytes } from "../../codecs";
-import { AccumulateState, AccumulateInput, AccumulateOutput, Reports, AccumulatedQueueItem, AccumulatedQueue, } from "./types"; 
+import { AccumulateState, AccumulateInput, AccumulateOutput, Reports, AccumulatedQueueItem, AccumulatedQueue, SingleReportItem, ReadyRecord, ReadyQueueItem, ReadyQueue, WorkPackageHash, } from "./types"; 
 import { Report } from "../../types";
 import { TOTAL_GAS_FOR_ALL_ACCUMULATION, TOTAL_ACCUMULATE_GAS, CORES_COUNT } from "../../consts";
 
@@ -9,9 +9,9 @@ import { TOTAL_GAS_FOR_ALL_ACCUMULATION, TOTAL_ACCUMULATE_GAS, CORES_COUNT } fro
  *  - General idea for the main entry point for the Accumulate STF.
  *  - It takes the pre_state and input, and returns the post_state and output.
  *  - 1) Clone preState, and get data from input and preState
- *  - 2) TODO: Gather "accumulatable items" (the final set W*) from input.reports & preState.ready_queue 
+ *  - 2) Gather "accumulatable items" (the final set W*) from input.reports & preState.ready_queue 
  *       (12.4)- 12.12)
- *  - 3) TODO: Computesblock gas-limit g (12.20)
+ *  - 3) Computesblock gas-limit g (12.20)
  *  - 4) TODO: Perform accumulation for each service using pvm-ffi. 
  *       Accumulates all relevant services by running their pvm logic
  *      (12.16 - 12.17). Single-service logic (12.19), concurrently.
@@ -30,11 +30,12 @@ Promise<{ output: AccumulateOutput, postState: AccumulateState }> {
   const { slot, reports } = input;
   let postState = structuredClone(preState) as AccumulateState;
 
-  // 2) TODO: Gather accumulatable items (W*) and then partition and filter within...
-  const accumulatableItems = gatherAccumulatableItems(slot, reports, postState);
+  // 2) TODO: Gather accumulatable work reports (W*) and then partition and filter within...
+  const { accumulatable_items: accumulatableItems, ready_queue_posterior_flattened: flattenedNewReadyQueue } = gatherAccumulatableItems(slot, reports, postState);
 
   // 3) TODO: block gas limit (g) 12.20 
-  const blockGasLimit = computeBlockGasLimit(postState, accumulatableItems);
+  const blockGasLimit = computeBlockGasLimit(postState);
+  console.log("blockGasLimit", blockGasLimit);
 
   // 4) TODO: Perform acccumulation for each service concurrently
   const { updatedPostState, accumulatedOutputs } = accumulateAllServices(postState, accumulatableItems, blockGasLimit);
@@ -64,14 +65,111 @@ Promise<{ output: AccumulateOutput, postState: AccumulateState }> {
  */
 function gatherAccumulatableItems(
     slot: number,
-    reports: Reports,
+    inputReports: Reports,
     state: AccumulateState
-  ): AccumulatedQueue {
-    // TODO:
-    //  - Combine input.reports + state.ready_queue
-    //  - Filter out items with unsatisfied dependencies
-    //  - return final accumulatable subset 
-    return [];
+  ): { accumulatable_items: ReadyRecord[], ready_queue_posterior_flattened: ReadyRecord[] } {
+    console.log("gatherAccumulatableItems reports", inputReports);
+    // Notes:
+    // W* 
+    // ϑ: The accumulation queue.
+    // ξ: The accumulation history.
+
+    // 12.4
+    // W! ≡ [w S w <− W, S(wx)pS = 0 ∧ wl = {}]
+
+    // 12.7
+    //    ⎧ (⟦(W, {H})⟧, {H}) → ⟦(W, {H})⟧
+    //    ⎪      
+    // E: ⎨ (r, x) ↦   ⎧              ⎪⎧ (w, d) <− r, ⎪
+    //    ⎪            ⎪ (w, d ∖ x) W ⎪⎨              ⎪
+    //    ⎩            ⎩              ⎪⎩ (ws)h ~∈ x   ⎪             
+                     
+
+    // 12.5
+    // WQ ≡ E([D(w) S w <− W, S(wx)pS > 0 ∨ wl ≠ {}], ©
+    // ξ )(12.5)
+
+    // W! are accumulated immediately
+    // WQ are queued in ready_queue
+
+    // gather all items in the ready queue
+    const allQueueItems: ReadyRecord[] = [];
+    let immediatelyAccumulateItems:  ReadyRecord[] = []; // W*= W! concat satisfied WQ
+    let readyQueueItems: ReadyRecord[] = []; // WQ waiting
+
+
+    //  Flatten existing queue
+    for (const subArr of state.ready_queue) {
+      for (const qItem of subArr) {
+        allQueueItems.push(qItem);
+      }
+    }
+
+    // convert input reports to ready queue items
+    for (const rep of inputReports) {
+        const deps = rep.context.prerequisites ?? []; 
+        const item: ReadyRecord = { report: rep, dependencies: deps };
+        allQueueItems.push(item);
+      }
+    
+
+    // partition new items with no dependencies vs. queued
+    const decided = new Set<ReadyRecord>();
+
+    // using this while boolean approach, can probably be optimized (TODO)
+    let progress = true;
+    while (progress) {
+      progress = false;
+  
+      for (const item of allQueueItems) {
+        if (decided.has(item)) {
+          continue; 
+        }
+        const deps = item.dependencies ?? [];
+  
+        // Check if all deps are satisfied => either dep is in "accumulated" list or is in immediatelyAccumulateItems list
+        const allDepsSatisfied = deps.every((depHash: WorkPackageHash) => {
+  
+          // Check deps found in accumulated list
+          const foundInAccumulated = state.accumulated.some((accItemArr) =>
+            accItemArr.includes(depHash)
+          );
+  
+          // Also check if there is a record in immediatelyAccumulateItems with that hash
+          const foundInImmediateAccumulateQueueItems = immediatelyAccumulateItems.some((wr) =>
+            wr.report.package_spec.hash === depHash
+          );
+  
+          return foundInAccumulated || foundInImmediateAccumulateQueueItems;
+        });
+  
+        if (allDepsSatisfied) {
+          // => item can go to W!
+          immediatelyAccumulateItems.push(item);
+          decided.add(item);
+          progress = true;
+        }
+      }
+    }
+  
+    // after no more items can be satisfied, everything not in "decided" is still waiting
+    for (const item of allQueueItems) {
+      if (!decided.has(item)) {
+        readyQueueItems.push(item);
+      }
+    }
+  
+    const readableObject = { 
+        immediatelyAccumulateItems: convertToReadableFormat(immediatelyAccumulateItems as ReadyRecord[]), 
+        readyQueueItems: convertToReadableFormat(readyQueueItems as ReadyRecord[]) 
+    };
+    
+    console.log("readableObject immediatelyAccumulateItems and readyQueue", readableObject);
+
+    return { 
+        accumulatable_items: immediatelyAccumulateItems, 
+        ready_queue_posterior_flattened: readyQueueItems 
+    };
   }
 
 /**
@@ -80,7 +178,6 @@ function gatherAccumulatableItems(
  *  */
 function computeBlockGasLimit(
     state: AccumulateState,
-    items: AccumulatedQueue
   ): number {
     // TODO:
     // 12.20 block budgeting 
@@ -106,9 +203,9 @@ function computeBlockGasLimit(
 
     // sum always accumulate gas
     let sumAlwaysAccGas = 0;
-    // TODO: for (const entry of state.privileges.always_acc) {
-    //   sumAlwaysAccGas += entry.gas;
-    // }
+    for (const entry of state.privileges.always_acc) {
+       sumAlwaysAccGas += entry.gas;
+    }
 
     const candidate = TOTAL_ACCUMULATE_GAS * CORES_COUNT + sumAlwaysAccGas
 

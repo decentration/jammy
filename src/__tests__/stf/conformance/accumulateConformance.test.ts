@@ -8,8 +8,8 @@ import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 describe("Accumulate STF - conformance tests", () => {
 
     const testFiles = [
-        "accumulate_ready_queued_reports-1",
-        // "enqueue_and_unlock_chain_wraps-2",
+        // "accumulate_ready_queued_reports-1",
+        "enqueue_and_unlock_chain_wraps-2",
         // "enqueue_and_unlock_with_sr_lookup-2",
         // "process_one_immediate_report-1",
         // "enqueue_and_unlock_chain_wraps-3",
