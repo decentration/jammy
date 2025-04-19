@@ -1,12 +1,18 @@
 import { AvailAssignment, Ed25519Public, Guarantee, SegmentItem, ServicesStatisticsMapEntry } from "../../types/types";
+import { WorkReportHash } from "../accumulate/types";
 import { ValidatorInfo } from "../types";
 import { BlockItem } from "../types";
 import { Struct, u16, u32, u64 } from "scale-ts";
 
 export interface ReportsInput { 
     guarantees: Guarantee[], 
-    slot: number 
+    slot: number,
+    known_packages:  WorkReportHash[],
 }
+
+
+
+
 
 
 export type ReportsOutput = 

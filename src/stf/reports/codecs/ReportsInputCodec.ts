@@ -3,6 +3,7 @@ import { decodeWithBytesUsed, DiscriminatorCodec, GuaranteeCodec } from "../../.
 import { toUint8Array, concatAll } from "../../../codecs"; 
 import { ReportsInput } from "../types"; 
 import { convertToReadableFormat } from "../../../utils";
+import { OpaqueHashCodec } from "../../../types";
 
 export const ReportsInputCodec: Codec<ReportsInput> = [
   // --- ENCODER ---
@@ -14,7 +15,10 @@ export const ReportsInputCodec: Codec<ReportsInput> = [
     const slotBuf = new Uint8Array(4);
     new DataView(slotBuf.buffer).setUint32(0, input.slot, true);
 
-    const result = concatAll(encGuarantees, slotBuf);
+    // 3) known packages is just an array of 32 byte hashes with a prefix using discriminator code
+    const encKnownPackages = DiscriminatorCodec(OpaqueHashCodec).enc(input.known_packages);
+
+    const result = concatAll(encGuarantees, slotBuf, encKnownPackages);
     console.log("ReportsInputCodec: enc", convertToReadableFormat(result));
     // 3) concat
     return concatAll(encGuarantees, slotBuf);
@@ -40,7 +44,15 @@ export const ReportsInputCodec: Codec<ReportsInput> = [
     const slot = new DataView(uint8.buffer, uint8.byteOffset + offset, 4).getUint32(0, true);
     offset += 4;
 
-    return { guarantees, slot };
+    // c) decode known packages (DiscriminatorCodec)
+    const { value: known_packages, bytesUsed: usedKnownPackages } = decodeWithBytesUsed(
+      DiscriminatorCodec(OpaqueHashCodec),
+      uint8.slice(offset)
+    );
+    offset += usedKnownPackages;
+    // d) check if we have read all the data
+
+    return { guarantees, slot, known_packages };
   },
 ] as unknown as Codec<ReportsInput>;
 

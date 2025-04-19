@@ -45,6 +45,7 @@ const testFiles = [
    "too_big_work_report_output-1",
    "too_high_work_report_gas-1",
    "too_many_dependencies-1",
+   "with_avail_assignments-1.json",
    "wrong_assignment-1"
 ]
 
