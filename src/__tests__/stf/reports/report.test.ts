@@ -45,7 +45,7 @@ const testFiles = [
    "too_big_work_report_output-1",
    "too_high_work_report_gas-1",
    "too_many_dependencies-1",
-   "with_avail_assignments-1.json",
+   "with_avail_assignments-1",
    "wrong_assignment-1"
 ]
 
@@ -94,7 +94,7 @@ testFiles.forEach((fileName) => {
         JSON.stringify(readableOriginal, null, 2)
       );
 
-      console.log("readableDecoded:", readableDecoded.input.guarantees);
+      // console.log("readableDecoded:", readableDecoded.input.guarantees);
       // 6) Validate roundtrip
       expect(readableDecoded).toStrictEqual(readableOriginal);
     });

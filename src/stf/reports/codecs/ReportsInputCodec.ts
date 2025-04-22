@@ -21,7 +21,7 @@ export const ReportsInputCodec: Codec<ReportsInput> = [
     const result = concatAll(encGuarantees, slotBuf, encKnownPackages);
     console.log("ReportsInputCodec: enc", convertToReadableFormat(result));
     // 3) concat
-    return concatAll(encGuarantees, slotBuf);
+    return concatAll(encGuarantees, slotBuf, encKnownPackages);
   },
 
   // --- DECODER ---
