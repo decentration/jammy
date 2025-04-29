@@ -1,9 +1,12 @@
 
-import { arrayEqual, convertToReadableFormat, toHex } from "../../utils";
+import { arrayEqual, compareBytes, convertToReadableFormat, toHex } from "../../utils";
 import { hexStringToBytes, toBytes } from "../../codecs";
 import { AccumulateState, AccumulateInput, AccumulateOutput, Reports, AccumulatedQueueItem, AccumulatedQueue, SingleReportItem, ReadyRecord, ReadyQueueItem, ReadyQueue, WorkPackageHash, } from "./types"; 
 import { Report } from "../../types";
-import { TOTAL_GAS_FOR_ALL_ACCUMULATION, TOTAL_ACCUMULATE_GAS, CORES_COUNT } from "../../consts";
+import { TOTAL_GAS_FOR_ALL_ACCUMULATION, TOTAL_ACCUMULATE_GAS, CORES_COUNT, EPOCH_LENGTH } from "../../consts";
+import { gatherAccumulatableReports, computeBlockGasLimit, applyIntermediateChanges, applyDeferredTransfers, integratePreimages } from "./helpers";
+import { accumulateAcceptedReports } from "./helpers/accumulateAcceptedReports";
+import { chunkAccumulatableReportsByGas } from "./helpers/chunkAccumulatableReportByGas";
 
 /** applyAccumulateStf:
  *  - General idea for the main entry point for the Accumulate STF.
@@ -24,192 +27,178 @@ import { TOTAL_GAS_FOR_ALL_ACCUMULATION, TOTAL_ACCUMULATE_GAS, CORES_COUNT } fro
  * @param input 
  * @returns 
  */
-export async function applyAccumulateStf( preState: AccumulateState, input: AccumulateInput): 
-Promise<{ output: AccumulateOutput, postState: AccumulateState }> {
-  // 1) Clone preState
-  const { slot, reports } = input;
-  let postState = structuredClone(preState) as AccumulateState;
+export async function applyAccumulateStf (
+  preState: AccumulateState,
+  input: AccumulateInput
+): Promise<{ output: AccumulateOutput; postState: AccumulateState }> {
+  
+  // 1) clone preState, deconstruct input, and rotate accumulated
+  const { slot , reports } = input;
+  const postState: AccumulateState = structuredClone(preState);
+  rotateAccumulated(postState, preState.slot, slot); // 12.32
 
-  // 2) TODO: Gather accumulatable work reports (W*) and then partition and filter within...
-  const { accumulatable_items: accumulatableItems, ready_queue_posterior_flattened: flattenedNewReadyQueue } = gatherAccumulatableItems(slot, reports, postState);
+  // 2) split incoming reports into: immediately-accumulatable (W!); and postponed (WQ => ready_queue)
+  const { accumulatable_items : accumulatableItems, ready_queue_posterior_flattened : readyForQueue 
+  } = gatherAccumulatableReports(slot, reports, postState);
 
-  // 3) TODO: block gas limit (g) 12.20 
-  const blockGasLimit = computeBlockGasLimit(postState);
-  console.log("blockGasLimit", blockGasLimit);
+  // 3) update ready_queue: put the non-ready input reports into ready queue
+  updateReadyQueue(postState, slot, preState.slot, readyForQueue );
 
-  // 4) TODO: Perform acccumulation for each service concurrently
-  const { updatedPostState, accumulatedOutputs } = accumulateAllServices(postState, accumulatableItems, blockGasLimit);
-  postState = updatedPostState;
+  // 4) calculate block gas-limit (12.20)
+  let blockGasLimit = computeBlockGasLimit(postState);
 
-  // 5) TODO: apply intermediate changes 
+  const accumulatedHashes = new Set<string>();  
+  let accumulatable: ReadyRecord[] = accumulatableItems;
+  let accumulatedOutputs: any[] = [];
+
+  // 5) loop over the accumulatable reports
+  while (accumulatable.length) {
+
+    // 5a)  pick a gas-bounded prefix (12.16)
+    const { acceptedReports, leftoverReports } = chunkAccumulatableReportsByGas(accumulatable, blockGasLimit);
+
+    // nothing fits => break
+    if (acceptedReports.length === 0) break;
+
+    // 5b) accumulate them 12.17
+    const { accumulatedOutputs, newlyAccumulatedHashes } = await accumulateAcceptedReports(
+      postState,
+      acceptedReports,
+      blockGasLimit,
+      slot
+    );
+
+    accumulatedOutputs.push(...accumulatedOutputs);
+
+    // 5c) gas bookkeeping: reduce the gas limit by the sum of all gas used in the accepted reports
+    gasBookeeping(acceptedReports, blockGasLimit);
+    // 5c.2) check if we are out of gas
+    if (blockGasLimit <= 0) break;
+
+    // 5d) remove the hashes from the ready queue
+    // and remove deps now satisfied
+    newlyAccumulatedHashes.forEach(h => {
+      const hash = toHex(h);
+      if (!accumulatedHashes.has(hash)) {
+        accumulatedHashes.add(hash);
+        // push into current bucket of accumulated if not present yet
+        const bucket = postState.accumulated[postState.accumulated.length - 1];
+        if (!bucket.some(b => toHex(b) === hash)) {
+          bucket.push(h);
+        }
+
+        // lexicographic sort 
+        bucket.sort((a, b) => compareBytes(a, b));
+      }
+    });
+
+    // we remove the hashes we just finished from the ready queue
+    // and remove any dependencies that are now satisfied
+    postState.ready_queue = postState.ready_queue.map(b => editQueue(b, accumulatedHashes));
+
+    // 5e) put leftover part of this batch back to its bucket
+    if (leftoverReports.length) {
+      const bucket = slot % EPOCH_LENGTH;
+      postState.ready_queue[bucket].push(...leftoverReports);
+    }
+
+    // 5f) find the next wave of now unblocked reports (12.8)
+    accumulatable = postState.ready_queue.flatMap(
+      b => b.filter(r => r.dependencies.length === 0)
+    );
+  }
+
+  // updated slot
+  postState.slot = slot;
+
+  // 6) TODO: apply intermediate changes 
   applyIntermediateChanges(postState, accumulatedOutputs);
 
-  // 6) TODO: handle deferred transfers 
+  // 7) TODO: handle deferred transfers 
   applyDeferredTransfers(postState, accumulatedOutputs );
 
-  // 7) TODO: integrate new preimages
+  // 8) TODO: integrate new preimages
   integratePreimages(postState);
 
-  // 8) final output
-  const finalOutput = buildAccumulateOutput(postState);
+   // 9) Update state
+  const finalOutput: AccumulateOutput = { ok : new Uint8Array(32) };
+  return { output: finalOutput, postState };
+}
 
-  // 9) Update state
-  return { output: finalOutput, postState: postState};
+// compare Uint8Array by hex key
+const key = (h: Uint8Array) => toHex(h);  
+
+// (12.7) queue-editing “E”
+function editQueue(bucket: ReadyRecord[], done: Set<string>): ReadyRecord[] {
+  return bucket.filter(r => !done.has(key(r.report.package_spec.hash)))
+    .map(r => ({
+      ...r, 
+      dependencies: r.dependencies.filter(dep => !done.has(key(dep)))
+  }));
 }
 
 
-/**
- * gatherAccumulatableItems:
- * - (12.4)-(12.5) partition new items with no dependencies vs. queued 
- * - (12.7)-(12.12) merges with existing preState.ready_queue to form W* 
- */
-function gatherAccumulatableItems(
-    slot: number,
-    inputReports: Reports,
-    state: AccumulateState
-  ): { accumulatable_items: ReadyRecord[], ready_queue_posterior_flattened: ReadyRecord[] } {
-    console.log("gatherAccumulatableItems reports", inputReports);
-    // Notes:
-    // W* 
-    // ϑ: The accumulation queue.
-    // ξ: The accumulation history.
+function updateReadyQueue(
+  state: AccumulateState,
+  slot: number,
+  preStateSlot: number,
+  readyForQueueUnfiltered: ReadyRecord[],
+) {
+  let accumulatedHashes: Uint8Array[] = [];
+  // 1) scrub every bucket with the hashes we just accumulated
+  const accumulated = new Set(accumulatedHashes.map(h => toHex(h)));
+  state.ready_queue = state.ready_queue.map(b => editQueue(b, accumulated));
 
-    // 12.4
-    // W! ≡ [w S w <− W, S(wx)pS = 0 ∧ wl = {}]
+  // 2) find which of the new waiting reports aren’t already present
+  const existingReports = new Set( state.ready_queue.flatMap(b => b.map(r => key(r.report.package_spec.hash))));
+  const freshReports = readyForQueueUnfiltered.filter(r => !existingReports.has(key(r.report.package_spec.hash)));
 
-    // 12.7
-    //    ⎧ (⟦(W, {H})⟧, {H}) → ⟦(W, {H})⟧
-    //    ⎪      
-    // E: ⎨ (r, x) ↦   ⎧              ⎪⎧ (w, d) <− r, ⎪
-    //    ⎪            ⎪ (w, d ∖ x) W ⎪⎨              ⎪
-    //    ⎩            ⎩              ⎪⎩ (ws)h ~∈ x   ⎪             
-                     
+  // 3) blank out any buckets that were skipped between slots 
+  const newIdx = slot % EPOCH_LENGTH;
+  const oldIdx = preStateSlot % EPOCH_LENGTH;
+  const delta = (newIdx - oldIdx + EPOCH_LENGTH) % EPOCH_LENGTH;
 
-    // 12.5
-    // WQ ≡ E([D(w) S w <− W, S(wx)pS > 0 ∨ wl ≠ {}], ©
-    // ξ )(12.5)
-
-    // W! are accumulated immediately
-    // WQ are queued in ready_queue
-
-    // gather all items in the ready queue
-    const allQueueItems: ReadyRecord[] = [];
-    let immediatelyAccumulateItems:  ReadyRecord[] = []; // W*= W! concat satisfied WQ
-    let readyQueueItems: ReadyRecord[] = []; // WQ waiting
-
-
-    //  Flatten existing queue
-    for (const subArr of state.ready_queue) {
-      for (const qItem of subArr) {
-        allQueueItems.push(qItem);
-      }
-    }
-
-    // convert input reports to ready queue items
-    for (const rep of inputReports) {
-        const deps = rep.context.prerequisites ?? []; 
-        const item: ReadyRecord = { report: rep, dependencies: deps };
-        allQueueItems.push(item);
-      }
-    
-
-    // partition new items with no dependencies vs. queued
-    const decided = new Set<ReadyRecord>();
-
-    // using this while boolean approach, can probably be optimized (TODO)
-    let progress = true;
-    while (progress) {
-      progress = false;
-  
-      for (const item of allQueueItems) {
-        if (decided.has(item)) {
-          continue; 
-        }
-        const deps = item.dependencies ?? [];
-  
-        // Check if all deps are satisfied => either dep is in "accumulated" list or is in immediatelyAccumulateItems list
-        const allDepsSatisfied = deps.every((depHash: WorkPackageHash) => {
-  
-          // Check deps found in accumulated list
-          const foundInAccumulated = state.accumulated.some((accItemArr) =>
-            accItemArr.includes(depHash)
-          );
-  
-          // Also check if there is a record in immediatelyAccumulateItems with that hash
-          const foundInImmediateAccumulateQueueItems = immediatelyAccumulateItems.some((wr) =>
-            wr.report.package_spec.hash === depHash
-          );
-  
-          return foundInAccumulated || foundInImmediateAccumulateQueueItems;
-        });
-  
-        if (allDepsSatisfied) {
-          // => item can go to W!
-          immediatelyAccumulateItems.push(item);
-          decided.add(item);
-          progress = true;
-        }
-      }
-    }
-  
-    // after no more items can be satisfied, everything not in "decided" is still waiting
-    for (const item of allQueueItems) {
-      if (!decided.has(item)) {
-        readyQueueItems.push(item);
-      }
-    }
-  
-    const readableObject = { 
-        immediatelyAccumulateItems: convertToReadableFormat(immediatelyAccumulateItems as ReadyRecord[]), 
-        readyQueueItems: convertToReadableFormat(readyQueueItems as ReadyRecord[]) 
-    };
-    
-    console.log("readableObject immediatelyAccumulateItems and readyQueue", readableObject);
-
-    return { 
-        accumulatable_items: immediatelyAccumulateItems, 
-        ready_queue_posterior_flattened: readyQueueItems 
-    };
+  for (let i = 1; i < delta; i++) {
+    state.ready_queue[(oldIdx + i) % EPOCH_LENGTH] = [];
   }
 
-/**
- * computeBlockGasLimit:
- *   - (12.20)
- *  */
-function computeBlockGasLimit(
-    state: AccumulateState,
-  ): number {
-    // TODO:
-    // 12.20 block budgeting 
-    // let g = max(GT , GA ⋅ C + ∑x∈V(χg )(x))
-    // ∑x∈V(χg )(x)) is the sum of always accumulate gas from privilged services pre_state.privileges.always_acc
-    // so gas limit GT or GA * C + sum of always_acc gas
-    // C = 341 for full. 
-    // χ: The privileged service indices.
-    // χg : The always-accumulate service indices and their basic gas allowance.
-    // GA = 10, 000, 000: The gas allocated to invoke a work-report’s Accumulation logic. 
-    // GT = 3, 500, 000, 000: The total gas allocated across for all Accumulation. Should be no smaller than GA ⋅ C + ∑g∈V(χg )(g). 
-    // TOTAL_ACCUMULATE_GAS = GA
-    // TOTAL_GAS_FOR_ALL_ACCUMULATION = GT
-    // CORES_COUNT = C
+  // 4) merge: keep what survived the scrub + add the fresh ones, and lexicographically sort
+  const current = state.ready_queue[newIdx];
 
-    // we use Math.max to get the max of the two
-    // we want to ensure that our final gas limit cannot fall below GT
-    
+  // merge the two arrays and sort
+  const merged  = [...current, ...freshReports]
+  const mergedAndSorted = merged.sort((a, b) => compareBytes(a.report.package_spec.hash, b.report.package_spec.hash));
+
+  // put the result into the bucket
+  state.ready_queue[newIdx] = mergedAndSorted;
+}
 
 
-    let blockGasLimit = TOTAL_GAS_FOR_ALL_ACCUMULATION // GT
-    // Add all the privileges, C (concurrency), etc.
 
-    // sum always accumulate gas
-    let sumAlwaysAccGas = 0;
-    for (const entry of state.privileges.always_acc) {
-       sumAlwaysAccGas += entry.gas;
-    }
+export function rotateAccumulated(
+  state            : AccumulateState,
+  prevSlot         : number,
+  currentSlot      : number,
+) {
+  // const E = state.accumulated.length; 
 
-    const candidate = TOTAL_ACCUMULATE_GAS * CORES_COUNT + sumAlwaysAccGas
+  // if (currentSlot < prevSlot) throw new Error(`slot went backwards (${prevSlot} → ${currentSlot})`);
 
-    blockGasLimit = Math.max(TOTAL_GAS_FOR_ALL_ACCUMULATION, candidate );
+  // let slotDiff = currentSlot - prevSlot;
+  // if (slotDiff > E) slotDiff = E;
 
-    return blockGasLimit;
-  }
+  // console.log("slotDiff", slotDiff);
+  state.accumulated.shift();   
+  state.accumulated.push([])
+
+}
+
+
+function gasBookeeping(acceptedReports: ReadyRecord[], blockGasLimit: number) {
+  // 1) gas bookkeeping: reduce the gas limit by the sum of all gas used in the accepted reports
+     const gasUsed = acceptedReports.reduce(
+       (sum , r) => sum + r.report.results.reduce((s, x) => s + (x.accumulate_gas ?? 0), 0)
+     , 0);
+     blockGasLimit -= gasUsed;
+
+}

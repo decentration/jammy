@@ -8,31 +8,31 @@ import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 describe("Accumulate STF - conformance tests", () => {
 
     const testFiles = [
-        // "accumulate_ready_queued_reports-1",
-        "enqueue_and_unlock_chain_wraps-2",
-        // "enqueue_and_unlock_with_sr_lookup-2",
-        // "process_one_immediate_report-1",
-        // "enqueue_and_unlock_chain_wraps-3",
-        // "queues_are_shifted-1",
+        // "accumulate_ready_queued_reports-1",  //
         // "enqueue_and_unlock_chain-1",
-        // "enqueue_and_unlock_chain_wraps-4",
-        // "enqueue_self_referential-1",
-        // "queues_are_shifted-2",
         // "enqueue_and_unlock_chain-2",
-        // "enqueue_and_unlock_chain_wraps-5",
-        // "enqueue_self_referential-2",
-        // "ready_queue_editing-1",
         // "enqueue_and_unlock_chain-3",
-        // "enqueue_self_referential-3",
-        // "enqueue_and_unlock_simple-1",
-        // "ready_queue_editing-2",
         // "enqueue_and_unlock_chain-4",
-        // "enqueue_self_referential-4",
-        // "enqueue_and_unlock_simple-2",
-        // "ready_queue_editing-3",
         // "enqueue_and_unlock_chain_wraps-1",
+        // "enqueue_and_unlock_chain_wraps-2",
+        // "enqueue_and_unlock_chain_wraps-3",  //
+        "enqueue_and_unlock_chain_wraps-4",  //
+        // "enqueue_and_unlock_chain_wraps-5",
+        // "enqueue_and_unlock_simple-1",
+        // "enqueue_and_unlock_simple-2",
+        // "enqueue_and_unlock_with_sr_lookup-1",      
+        // "enqueue_and_unlock_with_sr_lookup-2",
+        // "enqueue_self_referential-1",
+        // "enqueue_self_referential-2",
+        // "enqueue_self_referential-3",
+        // "enqueue_self_referential-4",
         // "no_available_reports-1",
-        // "enqueue_and_unlock_with_sr_lookup-1"
+        // "process_one_immediate_report-1",
+        // "queues_are_shifted-1",            //        
+        // "queues_are_shifted-2",           //  
+        // "ready_queue_editing-1",
+        // "ready_queue_editing-2",
+        // "ready_queue_editing-3",
     ];
 
     testFiles.forEach((fileName) => {
@@ -59,8 +59,10 @@ describe("Accumulate STF - conformance tests", () => {
             // if output contains Uint8Arrays, convert them to hex strings
             const convertedOutput = convertToReadableFormat(output);
 
-            console.log("convertedOutput", convertedOutput);
-            console.log("expectedOutput", expectedOutput);
+            // console.log("convertedOutput", convertedOutput);
+            // console.log("expectedOutput", expectedOutput);
+
+            console.log("postState", convertToReadableFormat(postState));
             // 5) Compare results
             expect(convertedOutput).toEqual(expectedOutput);
             expect(convertToReadableFormat(postState)).toEqual(expectedPostState);

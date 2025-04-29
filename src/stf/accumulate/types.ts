@@ -5,7 +5,8 @@ import { Entropy } from "../reports/types";
 export type ServiceId = number; // u32
 export type Gas = number; // u64    
 export type AccountId = number; // u32
-export type WorkPackageHash = OpaqueHash;
+export type WorkPackageHash = OpaqueHash; 
+export type WorkReportHash = OpaqueHash;
 
 export const AccountIdCodec = u32;
 export const WorkPackageHashCodec = Bytes(32);
@@ -27,8 +28,6 @@ export interface AccumulateState {
     privileges: Privileges,
     accounts: Accounts,
 }
-
-
 
 export interface Privileges {
     bless: ServiceId,
@@ -106,3 +105,22 @@ export interface ServiceInfo {
     items: number;      // u32
 }
 
+
+
+//----
+
+export interface AccumulateEphemeral {
+    newTransfers?: {
+      src: number; 
+      dest: number; 
+      amount: bigint;
+    }[];
+    newServices?: { serviceId: number; codeHash: Uint8Array; }[];
+    codeUpgrades?: { serviceId: number; newCodeHash: Uint8Array }[];
+    selfTerminated?: boolean;
+    commitmentHash?: string; 
+    actualGasUsed?: number;
+  }
+  
+  
+  
