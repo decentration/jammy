@@ -6,4 +6,4 @@
 	url = https://github.com/davxy/jam-test-vectors
 [submodule "external/jam-duna-testnet"]
 	path = external/jam-duna-testnet
-	url = https://github.com/jam-duna/jamtestnet
+	url = https://github.com/jam-duna/jamtestnet.git
