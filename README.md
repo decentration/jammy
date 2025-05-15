@@ -30,7 +30,8 @@ git commit -am "Update ring-vrf to latest"
 ```
 ## Jam Test Vectors
 cd external/jam-test-vectors
-git pull origin main
+git fetch origin 
+git pull origin polkajam-vectors
 cd ../..
 git commit -am "Update jam-test-vectors to latest"
 ```

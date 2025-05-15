@@ -5,6 +5,7 @@ import { EpochMarkCodec } from "./EpochMarkCodec";
 import { TicketsMarkCodec } from "./TicketsMarkCodec";
 import { Header, TicketsMark } from "../types/types";
 import { EpochMark } from "../stf/safrole/types";
+import { convertToReadableFormat } from "../utils";
 
 export const HeaderCodec: Codec<Header> = [
   // ENCODER
@@ -164,7 +165,7 @@ export const HeaderCodec: Codec<Header> = [
         epoch_mark = EpochMarkCodec.dec(remainingSlice);
 
         // Calculate bytes used as the length of the encoded EpochMark
-        const bytesUsed = 64 + epoch_mark.validators.length * 32;
+        const bytesUsed = 64 + epoch_mark.validators.length * 64;
         offset += bytesUsed;
 
     } else if (epochByte === 0x00) {
@@ -181,7 +182,7 @@ export const HeaderCodec: Codec<Header> = [
 
     // 4) tickets_mark 
     const ticketsByte = uint8[offset++];
-    console.log("HeaderCodec ticketsByte:", ticketsByte);
+    console.log("HeaderCodec ticketsByte:", ticketsByte, offset, convertToReadableFormat(uint8.slice(offset)));
     let tickets_mark: TicketsMark[] | null = null;
     console.log('HeaderCodec tickets_mark:', tickets_mark, 'Offset:', offset, input);
     if (ticketsByte === 0x00) {

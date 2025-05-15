@@ -1,6 +1,9 @@
 [submodule "ring-vrf"]
 	path = ring-vrf
-	url = https://github.com/decentration/ring-vrf.git
+	url = https://github.com/decentration/ring-vrf
 [submodule "external/jam-test-vectors"]
 	path = external/jam-test-vectors
 	url = https://github.com/davxy/jam-test-vectors
+[submodule "external/jam-duna-testnet"]
+	path = external/jam-duna-testnet
+	url = https://github.com/jam-duna/jamtestnet
