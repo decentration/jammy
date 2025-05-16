@@ -57,7 +57,8 @@ export interface ReadyRecord {
 }
 
 export type WorkPackageHashes = WorkPackageHash[];
-// ------------------------
+
+// -----------------------------------
 
 
 // -------- Accumulated Queue --------
@@ -67,15 +68,12 @@ export type AccumulatedQueueItem = WorkPackageHash[];
 
 // -----------------------------------
 
-
 export interface AccumulateStf {
     input: AccumulateInput,
     pre_state: AccumulateState,
     output: AccumulateOutput,
     post_state: AccumulateState
 }
-
-
 
 export type  Accounts = AccountItem[];
 
@@ -109,14 +107,26 @@ export interface ServiceInfo {
 
 //----
 
+
+export interface CodeUpgrade {
+    serviceId: number; // u32
+    newCodeHash: Uint8Array; // 32 bytes
+}
+export interface NewService {
+    serviceId: number; // u32
+    codeHash: Uint8Array; // 32 bytes
+}
+
+export interface NewTransfer {
+    src: number; // u32
+    dest: number; // u32
+    amount: bigint; // u64
+}
+
 export interface AccumulateEphemeral {
-    newTransfers?: {
-      src: number; 
-      dest: number; 
-      amount: bigint;
-    }[];
-    newServices?: { serviceId: number; codeHash: Uint8Array; }[];
-    codeUpgrades?: { serviceId: number; newCodeHash: Uint8Array }[];
+    newTransfers?: NewTransfer[];
+    newServices?: NewService[];
+    codeUpgrades?: CodeUpgrade[];
     selfTerminated?: boolean;
     commitmentHash?: string; 
     actualGasUsed?: number;

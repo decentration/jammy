@@ -33,6 +33,7 @@ describe("Accumulate STF - conformance tests", () => {
         "ready_queue_editing-1",
         "ready_queue_editing-2",
         "ready_queue_editing-3",
+        "same_code_different_services-1"
     ];
 
     testFiles.forEach((fileName) => {
