@@ -2,6 +2,7 @@ import { Struct, u8, u16, u32, Bytes, Vector, bool, _void, Codec, u64} from 'sca
 import { VarLenBytesCodec } from '../codecs';
 import { BITFIELD_LENGTH } from '../consts';
 import { EpochMark } from '../stf/safrole/types';
+import { WorkPackageHashCodec } from '../stf/accumulate/types';
 
 export const BandersnatchRingVrfSignatureCodec = Bytes(784); 
 export const BandersnatchVrfSignaturesCodec = Bytes(96);
@@ -143,10 +144,10 @@ export interface PackageSpec {
 
 // lets log inside the PackageSpecCodec 
 export const PackageSpecCodec = Struct({
-  hash: Bytes(32),
+  hash: WorkPackageHashCodec,
   length: u32, // 4 bytes
-  erasure_root: Bytes(32),
-  exports_root: Bytes(32),
+  erasure_root: OpaqueHashCodec,
+  exports_root: OpaqueHashCodec,
   exports_count: u16,
 });
 export interface Context {

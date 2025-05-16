@@ -7,11 +7,11 @@ import { StatisticsCodec } from "./StatisticsCodec";
 export const StatsStateCodec: Codec<StatsState> = [
   // ENCODER
   (state: StatsState) => {
-    const encPi = StatisticsCodec.enc(state.pi);
-    const encTau = u32.enc(state.tau);
-    const encKappa = ValidatorsInfoCodec.enc(state.kappa_prime);
+    const encStats = StatisticsCodec.enc(state.statistics);
+    const encSlots = u32.enc(state.slot);
+    const encCurrValidators = ValidatorsInfoCodec.enc(state.curr_validators);
 
-    return concatAll(encPi, encTau, encKappa);
+    return concatAll(encStats, encSlots, encCurrValidators);
   },
 
   // DECODER
@@ -27,23 +27,23 @@ export const StatsStateCodec: Codec<StatsState> = [
 
     let offset = 0;
 
-    // decode pi
-    const { value: piVal, bytesUsed: piUsed } = decodeWithBytesUsed(StatisticsCodec, uint8);
-    offset += piUsed;
+    // decode statistics
+    const { value: statsVal, bytesUsed: statsUsed } = decodeWithBytesUsed(StatisticsCodec, uint8);
+    offset += statsUsed;
 
-    // decode tau => 4 bytes
-    const tau = u32.dec(uint8.slice(offset, offset + 4));
+    // decode slot => 4 bytes
+    const slot = u32.dec(uint8.slice(offset, offset + 4));
     offset += 4;
 
-    // decode kappa_prime
+    // decode curr_validators
     const slice = uint8.slice(offset);
-    const { value: kappa_prime, bytesUsed } = decodeWithBytesUsed(ValidatorsInfoCodec, slice);
+    const { value: curr_validators, bytesUsed } = decodeWithBytesUsed(ValidatorsInfoCodec, slice);
     offset += bytesUsed;
 
     return {
-      pi: piVal,
-      tau,
-      kappa_prime,
+      statistics: statsVal,
+      slot,
+      curr_validators,
     };
   },
 ] as unknown as Codec<StatsState>;

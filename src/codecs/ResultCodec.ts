@@ -5,10 +5,12 @@ import { ResultValueCodec } from "./ResultValueCodec";
 import { u32, u64, Bytes } from "scale-ts";
 import { RefineLoadCodec } from "./RefineLoadCodec";
 import { encodeProtocolInt } from "./IntegerCodec";
+import { convertToReadableFormat } from "../utils";
 
 export const ResultCodec: Codec<Result> = [
   // ENCODER
   (r: Result): Uint8Array => {
+    console.log("ResultCodec: enc", convertToReadableFormat(r));
     // 1) encode service_id (u32 -> 4 bytes LE)
     const encServiceId = ServiceIdCodec.enc(r.service_id);
 
@@ -21,7 +23,6 @@ export const ResultCodec: Codec<Result> = [
     // 4) encode accumulate_gas (u64 -> 8 bytes LE)
     const encAccumulateGas = u64.enc(BigInt(r.accumulate_gas)); 
     // const encAccumulateGas = u64.(r.accumulate_gas);
-
 
     // 5) encode result (ResultValueCodec)
     const encResult = ResultValueCodec.enc(r.result);
@@ -75,6 +76,9 @@ export const ResultCodec: Codec<Result> = [
     // 4) decode accumulate_gas (u64 -> 8 bytes LE)
     const { value: accumulate_gas, bytesUsed: gasUsed } = decodeWithBytesUsed(u64, uint8.slice(offset));
     offset += gasUsed;
+
+    // const { value: accumulate_gas, bytesRead: gasUsed } = decodeProtocolInt( uint8.slice(offset));
+    // offset += gasUsed;
 
     // 5) decode result
     const { value: result, bytesUsed: resultUsed } = decodeWithBytesUsed(ResultValueCodec, uint8.slice(offset));

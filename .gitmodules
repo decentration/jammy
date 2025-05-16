@@ -3,4 +3,7 @@
 	url = https://github.com/decentration/ring-vrf.git
 [submodule "external/jam-test-vectors"]
 	path = external/jam-test-vectors
-	url = https://github.com/davxy/jam-test-vectors
+	url = https://github.com/davxy/jam-test-vectors.git
+[submodule "external/jam-duna-testnet"]
+	path = external/jam-duna-testnet
+	url = https://github.com/jam-duna/jamtestnet.git

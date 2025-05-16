@@ -22,7 +22,18 @@ export const OutputCodec: Codec<Output> = [
       throw new Error("OutputCodec.enc: null variant not supported. Shouuld either be Err or Ok");
     }
 
-    // 2) Error variant => [0x01, <errIndex>]
+    // 2) OK variant => [0x00, <OkDataCodec>...]
+    if ("ok" in out) {
+      const prefix = new Uint8Array([0x00]);
+      const encodedOk = OkDataCodec.enc(out.ok as OkData);
+      const outBuf = new Uint8Array(prefix.length + encodedOk.length);
+      outBuf.set(prefix, 0);
+      outBuf.set(encodedOk, 1);
+      return outBuf;
+    }
+
+
+    // 3) Error variant => [0x01, <errIndex>]
     if ("err" in out) {
       const errStr = out.err as ErrorCode;
       const errByte = errorCodeToByte.get(errStr);
@@ -32,15 +43,6 @@ export const OutputCodec: Codec<Output> = [
       return new Uint8Array([0x01, errByte]);
     }
 
-    // 3) OK variant => [0x00, <OkDataCodec>...]
-    if ("ok" in out) {
-      const prefix = new Uint8Array([0x00]);
-      const encodedOk = OkDataCodec.enc(out.ok as OkData);
-      const outBuf = new Uint8Array(prefix.length + encodedOk.length);
-      outBuf.set(prefix, 0);
-      outBuf.set(encodedOk, 1);
-      return outBuf;
-    }
 
     throw new Error("OutputCodec.enc: unrecognized variant in Output");
   },
@@ -63,9 +65,11 @@ export const OutputCodec: Codec<Output> = [
     // 1) The tag is the first byte
     const tag = uint8[0];
 
-    // [0x00] => null
-    if (tag === 0x02) {
-      return null;
+    // [0x00, ...OkData] => OK
+    if (tag === 0x00) {
+      const slice = uint8.slice(1);
+      const okData = OkDataCodec.dec(slice);
+      return { ok: okData };
     }
 
     // [0x01, errByte] => error
@@ -78,12 +82,11 @@ export const OutputCodec: Codec<Output> = [
       return { err: errStr };
     }
 
-    // [0x02, ...OkData] => OK
-    if (tag === 0x00) {
-      const slice = uint8.slice(1);
-      const okData = OkDataCodec.dec(slice);
-      return { ok: okData };
-    }
+    // // [0x02] => null
+    // if (tag === 0x02) {
+    //   return null;
+    // }
+
 
     throw new Error(`OutputCodec.dec: invalid tag byte 0x${tag.toString(16)}`);
   },

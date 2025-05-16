@@ -28,4 +28,5 @@ export * from './IntegerCodec';
 export * from './VarLenBytesCodec';
 export * from './OffendersMarkCodec';
 export * from './CoresStatisticsCodec';
+export * from './ServiceActivityRecordCodec';
 export * from './ServicesStatisticsCodec';

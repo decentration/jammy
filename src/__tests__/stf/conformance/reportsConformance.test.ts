@@ -45,6 +45,7 @@ describe("Reports STF - conformance tests", () => {
         "too_big_work_report_output-1.json",
         "too_high_work_report_gas-1.json",
         "too_many_dependencies-1.json",
+        "with_avail_assignments-1.json",
         "wrong_assignment-1.json"
     ]
 

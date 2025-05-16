@@ -24,7 +24,7 @@ export const StatsStfCodec: Codec<StatsStf> = [
         const slice = uint8.slice(offset);
         const { value: inputVal, bytesUsed } = decodeWithBytesUsed(StatsInputCodec, slice);
         offset += bytesUsed;
-        console.log("Decoded StatsInput => used=", bytesUsed, " offset now=", offset);
+        // console.log("Decoded StatsInput => used=", bytesUsed, " offset now=", offset);
 
         var input_ = inputVal;
       }
@@ -35,7 +35,7 @@ export const StatsStfCodec: Codec<StatsStf> = [
         const slice = uint8.slice(offset);
         const { value: preVal, bytesUsed } = decodeWithBytesUsed(StatsStateCodec, slice);
         offset += bytesUsed;
-        console.log("Decoded StatsState => used=", bytesUsed, " offset now=", offset);
+        // console.log("Decoded StatsState => used=", bytesUsed, " offset now=", offset);
         var pre_state_ = preVal;
       }
   

@@ -1,6 +1,8 @@
 import { validateBlock } from "./validateBlock"; 
 import { Block } from "../../types/types";
 import { State } from "../../state/types";
+import { toHex } from "../../utils";
+import { computeMerkleRoot } from "../../state/commit";
 
 /**
  * A minimal offline block import:
@@ -8,23 +10,28 @@ import { State } from "../../state/types";
  * 2) apply STF to preState using extrinsics in block
  * 3) return the new postState
  */
-export function importBlock(preState: State, parentBlock: Block, childBlock: Block): State {
+export function importBlock(
+  preState: State, 
+  parentBlock: Block, 
+  childBlock: Block
+): { postState: State; newRoot: Uint8Array } {
   // 1) Validate child block
   validateBlock(childBlock, parentBlock);
 
-  // 2) apply STF
-  const postState = structuredClone(preState);
+  // 2) build the preState root
+  const { kvs, root: preRoot, db: db0 } = computeMerkleRoot(preState);
 
-  // As MVP minimal "tickets" logic
-  // a) timeslot => block.header.slot
-  postState.timeslotIndex.index = childBlock.header.slot;
+  if (toHex(preRoot) !== toHex(childBlock.header.parent_state_root).replace(/^0x/, "")) {
+    throw new Error("parent_state_root mismatch – block built on the wrong state");
+  }
 
-  // b) if tickets extrinsic => add to gamma_a
-  childBlock.extrinsic.tickets.forEach((t) => {
-    postState.gamma.gamma_a.push(t.signature);
-  });
+  // 3) Apply STF  (execute extrinsics/ tickets / accumulate, etc)
+  const postState = applyExtrinsics(structuredClone(preState), childBlock.extrinsic);
 
-  // TODO  add preimages, disputes, etc...
+  // 4) Compute new root
+  const { kvs: kvs1, root: postRoot, db: db1 } = computeMerkleRoot(postState);
 
-  return postState;
+
+  return { postState, newRoot: postRoot };
+
 }

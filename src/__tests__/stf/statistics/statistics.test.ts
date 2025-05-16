@@ -5,19 +5,33 @@ import { StatsStf } from "../../../stf/statistics/types";
 import { StatsStfCodec } from "../../../stf/statistics/codecs/StatsStfCodec";
 import { toHex, convertToReadableFormat } from "../../../utils";
 import { parseStatsStfJson } from "../../../stf/statistics/utils/parseStatsStfJson";
-import { CHAIN_TYPE } from "../../../consts";
+import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
+
+
+const testFiles = [
+  "stats_with_empty_extrinsic-1",
+  "stats_with_epoch_change-1",
+  "stats_with_some_extrinsic-1",
+]
+
+testFiles.forEach((fileName) => {
 
 describe("Stats STF TestCase Codec", () => {
   it("round-trips from JSON => encode => decode => compare", () => {
     // 1) Read JSON
-    const jsonPath = path.resolve(
-      __dirname,
-      `../../../stf/statistics/data/${CHAIN_TYPE}/stats_with_epoch_change-1.json`
-    );
+
+
+    const jsonPath = path.join(path.join(`${JAM_TEST_VECTORS}/statistics`, `${CHAIN_TYPE}`,
+      fileName.concat(".json")
+      ));
+
+
     const rawJson = JSON.parse(readFileSync(jsonPath, "utf-8"));
 
     // 2) Convert JSON 
     const stfCase = parseStatsStfJson(rawJson);
+
+    console.log("Stf Case", convertToReadableFormat(stfCase))
 
     // 3) Encode
     const encoded = StatsStfCodec.enc(stfCase);
@@ -41,40 +55,76 @@ describe("Stats STF TestCase Codec", () => {
     expect(decoded).toStrictEqual(stfCase);
   });
 
-  it("decodes conformance stats_with_epoch_change-1.bin => re-encodes => exact match", () => {
-    // 1) read .bin from the same data directory
-    const binPath = path.resolve(
-      __dirname,
-      "./../../../stf/statistics/data/full/stats_with_epoch_change-1.bin"
-    );
-    const rawBin = new Uint8Array(readFileSync(binPath));
+  // it("decodes conformance stats_with_epoch_change-1.bin => re-encodes => exact match", () => {
+  //   // 1) read .bin from the same data directory
 
-    console.log("Conformance binary (hex):", Buffer.from(rawBin).toString("hex"));
+  //   const binPath = path.join(path.join(`${JAM_TEST_VECTORS}/statistics`, `${CHAIN_TYPE}`, fileName.concat(".bin")));
 
-    // 2) decode
-    const decoded = StatsStfCodec.dec(rawBin);
-    console.log(
-      "Decoded conformance StatsStf:",
-      convertToReadableFormat(decoded)
-    );
+  //   const rawBin = new Uint8Array(readFileSync(binPath));
 
-    // debugging output
-    const outDir = path.resolve(__dirname, "../../output/stf/stats");
-    writeFileSync(
-      path.join(outDir, "bin_decodedTestCase.json"),
-      JSON.stringify(convertToReadableFormat(decoded), null, 2)
-    );
+  //   console.log("Conformance binary (hex):", Buffer.from(rawBin).toString("hex"));
 
-    // 3) re-encode
-    const reEncoded = StatsStfCodec.enc(decoded);
-    console.log("Re-encoded (hex):", toHex(reEncoded));
+  //   // 2) decode
+  //   const decoded = StatsStfCodec.dec(rawBin);
+  //   console.log(
+  //     "Decoded conformance StatsStf:",
+  //     convertToReadableFormat(decoded)
+  //   );
 
-    // 4) Compare
-    expect(reEncoded).toEqual(rawBin);
+  //   // debugging output
+  //   const outDir = path.resolve(__dirname, "../../output/stf/stats");
+  //   writeFileSync(
+  //     path.join(outDir, "bin_decodedTestCase.json"),
+  //     JSON.stringify(convertToReadableFormat(decoded), null, 2)
+  //   );
+
+  //   // 3) re-encode
+  //   const reEncoded = StatsStfCodec.enc(decoded);
+  //   console.log("Re-encoded (hex):", toHex(reEncoded));
+
+  //   // 4) Compare
+  //   expect(reEncoded).toEqual(rawBin);
+  // });
+
+});
+
+
+  describe("StatsStfCodec conformance binary", () => {
+    it("decodes a .bin conformance file => re-encodes => must match exactly", () => {
+      // 1) read bin file
+
+      const binPath = path.join(path.join(`${JAM_TEST_VECTORS}/statistics`, `${CHAIN_TYPE}`, fileName.concat(".bin"))
+      );
+      const rawBin = new Uint8Array(readFileSync(binPath));
+      console.log("Stats bin (hex):", toHex(rawBin));
+  
+      // 2) decode
+      const decoded: StatsStf = StatsStfCodec.dec(rawBin);
+  
+      // 3) debug info => JSON
+      const outDir = path.resolve(__dirname, "../../output/stf/stats");
+      writeFileSync(
+        path.join(outDir, "decodedStatsConformance.json"),
+        JSON.stringify(convertToReadableFormat(decoded), null, 2)
+      );
+  
+      // 4) re-encode
+      const reEncoded = StatsStfCodec.enc(decoded);
+      console.log("Re-encoded (hex):", toHex(reEncoded));
+  
+      // 5) write re encoded bin
+      writeFileSync(
+        path.join(outDir, "reEncodedStatsConformance.bin"),
+       (Buffer.from(reEncoded).toString("hex"))
+      );
+  
+      // 6) comp
+      expect(reEncoded).toEqual(rawBin);
+    });
   });
 
 
-/// it compare byye arrays
+// /// it compare byye arrays
 //   it("decodes conformance bin => re-encodes => exact match", () => {
 //     // 1) read .bin from the same data directory
 //     const binPath = path.resolve(
@@ -95,7 +145,7 @@ describe("Stats STF TestCase Codec", () => {
 //  });
 
 
-
+});
 
 /**
  * compareFilesByteByByte
@@ -131,9 +181,8 @@ function compareFilesByteByByte(pathA: string, pathB: string): void {
     }
   }
 
-  console.log(
-    diffCount === 0 && fileA.length === fileB.length
+  console.log(diffCount === 0 && fileA.length === fileB.length
       ? "Files match exactly (no differences)."
       : `Total differences found: ${diffCount}`
-  );
-}});
+  )
+};

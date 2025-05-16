@@ -3,8 +3,11 @@ import { AuthPoolsCodec, DiscriminatorCodec, decodeWithBytesUsed, AvailAssignmen
 import { toUint8Array, concatAll } from "../../../codecs/utils";
 import { ReportsState } from "../types";
 import { ServicesCodec } from "./Services/ServicesCodec";
-import { ServicesStatisticsCodec } from "../../../codecs/ServicesStatisticsMapEntryCodec";
+import { ServicesStatisticsCodec } from "../../../codecs/ServicesStatisticsCodec";
+import { convertToReadableFormat } from "../../../utils";
 
+const HashCodec      = Bytes(32);
+const OffendersCodec = DiscriminatorCodec(HashCodec);
 export const ReportsStateCodec: Codec<ReportsState> = [
   // --- ENCODER ---
   (state: ReportsState): Uint8Array => {
@@ -12,7 +15,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const encCurrVal = ValidatorsInfoCodec.enc(state.curr_validators);
     const encPrevVal = ValidatorsInfoCodec.enc(state.prev_validators);
     const encEntropy = EntropyBufferCodec.enc(state.entropy);
-    const encOffenders = OffendersMarkCodec.enc(state.offenders);
+    const encOffenders = OffendersCodec.enc(state.offenders);
     const encRecentBlocks = DiscriminatorCodec(BlockItemCodec).enc(state.recent_blocks);
     const encAuthPools = AuthPoolsCodec.enc(state.auth_pools);
     const encServices = ServicesCodec.enc(state.accounts);
@@ -20,9 +23,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const encCoresStats    = CoresStatisticsCodec.enc(state.cores_statistics);
     const encServicesStats = ServicesStatisticsCodec.enc(state.services_statistics);
 
-
-
-    return concatAll(
+    const result = concatAll(
       encAvail,
       encCurrVal,
       encPrevVal,
@@ -33,14 +34,20 @@ export const ReportsStateCodec: Codec<ReportsState> = [
       encServices,
       encCoresStats,
       encServicesStats,
-
     );
+
+    console.log('ReportsStateCodec.enc result', convertToReadableFormat(result)); 
+
+    return result;
   },
 
   // --- DECODER ---
   (data: ArrayBuffer | Uint8Array | string): ReportsState => {
+
     const uint8 = toUint8Array(data);
     let offset = 0;
+
+    console.log('ReportsStateCodec.dec data', convertToReadableFormat(data));
 
     function read<T>(codec: Codec<T>): T {
       const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));

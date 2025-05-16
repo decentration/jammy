@@ -1,25 +1,32 @@
 import { AvailAssignment, Ed25519Public, Guarantee, SegmentItem, ServicesStatisticsMapEntry } from "../../types/types";
+import { WorkReportHash } from "../accumulate/types";
 import { ValidatorInfo } from "../types";
 import { BlockItem } from "../types";
 import { Struct, u16, u32, u64 } from "scale-ts";
 
 export interface ReportsInput { 
     guarantees: Guarantee[], 
-    slot: number 
+    slot: number,
+    known_packages:  WorkReportHash[],
 }
+
+
+
+
 
 
 export type ReportsOutput = 
 { err: ErrorCode } | { ok: OkData } | null;
 
+export type Entropy = Uint8Array;
 
 
 export interface ReportsState { 
     avail_assignments: (AvailAssignment | null)[],
     curr_validators:ValidatorInfo[],
     prev_validators: ValidatorInfo[],
-    entropy: Uint8Array[],
-    offenders: Uint8Array[],
+    entropy: Entropy[],
+    offenders: Ed25519Public[],
     recent_blocks: BlockItem[],
     auth_pools: Uint8Array[][],
     accounts: ServiceItem[],
@@ -104,6 +111,7 @@ export enum ErrorCode {
     data: ServiceInfo;
   }
 
+
   // CoreActivityRecord ::= SEQUENCE {
   //   -- Total gas consumed by core for reported work. Includes all refinement and authorizations.
   //   gas-used        U64,
@@ -135,16 +143,16 @@ export enum ErrorCode {
     popularity: number
   }
 
-  export const CoreActivityRecordCodec = Struct({
-    gas_used: u64,
-    imports: u16,
-    extrinsic_count: u16,
-    extrinsic_size: u32,
-    exports: u16,
-    bundle_size: u32,
-    da_load: u32,
-    popularity: u16
-  })
+  // export const CoreActivityRecordCodec = Struct({
+  //   gas_used: u64,
+  //   imports: u16,
+  //   extrinsic_count: u16,
+  //   extrinsic_size: u32,
+  //   exports: u16,
+  //   bundle_size: u32,
+  //   da_load: u32,
+  //   popularity: u16
+  // })
 
 
 

@@ -1,8 +1,10 @@
 import { Codec } from "scale-ts";
 import { toUint8Array } from "./utils"; 
+import { Entropy } from "../stf/reports/types";
+import { convertToReadableFormat } from "../utils";
 
 /** We expect exactly 1 => 4 x 32 bytes = 128 bytes total. */
-export const EntropyBufferCodec: Codec<Uint8Array[]> = [
+export const EntropyBufferCodec: Codec<Entropy[]> = [
   // ENCODER
   (items: Uint8Array[]): Uint8Array => {
     console.log("EntropyBufferCodec items", items);
@@ -13,7 +15,7 @@ export const EntropyBufferCodec: Codec<Uint8Array[]> = [
     const out = new Uint8Array(4 * 32);
     let offset = 0;
     for (const ent of items) {
-      console.log("EntropyBufferCodec ent", ent);
+      console.log("EntropyBufferCodec ent", convertToReadableFormat(ent));
       if (ent.length !== 32) {
         throw new Error(`Entropy item is not 32 bytes is ${ent.length}`);
       }

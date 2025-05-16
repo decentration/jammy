@@ -7,6 +7,7 @@ import { SegmentItemCodec } from "./SegmentItemCodec";
 import { ContextCodec } from "./ContextCodec";
 import { VarLenBytesCodec, decodeProtocolInt, decodeWithBytesUsed, encodeProtocolInt } from "./index";
 import { Bytes, Vector } from "scale-ts";
+import { convertToReadableFormat } from "../utils";
 
 export const SegmentArrayCodec = DiscriminatorCodec(SegmentItemCodec);
 
@@ -32,6 +33,7 @@ export const ReportCodec: Codec<Report> = [
     // 3) encode core_index (u16)
     const coreIndexBuf = new Uint8Array(2);
     new DataView(coreIndexBuf.buffer).setUint16(0, report.core_index, true);
+    
 
     // 4) encode authorizer_hash (32 bytes)
     const encAuthHash = Bytes(32).enc(report.authorizer_hash);
@@ -40,7 +42,7 @@ export const ReportCodec: Codec<Report> = [
     // 5) encode auth_output with VarLenBytesCodec
     const encAuthOutput = VarLenBytesCodec.enc(report.auth_output);
 
-
+    // console.log("encAuthOutput", encAuthOutput);
     // console.log("encAuthOutput", encAuthOutput);
     // 6) encode segment_root_lookup with Vector(Bytes(32))
 
@@ -88,9 +90,7 @@ export const ReportCodec: Codec<Report> = [
 
     out.set(encSegLookup, offset);
     offset += encSegLookup.length;
-
     out.set(encResults, offset);
-
     return out;
   },
 
@@ -104,6 +104,8 @@ export const ReportCodec: Codec<Report> = [
         : new Uint8Array(data);
 
     let offset = 0;
+
+    console.log("ReportCodec dec", convertToReadableFormat(uint8));
 
     // 1) decode package_spec
     {

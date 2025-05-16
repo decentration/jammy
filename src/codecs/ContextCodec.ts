@@ -6,6 +6,9 @@ import { Context } from "../types/types";
 export const ContextCodec: Codec<Context> = [
   // ENCODER
   (ctx: Context): Uint8Array => {
+
+    // check if Uint8Array if not then convert to Uint8Array
+    
     // anchor(32), state_root(32), beefy_root(32), lookup_anchor(32)
     const out = new Uint8Array(32 + 32 + 32 + 32 + 4);
     let offset = 0;
@@ -20,6 +23,7 @@ export const ContextCodec: Codec<Context> = [
 
     // console.log("beefy_root", Buffer.from(ctx.beefy_root).toString("hex"));
     offset += 32;
+    console.log("lookup_anchor", ctx.lookup_anchor);
     out.set(ctx.lookup_anchor, offset);
     offset += 32;
 

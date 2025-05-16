@@ -1,7 +1,9 @@
 import { hexStringToBytes } from "../../../codecs";
-import { ExtrinsicData } from "../../../types/types";
+import { Context, ExtrinsicData, PackageSpec, RefineLoad, Report, Result, ResultValue, ServiceActivityRecord, ServicesStatisticsMapEntry } from "../../../types/types";
+import { parseReportJson } from "../../../utils/parsers";
+import { CoresActivityRecord } from "../../reports/types";
 import { ValidatorInfo } from "../../types";
-import { StatsExtrinsic } from "../types";
+import { Statistics, StatsExtrinsic } from "../types";
 import { StatsInput } from "../types";
 import { StatsState, PerformanceRecord } from "../types";
 
@@ -65,57 +67,7 @@ export function parseStatsExtrinsicJson(json: any): ExtrinsicData {
   return { tickets, preimages, guarantees, assurances, disputes };
 }
 
-function parseReportJson(json: any): any {
-    if (!json) {
-      return null;
-    }
-    return {
-      package_spec: {
-        hash: hexStringToBytes(json.package_spec.hash),
-        length: json.package_spec.length,
-        erasure_root: hexStringToBytes(json.package_spec.erasure_root),
-        exports_root: hexStringToBytes(json.package_spec.exports_root),
-        exports_count: json.package_spec.exports_count,
-      },
-      context: parseContextJson(json.context),
-      core_index: json.core_index,
-      authorizer_hash: hexStringToBytes(json.authorizer_hash),
-      auth_output: hexStringToBytes(json.auth_output || "0x"), // might be empty
-      segment_root_lookup: (json.segment_root_lookup || []).map((seg: any) =>
-        hexStringToBytes(seg)
-      ),
-      results: (json.results || []).map((r: any) => ({
-        service_id: r.service_id,
-        code_hash: hexStringToBytes(r.code_hash),
-        payload_hash: hexStringToBytes(r.payload_hash),
-        accumulate_gas: r.accumulate_gas,
-        result: ((): any => {
-            if (r.result.ok) {
-              return { ok: Uint8Array.from(Buffer.from(r.result.ok.slice(2), "hex")) };
-            } else if (r.result.panic != null) {
-              return { panic: null };
-            } else {
-              return { placeholder: null };
-            }
-          })(),
-      })),
-    };
-  }
-  
-  function parseContextJson(json: any): any {
-    if (!json) {
-      return null;
-    }
-    return {
-      anchor: hexStringToBytes(json.anchor),
-      state_root: hexStringToBytes(json.state_root),
-      beefy_root: hexStringToBytes(json.beefy_root),
-      lookup_anchor: hexStringToBytes(json.lookup_anchor),
-      lookup_anchor_slot: json.lookup_anchor_slot,
-      prerequisites: (json.prerequisites || []).map((p: any) => hexStringToBytes(p)),
-    };
-  }
-  
+
 
 export function parseStatsInputJson(json: any): StatsInput {
   return {
@@ -131,22 +83,37 @@ export function parseStatsOutputJson(json: any): null {
     }
     return null;
   }
-  
+
+
 function parsePerformanceRecordJson(json: any): PerformanceRecord {
   return {
-    blocks: json.blocks || 0,
-    tickets: json.tickets || 0,
-    pre_images: json.pre_images || 0,
-    pre_images_size: json.pre_images_size || 0,
-    guarantees: json.guarantees || 0,
-    assurances: json.assurances || 0,
+    blocks: json.blocks,
+    tickets: json.tickets,
+    pre_images: json.pre_images,
+    pre_images_size: json.pre_images_size,
+    guarantees: json.guarantees,
+    assurances: json.assurances,
   };
 }
+function parseCoresRecordJson(json: any): CoresActivityRecord {
+  return {
+    gas_used: json.gas_used,
+    imports: json.imports,
+    extrinsic_count: json.extrinsic_count,
+    extrinsic_size: json.extrinsic_size,
+    exports: json.exports,
+    bundle_size: json.bundle_size,
+    da_load: json.da_load,
+    popularity: json.popularity,
+  }
+}
 
-function parseStatisticsJson(json: any) {
-  const current = (json.current || []).map(parsePerformanceRecordJson);
-  const last = (json.last || []).map(parsePerformanceRecordJson);
-  return { current, last };
+function parseStatisticsJson(json: any): Statistics {
+  const vals_current = (json.vals_current || []).map(parsePerformanceRecordJson);
+  const vals_last = (json.vals_last || []).map(parsePerformanceRecordJson);
+  const cores = (json.cores || []).map(parseCoresRecordJson);
+  const services = (json.services || []).map(parseServicesRecordJson);
+  return { vals_current, vals_last, cores, services };
 }
 
 function parseValidatorDataJson(json: any): ValidatorInfo {
@@ -160,8 +127,32 @@ function parseValidatorDataJson(json: any): ValidatorInfo {
 
 export function parseStatsStateJson(json: any): StatsState {
   return {
-    pi: parseStatisticsJson(json.pi || {}),
-    tau: json.tau,
-    kappa_prime: (json.kappa_prime || []).map(parseValidatorDataJson),
+    statistics: parseStatisticsJson(json.statistics || {}),
+    slot: json.slot,
+    curr_validators: (json.curr_validators || []).map(parseValidatorDataJson),
   };
+}
+
+function parseServiceActivityRecord(json: any): ServiceActivityRecord {
+  return {
+    provided_count: json.provided_count, 
+    provided_size: json.provided_size, 
+    refinement_count: json.refinement_count,
+    refinement_gas_used: json.refinement_gas_used, 
+    imports: json.imports,
+    extrinsic_count: json.extrinsic_count,
+    extrinsic_size: json.extrinsic_size, 
+    exports: json.exports, 
+    accumulate_count: json.accumulate_count,
+    accumulate_gas_used: json.accumulate_gas_used,
+    on_transfers_count: json.on_transfers_count, 
+    on_transfers_gas_used: json.on_transfers_gas_used
+  }
+
+}
+function parseServicesRecordJson(json: any): ServicesStatisticsMapEntry {
+  return {
+    id: json.id,
+    record: parseServiceActivityRecord(json.record || {}),
+  }
 }

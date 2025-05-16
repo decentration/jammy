@@ -4,7 +4,7 @@ import { convertToReadableFormat, toHex } from "../../utils";
 import { blake2bConcat, outsideIn, zeroOutOffenders } from "./helpers";
 import { CONTEST_DURATION, EPOCH_LENGTH, TICKETS_PER_VALIDATOR } from "../../consts";
 import { rebuildGammaSForEpochChange } from "./gamma";
-import { aggregator } from "../../ring-vrf-ffi/ring_vrf_ffi"
+import { aggregator } from "../../ffi/ring-vrf-ffi/ring_vrf_ffi"
 import { verifyTicketSignature } from "./verifyTicketSignature";
 
 
