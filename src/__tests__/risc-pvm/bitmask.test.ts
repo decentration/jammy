@@ -1,4 +1,4 @@
-import { bitmaskToBoolean } from "../../risc-pvm/tiny/bitmask";
+import { bitmaskToBoolean } from "../../risc-pvm/interpreter/utils/bitmask";
 
 type BooleanValue = 0 | 1;
 
@@ -8,17 +8,17 @@ const Bits = (...bits: BooleanValue[]) => {
 };
 
 describe("bitmaskToBoolean()", () => {
-  test("single byte -> 8 booleans, LSB-first", () => {
+  test("single byte -> 8 booleans, LE", () => {
     // 0b00010001: opcode at bit-0 and bit-4
     const mask   = Uint8Array.of(0b0001_0001);
     const codeByteLen = 8;
     const actual = bitmaskToBoolean(mask, codeByteLen);
-    const expected = Bits(1,0,0,0,1,0,0,0);      // <= LSB..MSB little endian 
+    const expected = Bits(1,0,0,0,1,0,0,0);      // <= little endian 
     expect(actual).toEqual(expected);
   });
   test("two bytes concatenate in correct order", () => {
     const codeByteLen = 16;
-    const mask   = Uint8Array.of(0xaa, 0x01); // 0xAA = 10101010 => 0,1,0,1,0,1,0,1 (LSB -> MSB) 0x01 = 00000001 => 1,0,0,0,0,0,0,0         
+    const mask   = Uint8Array.of(0xaa, 0x01); // 0xAA = 10101010 => 0,1,0,1,0,1,0,1 little endian 0x01 = 00000001 => 1,0,0,0,0,0,0,0         
     const actual = bitmaskToBoolean(mask, codeByteLen);
 
     const expected = Bits(
@@ -45,7 +45,7 @@ describe("bitmaskToBoolean()", () => {
     const mask = Uint8Array.of(0b00101101); // 8 bits, but only need 6
     const codeByteLen = 6; 
     const actual = bitmaskToBoolean(mask, codeByteLen);
-    const expected = [true, false, true, true, false, true]; // LSB-first 0b00101101 -> 101101 padded first 2 LSBs
+    const expected = [true, false, true, true, false, true]; // LE 0b00101101 -> 101101 padded first 2 LSBs
     expect(actual).toEqual(expected);
     expect(actual).toHaveLength(6);
   });

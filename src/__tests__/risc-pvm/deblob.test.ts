@@ -1,4 +1,4 @@
-import { buildBlob, deblob, deblobMetadata } from '../../risc-pvm/tiny/deblob';
+import { buildBlob, deblob, deblobMetadata } from '../../risc-pvm/interpreter/deblob';
 
 describe("deblob helpers", () => {
     const META          = Uint8Array.of(0xaa, 0xbb);

@@ -1,4 +1,11 @@
 
+
+export interface Instruction {
+    type: InstructionAddressTypes;
+    opcode: Opcodes;
+    operands?: (number | bigint | Uint8Array)[];
+}
+
 export enum InstructionAddressTypes {
     NO_OPERAND = "no_operand",                 // A.5.1 Instructions without Arguments.
     ONE_IMMEDIATE = "one_immediate",           // A.5.2. Instructions with Arguments of One Immediate.
@@ -30,14 +37,6 @@ export const INSTRUCTION_ADDRESS_TYPES: InstructionAddressTypes[] = [
     InstructionAddressTypes.TWO_REGISTERS_TWO_IMMEDIATE, // A.5.12
     InstructionAddressTypes.THREE_REGISTERS // A.5.13
 ];
-
-
-export interface Instruction {
-    type: InstructionAddressTypes;
-    opcode: Opcodes;
-    operands?: (number | bigint | Uint8Array)[];
-}
-
 
 export enum Opcodes {
     // A.5.1
@@ -229,10 +228,10 @@ export const OpcodeTable: Record<Opcodes, InstructionAddressTypes> = {
     [Opcodes.store_u8]: InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE,
     [Opcodes.store_u32]: InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE,
     [Opcodes.store_u64]: InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE,
-    [Opcodes.store_imm_ind_u8]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
-    [Opcodes.store_imm_ind_u16]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
-    [Opcodes.store_imm_ind_u32]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
-    [Opcodes.store_imm_ind_u64]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
+    [Opcodes.store_imm_ind_u8]: InstructionAddressTypes.ONE_REGISTER_TWO_IMMEDIATE,
+    [Opcodes.store_imm_ind_u16]: InstructionAddressTypes.ONE_REGISTER_TWO_IMMEDIATE,
+    [Opcodes.store_imm_ind_u32]: InstructionAddressTypes.ONE_REGISTER_TWO_IMMEDIATE,
+    [Opcodes.store_imm_ind_u64]: InstructionAddressTypes.ONE_REGISTER_TWO_IMMEDIATE,
     [Opcodes.load_imm_jump]: InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET,
     [Opcodes.branch_eq_imm]: InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET,
     [Opcodes.branch_ne_imm]: InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET,
@@ -347,3 +346,29 @@ export const OpcodeTable: Record<Opcodes, InstructionAddressTypes> = {
     [Opcodes.min]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.min_u]: InstructionAddressTypes.THREE_REGISTERS,
 };
+
+
+export const TERMINATION_OPCODES = new Set([
+    Opcodes.trap,
+    Opcodes.fallthrough,
+    Opcodes.jump,
+    Opcodes.jump_ind,
+    Opcodes.load_imm_jump,
+    Opcodes.load_imm_jump_ind,
+    Opcodes.branch_eq,
+    Opcodes.branch_ne,
+    Opcodes.branch_ge_u,
+    Opcodes.branch_ge_s,
+    Opcodes.branch_lt_u,
+    Opcodes.branch_lt_s,
+    Opcodes.branch_eq_imm,
+    Opcodes.branch_ne_imm,
+    Opcodes.branch_lt_u_imm,
+    Opcodes.branch_lt_s_imm,
+    Opcodes.branch_le_u_imm,
+    Opcodes.branch_le_s_imm,
+    Opcodes.branch_ge_u_imm,
+    Opcodes.branch_ge_s_imm,
+    Opcodes.branch_gt_u_imm,
+    Opcodes.branch_gt_s_imm,
+  ]);
