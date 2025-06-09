@@ -6,10 +6,14 @@
  * @param opcodeBits - Boolean array where each entry indicates whether the byte is an opcode (`true`) or operand (`false`).
  */
 export function skip(pc: number, opcodeBits: boolean[]): number {
-    const paddedBits = opcodeBits.concat(new Array(24).fill(true)); // Padding with 1s ensures we always find an opcode within 24 steps
-  
-    for (let j = 0; j < 24; j++) {
-      if (paddedBits[pc + 1 + j]) return j; // Found next opcode, return distance
+  const paddedBits = opcodeBits.concat(new Array(24).fill(true)); // Padding with 1s ensures we always find an opcode within 24 steps
+
+  for (let j = 0; j < 24; j++) {
+    
+    if (paddedBits[pc + 1 + j]) {
+      console.log(`Skipping ${j} bytes from pc=${pc} to find next opcode.`, j);
+      return j; // Found next opcode, return distance
     }
-    return 24; // cap it at 24 
   }
+  return 24; // cap it at 24 
+}

@@ -42,8 +42,14 @@ export function decodeInstruction(memory: Uint8Array, pc: number): Instruction {
           const lX = Math.min(4, memory[pc + 1] % 8);
           const immXBytes = memory.slice(pc + 2, pc + 2 + lX);
           const vX = decodeSignedIntLE(immXBytes);
-    
-          const lY = Math.min(4, Math.max(0, skipLen - lX - 1)); // lY is length in bytes of second immediate. Calculated from remaining bytes
+
+          let lY;
+          if (opcode === Opcodes.store_imm_u64) {
+            lY = 8; // always 8 bytes for store_imm_u64
+          } else {
+            lY = Math.min(4, Math.max(0, skipLen - lX - 1)); 
+          }          
+          
           const immYBytes = memory.slice(pc + 2 + lX, pc + 2 + lX + lY);
           const vY = decodeSignedIntLE(immYBytes);
     
