@@ -3,7 +3,8 @@ import { ExecutionHandler, ExitReasonType, InterpreterState } from "../types";
 import { Opcodes } from "./opcodes";
 import { branch } from "../utils/branch";
 import { computeBasicBlockStarts } from "../computeBasicBlockStarts";
-import { GAS_PER_INSTRUCTION, GAS_HOST_CALL, GAS_COST_JUMP } from "../consts";
+import { GAS_PER_INSTRUCTION, GAS_HOST_CALL, GAS_COST_JUMP, GAS_COST_JUMP_IND } from "../consts";
+import { djump } from "../utils/djump";
 
 function nextPc(state: InterpreterState): number {
   const opBytes = skip(state.pc, state.opcodeMaskBits);
@@ -131,11 +132,15 @@ const storeImmU64Handler: ExecutionHandler = (s, [address, value]) => {
 };
 
 const jumpHandler: ExecutionHandler = (s: InterpreterState, operands: (number | bigint)[]) => {
-  const [offset] = operands;  
-  const basicBlockStarts = computeBasicBlockStarts(s.code, s.opcodeMaskBits);
+  const [offset] = operands; 
+  const basicBlockStarts = s.context?.basicBlockStarts;
+
+  if (!basicBlockStarts) {
+    return { ...s, exit: { type: ExitReasonType.Panic } };
+  }
   const targetPc = s.pc + Number(offset);
   const { exitReason, pc } = branch(targetPc, true, basicBlockStarts, s.pc);
-console.log("Jumping to target PC:", { targetPc, exitReason, pc });
+  console.log("Jumping to target PC:", { targetPc, exitReason, pc });
   return {
     ...s,
     pc,
@@ -145,6 +150,25 @@ console.log("Jumping to target PC:", { targetPc, exitReason, pc });
   };
 };
 
+const jumpIndHandler: ExecutionHandler = (s: InterpreterState, operands: (number | bigint)[]) => {
+  const [rA, immOffset] = operands; // operands[0]=register index, operands[1]=immediate offset
+  const registerValue = Number(s.registers[Number(rA)]);
+  const address = (registerValue + Number(immOffset)) >>> 0; // mod 2^32
+  const { jumpTable, basicBlockStarts } = s.context ?? {};
+  console.log("JumpInd operands:", { rA, immOffset, address, jumpTable, basicBlockStarts });
+  if (!jumpTable || !basicBlockStarts) {
+    return { ...s, exit: { type: ExitReasonType.Panic } };
+  }
+
+  const { exitReason, pc } = djump(address, jumpTable, basicBlockStarts);
+
+  return {
+    ...s,
+    pc,
+    gas: s.gas - GAS_COST_JUMP_IND,
+    exit: { type: exitReason },
+  };
+};
 
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
@@ -156,4 +180,5 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.store_imm_u32]: storeImmU32Handler,
   [Opcodes.store_imm_u64]: storeImmU64Handler,
   [Opcodes.jump]: jumpHandler,
+  [Opcodes.jump_ind]: jumpIndHandler,
 };

@@ -4,7 +4,7 @@ export function branch(targetPc: number, shouldBranch: boolean, basicBlockStarts
     if (!shouldBranch) {
       console.log(`Branching to ${targetPc} is not allowed, condition is false.`);
       // Condition false: no branch
-      return { exitReason: ExitReasonType.Running, pc: currentPc };
+      return { exitReason: ExitReasonType.Continue, pc: currentPc };
     } else if (!basicBlockStarts.has(targetPc)) {
       console.log(`Branching to ${targetPc} is invalid, not a basic block start.`, { basicBlockStarts, targetPc});
       // invalid branch target: panic
@@ -12,6 +12,6 @@ export function branch(targetPc: number, shouldBranch: boolean, basicBlockStarts
     } else {
       console.log(`Branching to ${targetPc} is valid.`);
       // Valid branch target: jump
-      return { exitReason: ExitReasonType.Running, pc: targetPc };
+      return { exitReason: ExitReasonType.Continue, pc: targetPc };
     }
   }

@@ -1,6 +1,14 @@
 
 import { concatAll, decodeProtocolInt, encodeProtocolInt, VarLenBytesCodec } from "../../codecs";
 
+
+export interface DeconstructedBlob {
+  jumpTable: Uint8Array;        // Ez(j)
+  jumpEntryLength: number;        // z 
+  instructionData: Uint8Array;  // E (c)
+  jumpEntries: Uint8Array[];    // Ez(j) split by index
+  opcodeBitmask: Uint8Array;    // E(k) 
+}
 /* deblob extracts key fields from the blob. 
  * first we need to get the blob check the first byte to see the number decode it into decimal then we 
  * skip the next amount of bytes and extract the blob without the metadata. 
@@ -16,13 +24,7 @@ import { concatAll, decodeProtocolInt, encodeProtocolInt, VarLenBytesCodec } fro
  * deblob is a concatenation of seven parts 
  * 
 */
-export function deblob(wholeBlob: Uint8Array): {
-    jumpTable: Uint8Array;        // Ez(j)
-    jumpIndexSize: number;        // z 
-    instructionData: Uint8Array;  // E (c)
-    jumpEntries: Uint8Array[];    // Ez(j) split by index
-    opcodeBitmask: Uint8Array;    // E(k) 
-  } {
+export function deblob(wholeBlob: Uint8Array): DeconstructedBlob {
     const { blob: blob } = deblobMetadata(wholeBlob);
 
     let offset = 0;
@@ -42,8 +44,8 @@ export function deblob(wholeBlob: Uint8Array): {
   if (blob.length <= offset) {
     throw new Error('Blob too short for jump index size');
   }
-  const jumpIndexSize = blob[offset];
-  if (jumpIndexSize === 0 || jumpIndexSize > 4) throw new Error(`Invalid jump index size: ${jumpIndexSize}. Must be 1-4 bytes.`);
+  const jumpEntryLength = blob[offset];
+  if (jumpEntryLength === 0 || jumpEntryLength > 4) throw new Error(`Invalid jump index size: ${jumpEntryLength}. Must be 1-4 bytes.`);
   offset += 1;
 
   // 3) Instruction data size: E(|c|)
@@ -56,16 +58,16 @@ export function deblob(wholeBlob: Uint8Array): {
 
   // 4) jump entries Ez(j): array of entries, each entry z bytes
   const jumpEntries: Uint8Array[] = [];
-  const jumpEntriesTotalBytes = jumpTableLength * jumpIndexSize;
+  const jumpEntriesTotalBytes = jumpTableLength * jumpEntryLength;
 
   if (blob.length < offset + jumpEntriesTotalBytes) {
     throw new Error('Blob too short for jump entries');
   }
 
   for (let i = 0; i < jumpTableLength; i++) {
-    const entry = blob.slice(offset, offset + jumpIndexSize);
+    const entry = blob.slice(offset, offset + jumpEntryLength);
     jumpEntries.push(entry);
-    offset += jumpIndexSize;
+    offset += jumpEntryLength;
   }
 
   // 5) Instruction data bytes: E(c) 
@@ -88,7 +90,7 @@ export function deblob(wholeBlob: Uint8Array): {
 
   return {
     jumpTable,
-    jumpIndexSize,
+    jumpEntryLength,
     instructionData,
     jumpEntries,
     opcodeBitmask,
@@ -147,7 +149,7 @@ export function buildBlob({
 
     if (![1, 2, 4].includes(z)) throw new Error(`Invalid jump index size: ${z}. Must be 1, 2, or 4 bytes.`);
     const needMask   = Math.ceil(instr.length / 8);
-    
+    console.log("bitmaskBits.length and needMask", bitmaskBits.length, needMask);
     if (bitmaskBits.length !== needMask) throw new Error(`bit-mask length ${bitmaskBits.length} != ceil(|c|/8) = ${needMask}`);
   
     const parts: Uint8Array[] = [];

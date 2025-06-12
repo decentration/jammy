@@ -13,7 +13,7 @@ import { ExitReasonType, InterpreterState } from "./types";
   * @return The updated interpreter state after executing the step.
  */
 export function executeSingleStep(state: InterpreterState): InterpreterState {
-    if (state.exit?.type !== ExitReasonType.Running) return state; // Explicit enum comparison
+    if (state.exit?.type !== ExitReasonType.Continue) return state; // Explicit enum comparison
   
     // const opcode = state.code[state.pc];
     // const skipLength = skip(state.pc, state.opcodeMaskBits);

@@ -39,7 +39,7 @@ describe("deblob helpers", () => {
       console.log(" CODE:", CODE);
     
       expect(out.jumpTable).toEqual(JUMPTBL);
-      expect(out.jumpIndexSize).toBe(z);
+      expect(out.jumpEntryLength).toBe(z);
       expect(out.instructionData).toEqual(CODE);
       expect(out.jumpEntries).toEqual(JUMP_ENTRIES);
       expect(out.opcodeBitmask).toEqual(BITMASK);
