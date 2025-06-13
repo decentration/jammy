@@ -52,7 +52,5 @@ export function buildState(opts: {
     },
   };
 
-  console.log("Initial state built:", { state: prettyState(state) });
-
   return state;
 }
