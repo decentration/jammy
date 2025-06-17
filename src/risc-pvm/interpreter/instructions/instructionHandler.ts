@@ -364,6 +364,33 @@ const storeU32Handler = store(4);
 const storeU64Handler = store(8);
 
 
+const storeImmInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
+  (s,[rA, immX, immY]) => {
+    const base = Number(s.registers[rA]);
+    const addr = base + Number(immX);
+
+    if (addr < 0 || addr + (bytes - 1) >= s.memory.length) return panic(s);
+
+    const mem = s.memory.slice();
+    const val = BigInt(immY);
+
+    for (let i = 0; i < bytes; i++)
+      mem[addr + i] = Number((val >> (8n * BigInt(i))) & 0xffn);
+
+    return {
+      ...s,
+      memory: mem,
+      pc: nextPc(s),
+      gas: s.gas - GAS_PER_INSTRUCTION,
+      exit: undefined,
+    };
+  };
+
+const storeImmIndU8Handler  = storeImmInd(1);   // 70
+const storeImmIndU16Handler = storeImmInd(2);   // 71
+const storeImmIndU32Handler = storeImmInd(4);   // 72
+const storeImmIndU64Handler = storeImmInd(8);   // 73
+
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
   [Opcodes.ecalli]: ecalliHandler,
@@ -387,5 +414,8 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.store_u16]: storeU16Handler,
   [Opcodes.store_u32]: storeU32Handler,
   [Opcodes.store_u64]: storeU64Handler,
-
+  [Opcodes.store_imm_ind_u8]: storeImmIndU8Handler,
+  [Opcodes.store_imm_ind_u16]: storeImmIndU16Handler,
+  [Opcodes.store_imm_ind_u32]: storeImmIndU32Handler,
+  [Opcodes.store_imm_ind_u64]: storeImmIndU64Handler,
 };
