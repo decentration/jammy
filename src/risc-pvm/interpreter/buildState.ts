@@ -11,6 +11,8 @@ export function buildState(opts: {
   initialGas?: number;
   blob?: Uint8Array;
   registers?: bigint[];
+  heapStart?: number;
+  heapPointer?: number;
 }): InterpreterState {
 
   let jumpTable: number[] = [];
@@ -22,10 +24,10 @@ export function buildState(opts: {
   if (opts.blob) {
     const blobData: DeconstructedBlob = deblob(opts.blob);
 
-    jumpEntries =     blobData.jumpEntries;
+    jumpEntries     =   blobData.jumpEntries;
     jumpEntryLength =   blobData.jumpEntryLength;
-    instructionData = blobData.instructionData;
-    opcodeBitmask =   blobData.opcodeBitmask;
+    instructionData =   blobData.instructionData;
+    opcodeBitmask   =   blobData.opcodeBitmask;
 
     // decode jump entries to numeric addresses
     jumpTable = jumpEntries.map(entry => decodeProtocolInt(entry).value);
@@ -49,6 +51,8 @@ export function buildState(opts: {
       jumpTable,
       jumpEntryLength,
       basicBlockStarts: new Set(basicBlockStarts), // convert to Set for fast lookup
+      heapStart: opts.heapStart ?? 0,
+      heapPointer: opts.heapPointer ?? opts.heapStart ?? 0,
     },
   };
 

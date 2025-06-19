@@ -448,6 +448,87 @@ const branchLeSImmHandler = branchHandler((reg, imm) => toSigned64(reg) <= toSig
 const branchGeSImmHandler = branchHandler((reg, imm) => toSigned64(reg) >= toSigned64(imm)); // 89  
 const branchGtSImmHandler = branchHandler((reg, imm) => toSigned64(reg) > toSigned64(imm)); // 90
 
+// A.5.9 
+
+//101
+const sbrkHandler: ExecutionHandler = (state, [rD, rA]) => {
+  const registers = state.registers.slice();
+  const requestedSize = Number(state.registers[rA]);
+  const heapStart = state.context?.heapStart ?? 0;  // Assume heapStart from context
+  const heapPointer = state.context?.heapPointer ?? heapStart;
+
+  const newHeapPointer = heapPointer + requestedSize;
+
+  if (newHeapPointer > state.memory.length) {
+    return { ...state, exit: { type: ExitReasonType.Panic } };
+  }
+
+  registers[rD] = BigInt(heapPointer);
+
+  return {
+    ...state,
+    registers,
+    pc: nextPc(state),
+    gas: state.gas - GAS_PER_INSTRUCTION,
+    context: {
+      ...state.context!,
+      heapPointer: newHeapPointer,
+    },
+    exit: undefined,
+  };
+};
+
+// Factory for simple two-register handlers
+// two register op takes in a function and returns an ExecutionHandler, and internally processes a bigtint, returns a bigint and stores in registers
+const twoRegisterOp = (fn: (a: bigint) => bigint): ExecutionHandler =>  // fn takes a single bigint and returns a bigint
+
+  (s, [rD, rA]) => {
+    const registers = s.registers.slice();
+    registers[rD] = fn(registers[rA]);
+
+    return {
+      ...s,
+      registers,
+      pc: nextPc(s),
+      gas: s.gas - GAS_PER_INSTRUCTION,
+      exit: { type: ExitReasonType.Continue },
+    };
+  };
+
+
+const moveRegHandler = twoRegisterOp((a) => a); // 100
+const countSetBits64Handler = twoRegisterOp((a) => BigInt(a.toString(2).replace(/0/g, '').length)); // 102
+const countSetBits32Handler = twoRegisterOp((a) => BigInt((a & 0xFFFFFFFFn).toString(2).replace(/0/g, '').length)); // 103
+const leadingZeroBits64Handler = twoRegisterOp((a) => BigInt(64 - a.toString(2).length)); // 104
+const leadingZeroBits32Handler = twoRegisterOp((a) => BigInt(32 - (a & 0xFFFFFFFFn).toString(2).length)); // 105
+
+const trailingZeroBits64Handler = twoRegisterOp((a) => {
+  const bits = a.toString(2);
+  return BigInt(bits.length - bits.replace(/0+$/, '').length);
+}); // 106
+
+const trailingZeroBits32Handler = twoRegisterOp((a) => {
+  const bits = (a & 0xFFFFFFFFn).toString(2);
+  return BigInt(bits.length - bits.replace(/0+$/, '').length);
+}); // 107
+
+const signExtend8Handler = twoRegisterOp((a) => BigInt.asIntN(8, a)); // 108
+const signExtend16Handler = twoRegisterOp((a) => BigInt.asIntN(16, a)); // 109
+const zeroExtend16Handler = twoRegisterOp((a) => a & 0xFFFFn); // 110
+
+// 111
+// Reverse bytes by shifting masking then shifting back to its new position. 
+// we are flipping the bytes of an 8byte integer. 
+// E.g. 0b00000001 makes 0b10000000
+const reverseBytesHandler = twoRegisterOp((a) => {
+  let val = 0n; // make a 64-bit integer to store the reversed value
+  for (let i = 0; i < 8; i++) {
+    val |= ((a >> BigInt(i * 8)) // |= is bitwise OR assignment, shifting the i-th byte to the right
+    & 0xffn) /// mask 
+    << BigInt((7 - i) * 8); // shifting left to its new position
+ }
+  return val;
+});
 
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
@@ -487,5 +568,17 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.branch_le_s_imm]: branchLeSImmHandler,
   [Opcodes.branch_ge_s_imm]: branchGeSImmHandler,
   [Opcodes.branch_gt_s_imm]: branchGtSImmHandler,
+  [Opcodes.move_reg]: moveRegHandler,
+  [Opcodes.sbrk]: sbrkHandler,
+  [Opcodes.count_set_bits_64]: countSetBits64Handler,
+  [Opcodes.count_set_bits_32]: countSetBits32Handler,
+  [Opcodes.leading_zero_bits_64]: leadingZeroBits64Handler,
+  [Opcodes.leading_zero_bits_32]: leadingZeroBits32Handler,
+  [Opcodes.trailing_zero_bits_64]: trailingZeroBits64Handler,
+  [Opcodes.trailing_zero_bits_32]: trailingZeroBits32Handler,
+  [Opcodes.sign_extend_8]: signExtend8Handler,
+  [Opcodes.sign_extend_16]: signExtend16Handler,
+  [Opcodes.zero_extend_16]: zeroExtend16Handler,
+  [Opcodes.reverse_bytes]: reverseBytesHandler,
   
 };

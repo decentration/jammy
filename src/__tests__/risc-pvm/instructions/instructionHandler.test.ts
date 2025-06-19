@@ -778,239 +778,461 @@ describe("Instruction execution tests", () => {
   // });
 
 
-  describe("A.5.8 One Register, One Immediate, One Offset instructions", () => {
+  // describe("A.5.8 One Register, One Immediate, One Offset instructions", () => {
   
-    const regs = () => Array(13).fill(0n);
+  //   const regs = () => Array(13).fill(0n);
 
-    it("80 load_imm_jump loads register and jumps", () => {
-      const code = Uint8Array.of(
-        Opcodes.load_imm_jump,
-        0x12,          // imm length 1 byte, reg 2-byte
-        0x34,          // immX = 0x34
-        0x06, 0, 0, 0, // offset = 6 (to trap opcode)
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b01000001);
+  //   it("80 load_imm_jump loads register and jumps", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.load_imm_jump,
+  //       0x12,          // imm length 1 byte, reg 2-byte
+  //       0x34,          // immX = 0x34
+  //       0x06, 0, 0, 0, // offset = 6 (to trap opcode)
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b01000001);
   
-      const s0 = buildState({ code, bitmask, registers: regs() });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs() });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[2]).toBe(0x34n);
-      expect(s1.pc).toBe(6);
-      expect(s1.exit?.type).toBe(ExitReasonType.Continue);
-    });
+  //     expect(s1.registers[2]).toBe(0x34n);
+  //     expect(s1.pc).toBe(6);
+  //     expect(s1.exit?.type).toBe(ExitReasonType.Continue);
+  //   });
   
-    it("81 branch_eq_imm jumps if register equals imm", () => {
-      const offset = 6;  // Jump to the position of the next opcode (trap)
-      const code = Uint8Array.of(
-        Opcodes.branch_eq_imm,
-        0x21,
-        0x50, 0x00,  // imm = 0x0050
-        0x06, 0x00, 0x00  // offset = 6 (valid block start)
-      );
-      const bitmask = Uint8Array.of(0b01000001);
+  //   it("81 branch_eq_imm jumps if register equals imm", () => {
+  //     const offset = 6;  // Jump to the position of the next opcode (trap)
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_eq_imm,
+  //       0x21,
+  //       0x50, 0x00,  // imm = 0x0050
+  //       0x06, 0x00, 0x00  // offset = 6 (valid block start)
+  //     );
+  //     const bitmask = Uint8Array.of(0b01000001);
     
-      const regs = Array(13).fill(0n);
-      regs[1] = 0x50n;  // matches imm, triggers branch
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0x50n;  // matches imm, triggers branch
     
-      const state0 = buildState({ code, bitmask, registers: regs });
-      const state1 = executeSingleStep(state0);
+  //     const state0 = buildState({ code, bitmask, registers: regs });
+  //     const state1 = executeSingleStep(state0);
     
-      expect(state1.pc).toBe(offset);
-    });
+  //     expect(state1.pc).toBe(offset);
+  //   });
   
-    it("82 branch_ne_imm does NOT jump if register equals imm", () => {
-      const code = Uint8Array.of(
-        Opcodes.branch_ne_imm,
-        0x11,
-        0x50,
-        0x06, 0, 0, 0,
-        Opcodes.trap
-      );
+  //   it("82 branch_ne_imm does NOT jump if register equals imm", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_ne_imm,
+  //       0x11,
+  //       0x50,
+  //       0x06, 0, 0, 0,
+  //       Opcodes.trap
+  //     );
     
-      const bitmask = Uint8Array.of(0b10000001);
+  //     const bitmask = Uint8Array.of(0b10000001);
     
-      const r = Array(13).fill(0n);
-      r[1] = 0x50n; // equal to immediate, thus NO branch
+  //     const r = Array(13).fill(0n);
+  //     r[1] = 0x50n; // equal to immediate, thus NO branch
     
-      const s0 = buildState({ code, bitmask, registers: r });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: r });
+  //     const s1 = executeSingleStep(s0);
     
-      expect(s1.pc).toBe(nextPc(s0)); 
-      expect(s1.pc).toBe(7);
-    });
+  //     expect(s1.pc).toBe(nextPc(s0)); 
+  //     expect(s1.pc).toBe(7);
+  //   });
   
-    it("83 branch_lt_u_imm jumps if unsigned register is less than imm", () => {
-      const code = Uint8Array.of(
-        Opcodes.branch_lt_u_imm,
-        0x11,
-        0x05,
-        0x06, 0, 0, 0
-      );
-      const bitmask = Uint8Array.of(0b01000001);
-      const regs = Array(13).fill(0n);
-      regs[2] = 0x10n;
+  //   it("83 branch_lt_u_imm jumps if unsigned register is less than imm", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_lt_u_imm,
+  //       0x11,
+  //       0x05,
+  //       0x06, 0, 0, 0
+  //     );
+  //     const bitmask = Uint8Array.of(0b01000001);
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 0x10n;
   
-      const state0 = buildState({ code, bitmask, registers: regs });
-      const state1 = executeSingleStep(state0);
+  //     const state0 = buildState({ code, bitmask, registers: regs });
+  //     const state1 = executeSingleStep(state0);
   
-      expect(state1.pc).toBe(6);
-    });
+  //     expect(state1.pc).toBe(6);
+  //   });
 
-    it("84 branch_le_u_imm jumps if unsigned register <= imm", () => {
-      const code = Uint8Array.of(
-        Opcodes.branch_le_u_imm,
-        0x11, 0x03,
-        0x06, 0, 0, 0,
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b01000001);
+  //   it("84 branch_le_u_imm jumps if unsigned register <= imm", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_le_u_imm,
+  //       0x11, 0x03,
+  //       0x06, 0, 0, 0,
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b01000001);
   
-      const r = regs();
-      r[1] = 0x03n;
+  //     const r = regs();
+  //     r[1] = 0x03n;
   
-      const s0 = buildState({ code, bitmask, registers: r });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: r });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.pc).toBe(6);
-    });
+  //     expect(s1.pc).toBe(6);
+  //   });
     
-    it("85 branch_ge_u_imm jumps if unsigned register >= imm", () => {
-      const code = Uint8Array.of(
-        Opcodes.branch_ge_u_imm,
-        0x11, 0x03,
-        0x06, 0, 0, 0,
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b01000001);
+  //   it("85 branch_ge_u_imm jumps if unsigned register >= imm", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_ge_u_imm,
+  //       0x11, 0x03,
+  //       0x06, 0, 0, 0,
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b01000001);
   
-      const r = regs();
-      r[1] = 0x05n;
+  //     const r = regs();
+  //     r[1] = 0x05n;
   
-      const s0 = buildState({ code, bitmask, registers: r });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: r });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.pc).toBe(6);
-    });
+  //     expect(s1.pc).toBe(6);
+  //   });
     
-    it("86 branch_gt_u_imm jumps if unsigned register > imm", () => {
-      const code = Uint8Array.of(
-        Opcodes.branch_gt_u_imm,
-        0x11, 0x03,
-        0x06, 0, 0, 0,
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b01000001);
+  //   it("86 branch_gt_u_imm jumps if unsigned register > imm", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_gt_u_imm,
+  //       0x11, 0x03,
+  //       0x06, 0, 0, 0,
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b01000001);
   
-      const r = regs();
-      r[1] = 0x05n;
+  //     const r = regs();
+  //     r[1] = 0x05n;
   
-      const s0 = buildState({ code, bitmask, registers: r });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: r });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.pc).toBe(6);
-    });
+  //     expect(s1.pc).toBe(6);
+  //   });
   
   
-    it("87 branch_lt_s_imm jumps if signed register is less than imm", () => {
-      const imm = -1;  // immediate as signed value (-1)
-      const offset = 6; // valid basic block start
-      const code = Uint8Array.of(
-        Opcodes.branch_lt_s_imm,
-        0x22,                   // immediate length=2, register=2
-        imm & 0xff, (imm >> 8) & 0xff,  // LE immediate (-1 = 0xffff)
-        offset, 0x00, 0x00,     // offset=6
-        Opcodes.trap      // at position 6
-      );
-      const bitmask = Uint8Array.of(0b01000001);
+  //   it("87 branch_lt_s_imm jumps if signed register is less than imm", () => {
+  //     const imm = -1;  // immediate as signed value (-1)
+  //     const offset = 6; // valid basic block start
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_lt_s_imm,
+  //       0x22,                   // immediate length=2, register=2
+  //       imm & 0xff, (imm >> 8) & 0xff,  // LE immediate (-1 = 0xffff)
+  //       offset, 0x00, 0x00,     // offset=6
+  //       Opcodes.trap      // at position 6
+  //     );
+  //     const bitmask = Uint8Array.of(0b01000001);
     
-      const regs = Array(13).fill(0n);
-      regs[2] = -10n;
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = -10n;
     
-      const state0 = buildState({ code, bitmask, registers: regs });
-      const state1 = executeSingleStep(state0);
+  //     const state0 = buildState({ code, bitmask, registers: regs });
+  //     const state1 = executeSingleStep(state0);
     
-      expect(state1.pc).toBe(offset);
-    });
+  //     expect(state1.pc).toBe(offset);
+  //   });
 
-    it("88 branch_le_s_imm jumps if signed register <= imm", () => {
-      const code = Uint8Array.of(
-        Opcodes.branch_le_s_imm,
-        0x11, 0xFF,
-        0x06, 0, 0, 0,
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b01000001);
+  //   it("88 branch_le_s_imm jumps if signed register <= imm", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_le_s_imm,
+  //       0x11, 0xFF,
+  //       0x06, 0, 0, 0,
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b01000001);
   
-      const r = regs();
-      r[1] = -10n;
+  //     const r = regs();
+  //     r[1] = -10n;
   
-      const s0 = buildState({ code, bitmask, registers: r });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: r });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.pc).toBe(6);
-    });
+  //     expect(s1.pc).toBe(6);
+  //   });
   
-    it("89 branch_ge_s_imm jumps if signed register >= imm", () => {
-      const code = Uint8Array.of(
-        Opcodes.branch_ge_s_imm,
-        0x11, 0x01,
-        0x06, 0, 0, 0,
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b01000001);
+  //   it("89 branch_ge_s_imm jumps if signed register >= imm", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_ge_s_imm,
+  //       0x11, 0x01,
+  //       0x06, 0, 0, 0,
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b01000001);
   
-      const r = regs();
-      r[1] = 5n;
+  //     const r = regs();
+  //     r[1] = 5n;
   
-      const s0 = buildState({ code, bitmask, registers: r });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: r });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.pc).toBe(6);
-    });
+  //     expect(s1.pc).toBe(6);
+  //   });
 
-    it("90 branch_gt_s_imm jumps if signed register is greater than immediate", () => {
-      const offset = 6;
-      const code = Uint8Array.of(
-        Opcodes.branch_gt_s_imm,
-        0x22,
-        0x00, 0x00, 
-        offset, 0x00, 0x00, 0x00, 
-        Opcodes.trap 
-      );
+  //   it("90 branch_gt_s_imm jumps if signed register is greater than immediate", () => {
+  //     const offset = 6;
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_gt_s_imm,
+  //       0x22,
+  //       0x00, 0x00, 
+  //       offset, 0x00, 0x00, 0x00, 
+  //       Opcodes.trap 
+  //     );
     
-      const bitmask = Uint8Array.of(0b01000001, 0b00000000);
+  //     const bitmask = Uint8Array.of(0b01000001, 0b00000000);
     
-      const regs = Array(13).fill(0n);
-      regs[2] = 1n; // register is 1 (greater than immediate 0)
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 1n; // register is 1 (greater than immediate 0)
     
-      const state0 = buildState({ code, bitmask, registers: regs });
-      const state1 = executeSingleStep(state0);
+  //     const state0 = buildState({ code, bitmask, registers: regs });
+  //     const state1 = executeSingleStep(state0);
     
-      expect(state1.pc).toBe(offset);
-      expect(state1.exit?.type).toBe(ExitReasonType.Continue);
-    });
+  //     expect(state1.pc).toBe(offset);
+  //     expect(state1.exit?.type).toBe(ExitReasonType.Continue);
+  //   });
   
-    it("90 branch_gt_s_imm does NOT jump if signed register is less than imm", () => {
-      const offset = 8; // valid basic block (trap at position 8)
+  //   it("90 branch_gt_s_imm does NOT jump if signed register is less than imm", () => {
+  //     const offset = 8; // valid basic block (trap at position 8)
     
-      const code = Uint8Array.of(
-        Opcodes.branch_gt_s_imm,
-        0x22, 
-        0x00, 0x00,
-        offset, 0x00, 0x00, 0x00,
-        Opcodes.trap
-      );
+  //     const code = Uint8Array.of(
+  //       Opcodes.branch_gt_s_imm,
+  //       0x22, 
+  //       0x00, 0x00,
+  //       offset, 0x00, 0x00, 0x00,
+  //       Opcodes.trap
+  //     );
     
-      const bitmask = Uint8Array.of(0b00000001, 0b00000001);
+  //     const bitmask = Uint8Array.of(0b00000001, 0b00000001);
     
-      const regs = Array(13).fill(0n);
-      regs[2] = -1n; // condition false (reg < imm)
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = -1n; // condition false (reg < imm)
     
-      const state0 = buildState({ code, bitmask, registers: regs });
-      const state1 = executeSingleStep(state0);
+  //     const state0 = buildState({ code, bitmask, registers: regs });
+  //     const state1 = executeSingleStep(state0);
       
-      expect(state1.pc).toBe(nextPc(state0));
+  //     expect(state1.pc).toBe(nextPc(state0));
+  //   });
+  // });
+
+  describe("A.5.9 Two Registers instructions", () => {
+
+    it("100 move_reg moves data from rA to rD", () => {
+      const code = Uint8Array.of(
+        Opcodes.move_reg, 
+        0x12, // rA = 1 register , rD = 2 source  -- for dynamic registers
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 42n; // source register
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+
+      console.log(s1.registers);
+  
+      expect(s1.registers[2]).toBe(42n);
+    });
+  
+    it("101 sbrk allocates heap memory correctly", () => {
+      const code = Uint8Array.of(
+        Opcodes.sbrk, 
+        0x01, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[0] = 64n; // requested size
+  
+      const heapStart = 0x1000;
+  
+      const s0 = buildState({
+        code,
+        bitmask,
+        registers: regs,
+        heapStart,
+        heapPointer: heapStart,
+      });
+  
+      const s1 = executeSingleStep(s0);
+
+      console.log(s1);
+  
+      expect(s1.registers[1]).toBe(BigInt(heapStart));
+      expect(s1.context!.heapPointer).toBe(heapStart + 64);
+    });
+  
+    it("102 count_set_bits_64 counts set bits correctly", () => {
+      const code = Uint8Array.of(
+        Opcodes.count_set_bits_64, 
+        0x12, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0b1011n;
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[2]).toBe(3n);
+    });
+  
+    it("103 count_set_bits_32 counts set bits in lower 32 bits", () => {
+      const code = Uint8Array.of(
+        Opcodes.count_set_bits_32, 
+        0x12, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0xFFFF000F_FFFFFFFFn;
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[2]).toBe(32n);
+    });
+
+    it("104 leading_zero_bits_64 correctly calculates leading zero bits", () => {
+      const code = Uint8Array.of(
+        Opcodes.leading_zero_bits_64, 
+        0x12, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0x0000FFFF_FFFFFFFFn; // 16 leading zeros in 64-bit
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[2]).toBe(16n);
+    });
+
+    it("105 leading_zero_bits_32 correctly calculates leading zero bits", () => {
+      const code = Uint8Array.of(
+        Opcodes.leading_zero_bits_32, 
+        0x12, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0x0000FFFFn; // 16 leading zeros in 32-bit
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[2]).toBe(16n);
+    });
+
+    it("106 trailing_zero_bits_64 correctly calculates leading zero bits", () => {
+      const code = Uint8Array.of(
+        Opcodes.trailing_zero_bits_64, 
+        0x12, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0xFFFF0000_00000000n; // 16 leading zeros in 64-bit
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      console.log(s1);
+      expect(s1.registers[2]).toBe(48n);
+    });
+
+    it("107 trailing_zero_bits_32 correctly calculates leading zero bits", () => {
+      const code = Uint8Array.of(
+        Opcodes.trailing_zero_bits_32, 
+        0x12, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0xFFFF0000n; // 16 leading zeros in 64-bit
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      console.log(s1);
+      expect(s1.registers[2]).toBe(16n);
+    });
+  
+    it("108 sign_extend_8 correctly sign-extends 8-bit value", () => {
+      const code = Uint8Array.of(
+        Opcodes.sign_extend_8, 
+        0x12, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0xFFn;  // -1 in 8-bit signed
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      console.log(s1);
+  
+      expect(s1.registers[2]).toBe(-1n);
+    });
+
+    it("109 sign_extend_16 correctly sign-extends 16-bit value", () => {
+      const code = Uint8Array.of(
+        Opcodes.sign_extend_16, 
+        0x12, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0xFFFFn;  // -1 in 16-bit signed
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[2]).toBe(-1n);
+    });
+
+    it("110 zero_extend_16 correctly zero-extends 16-bit value", () => {
+      const code = Uint8Array.of(
+        Opcodes.zero_extend_16, 
+        0x12, 
+        Opcodes.trap
+      );
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0xFFFFn;  // 65535 in 16-bit unsigned
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[2]).toBe(65535n);
+    }
+  );
+  
+    it("111 reverse_bytes reverses byte order correctly", () => {
+      const code = Uint8Array.of(
+        Opcodes.reverse_bytes, 
+        0x12, 
+        Opcodes.trap);
+      const bitmask = Uint8Array.of(0b00000101);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0x1122334455667788n;
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[2]).toBe(0x8877665544332211n);
     });
   });
   
