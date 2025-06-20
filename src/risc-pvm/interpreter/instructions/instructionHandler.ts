@@ -533,7 +533,8 @@ const reverseBytesHandler = twoRegisterOp((a) => {
 
 // A.5.10
 
-//storeInd for indirect memory access, where the address is computed from a base register and an immediate offset
+// Store indirect ops
+// storeInd for indirect memory access, where the address is computed from a base register and an immediate offset
 const storeInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
   (state, [rA, rB, imm]) => {
     const addr = Number(state.registers[rB]) + Number(imm);
@@ -571,7 +572,7 @@ const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
     return { ...state, registers, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
   };
 
-  // Load indirect ops (124-130)
+  // Load indirect ops
   const loadIndU8Handler  = loadInd(1, false);  // 124
   const loadIndI8Handler  = loadInd(1, true);   // 125
   const loadIndU16Handler = loadInd(2, false);  // 126
@@ -579,6 +580,26 @@ const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
   const loadIndU32Handler = loadInd(4, false);  // 128
   const loadIndI32Handler = loadInd(4, true);   // 129
   const loadIndU64Handler = loadInd(8, false);  // 130
+
+  const twoRegImmOp = (fn: (regVal: bigint, imm: bigint) => bigint): ExecutionHandler =>
+    (state, [rA, rB, imm]) => {
+      const registers = state.registers.slice();
+      registers[rA] = fn(registers[rB], imm);
+      return { ...state, registers, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
+    };
+
+  // twoRegImmOp: Arithmetic and logical using twoRegImmOp
+  const addImm32Handler    = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFn); // 131
+  const andImmHandler      = twoRegImmOp((a, imm) => a & imm);                 // 132
+  const xorImmHandler      = twoRegImmOp((a, imm) => a ^ imm);             // XOR 133
+  const orImmHandler       = twoRegImmOp((a, imm) => a | imm);              // OR 134
+  const mulImm32Handler    = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFn); // 135
+  
+  // TODO: 136-148 
+
+  // Continued twoRegImmOp
+  const addImm64Handler    = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFFFFFFFFFn); // 149
+  const mulImm64Handler    = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFFFFFFFFFn); // 150
 
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
@@ -641,5 +662,14 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.load_ind_u32]: loadIndU32Handler,
   [Opcodes.load_ind_i32]: loadIndI32Handler,
   [Opcodes.load_ind_u64]: loadIndU64Handler,
+  [Opcodes.add_imm_32]: addImm32Handler,
+  [Opcodes.and_imm]: andImmHandler,
+  [Opcodes.xor_imm]: xorImmHandler,
+  [Opcodes.or_imm]: orImmHandler,
+  [Opcodes.mul_imm_32]: mulImm32Handler,
+  //... TODO add in between 
+  [Opcodes.add_imm_64]: addImm64Handler,
+  [Opcodes.mul_imm_64]: mulImm64Handler,
+  
   
 };

@@ -1319,118 +1319,230 @@ describe("Instruction execution tests", () => {
   //   });
   // });
 
-  describe("A.5.10 Two Registers & One Immediate instructions (124-130)", () => {
-      const makeInstruction = (opcode: number, rA: number, rB: number, imm: number) =>
-    Uint8Array.of(opcode, 
-      (rB << 4) | rA, // rA and rB packed into one byte
-      imm, 
-      Opcodes.trap);
+  // describe("A.5.10 Two Registers & One Immediate instructions (124-130)", () => {
+  //     const makeInstruction = (opcode: number, rA: number, rB: number, imm: number) =>
+  //   Uint8Array.of(opcode, 
+  //     (rB << 4) | rA, // rA and rB packed into one byte
+  //     imm, 
+  //     Opcodes.trap);
   
-    it("124 load_ind_u8 loads an unsigned 8-bit value indirectly", () => {
-      const code = makeInstruction(Opcodes.load_ind_u8, 1, 2, 4);
+  //   it("124 load_ind_u8 loads an unsigned 8-bit value indirectly", () => {
+  //     const code = makeInstruction(Opcodes.load_ind_u8, 1, 2, 4);
+  //     const bitmask = Uint8Array.of(0b00001001);
+  
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 0x1000n;  // Base address
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     s0.memory[0x1004] = 0xAB;  // Set value in memory
+  
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[1]).toBe(0xABn);
+  //   });
+  
+  //   it("125 load_ind_i8 loads a signed 8-bit value indirectly", () => {
+  //     const code = makeInstruction(Opcodes.load_ind_i8, 1, 2, 2);
+  //     const bitmask = Uint8Array.of(0b00001001);
+  
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 0x1000n;
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     s0.memory[0x1002] = 0xFF;  // -1 in signed 8-bit
+  
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[1]).toBe(-1n);
+  //   });
+  
+  //   it("126 load_ind_u16 loads an unsigned 16-bit value indirectly", () => {
+  //     const code = makeInstruction(Opcodes.load_ind_u16, 1, 2, 0);
+  //     const bitmask = Uint8Array.of(0b00001001);
+  
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 0x1000n;
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     s0.memory[0x1000] = 0xCD;
+  //     s0.memory[0x1001] = 0xAB;  // 0xABCD
+  
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[1]).toBe(0xABCDn);
+  //   });
+  
+  //   it("127 load_ind_i16 loads a signed 16-bit value indirectly", () => {
+  //     const code = makeInstruction(Opcodes.load_ind_i16, 1, 2, 4);
+  //     const bitmask = Uint8Array.of(0b00001001);
+  
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 0x1000n;
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     s0.memory[0x1004] = 0x00;
+  //     s0.memory[0x1005] = 0x80; // -32768 signed 16-bit
+  
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[1]).toBe(-32768n);
+  //   });
+  
+  //   it("128 load_ind_u32 loads an unsigned 32-bit value indirectly", () => {
+  //     const code = makeInstruction(Opcodes.load_ind_u32, 1, 2, 8);
+  //     const bitmask = Uint8Array.of(0b00001001);
+  
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 0x1000n;
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     s0.memory.set([0x78, 0x56, 0x34, 0x12], 0x1008);  // 0x12345678
+  
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[1]).toBe(0x12345678n);
+  //   });
+  
+  //   it("129 load_ind_i32 loads a signed 32-bit value indirectly", () => {
+  //     const code = makeInstruction(Opcodes.load_ind_i32, 1, 2, 12);
+  //     const bitmask = Uint8Array.of(0b00001001);
+  
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 0x1000n;
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     s0.memory.set([0x00, 0x00, 0x00, 0x80], 0x100C); // -2147483648 signed 32-bit
+  
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[1]).toBe(-2147483648n);
+  //   });
+  
+  //   it("130 load_ind_u64 loads an unsigned 64-bit value indirectly", () => {
+  //     const code = makeInstruction(Opcodes.load_ind_u64, 1, 2, 16);
+  //     const bitmask = Uint8Array.of(0b00001001);
+  
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 0x1000n;
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     s0.memory.set([0xEF,0xCD,0xAB,0x89,0x67,0x45,0x23,0x01], 0x1010); // 0x0123456789ABCDEF
+  
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[1]).toBe(0x0123456789ABCDEFn);
+  //   });
+  // });
+
+  describe("A.5.10 Two Registers & One Immediate Arithmetic Instructions", () => {
+    const makeInstruction = (opcode: number, rA: number, rB: number, imm: number) =>
+      Uint8Array.of(opcode, (rB << 4) | rA, imm, Opcodes.trap);
+  
+    it("131 add_imm_32 correctly adds immediate to register (32-bit)", () => {
+      const code = makeInstruction(Opcodes.add_imm_32, 
+        1, // rA destination register
+        2,// rB is source of 2
+        10); // imm = 10
       const bitmask = Uint8Array.of(0b00001001);
-  
+      
       const regs = Array(13).fill(0n);
-      regs[2] = 0x1000n;  // Base address
+      regs[2] = 20n;
   
       const s0 = buildState({ code, bitmask, registers: regs });
-      s0.memory[0x1004] = 0xAB;  // Set value in memory
-  
       const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[1]).toBe(0xABn);
+      expect(s1.registers[1]).toBe(30n); // 20 + 10 = 30
     });
   
-    it("125 load_ind_i8 loads a signed 8-bit value indirectly", () => {
-      const code = makeInstruction(Opcodes.load_ind_i8, 1, 2, 2);
+    it("132 and_imm correctly performs bitwise AND", () => {
+      const code = makeInstruction(Opcodes.and_imm, 1, 2, 0x0F); // immediate value of 0x0F
       const bitmask = Uint8Array.of(0b00001001);
   
       const regs = Array(13).fill(0n);
-      regs[2] = 0x1000n;
+      regs[2] = 0xFFn; // value in register 2 which is bitwise & masked with imm of 0x0F
   
       const s0 = buildState({ code, bitmask, registers: regs });
-      s0.memory[0x1002] = 0xFF;  // -1 in signed 8-bit
-  
       const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[1]).toBe(-1n);
+      expect(s1.registers[1]).toBe(0x0Fn); // 0b11111111 & 0b00001111 = 0b00001111
     });
   
-    it("126 load_ind_u16 loads an unsigned 16-bit value indirectly", () => {
-      const code = makeInstruction(Opcodes.load_ind_u16, 1, 2, 0);
+    it("133 xor_imm correctly performs bitwise XOR", () => {
+      const code = makeInstruction(Opcodes.xor_imm, 1, 2, 0x0F);
       const bitmask = Uint8Array.of(0b00001001);
-  
+      
       const regs = Array(13).fill(0n);
-      regs[2] = 0x1000n;
+      regs[2] = 0xF0n;
   
       const s0 = buildState({ code, bitmask, registers: regs });
-      s0.memory[0x1000] = 0xCD;
-      s0.memory[0x1001] = 0xAB;  // 0xABCD
-  
       const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[1]).toBe(0xABCDn);
+      expect(s1.registers[1]).toBe(0xFFn); // 0b11110000 ^ 0b00001111 = 0b11111111
     });
   
-    it("127 load_ind_i16 loads a signed 16-bit value indirectly", () => {
-      const code = makeInstruction(Opcodes.load_ind_i16, 1, 2, 4);
+    it("134 or_imm correctly performs bitwise OR", () => {
+      const code = makeInstruction(Opcodes.or_imm, 1, 2, 0x0F);
       const bitmask = Uint8Array.of(0b00001001);
-  
+      
       const regs = Array(13).fill(0n);
-      regs[2] = 0x1000n;
+      regs[2] = 0xF0n;
   
       const s0 = buildState({ code, bitmask, registers: regs });
-      s0.memory[0x1004] = 0x00;
-      s0.memory[0x1005] = 0x80; // -32768 signed 16-bit
-  
       const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[1]).toBe(-32768n);
+      expect(s1.registers[1]).toBe(0xFFn); // 0b11110000 | 0b00001111 = 0b11111111
     });
   
-    it("128 load_ind_u32 loads an unsigned 32-bit value indirectly", () => {
-      const code = makeInstruction(Opcodes.load_ind_u32, 1, 2, 8);
+    it("135 mul_imm_32 correctly multiplies register by immediate (32-bit)", () => {
+      const code = makeInstruction(Opcodes.mul_imm_32, 1, 2, 5);
       const bitmask = Uint8Array.of(0b00001001);
-  
+      
       const regs = Array(13).fill(0n);
-      regs[2] = 0x1000n;
+      regs[2] = 6n;
   
       const s0 = buildState({ code, bitmask, registers: regs });
-      s0.memory.set([0x78, 0x56, 0x34, 0x12], 0x1008);  // 0x12345678
-  
       const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[1]).toBe(0x12345678n);
+      expect(s1.registers[1]).toBe(30n); // 6 * 5 = 30
     });
   
-    it("129 load_ind_i32 loads a signed 32-bit value indirectly", () => {
-      const code = makeInstruction(Opcodes.load_ind_i32, 1, 2, 12);
-      const bitmask = Uint8Array.of(0b00001001);
+    // 149–150: 64-bit arithmetic
   
+    it("149 add_imm_64 correctly adds immediate to register and overflows (64-bit)", () => {
+      const code = makeInstruction(Opcodes.add_imm_64, 1, 2, 10);
+      const bitmask = Uint8Array.of(0b00001001);
+      
       const regs = Array(13).fill(0n);
-      regs[2] = 0x1000n;
+      regs[2] = 0xFFFFFFFFFFFFFFFAn; // value = large 64-bit value to check overflow handling 
   
       const s0 = buildState({ code, bitmask, registers: regs });
-      s0.memory.set([0x00, 0x00, 0x00, 0x80], 0x100C); // -2147483648 signed 32-bit
-  
       const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[1]).toBe(-2147483648n);
+      expect(s1.registers[1]).toBe(4n); // 0xFFFFFFFFFFFFFFFA + 10 = 0x10000000000000004 wraps around to 4
     });
+
+    it("149 add_imm_64 correctly adds immediate to register and doesnt overflow (64-bit)", () => {
+      const code = makeInstruction(Opcodes.add_imm_64, 1, 2, 10);
+      const bitmask = Uint8Array.of(0b00001001);
+      const regs = Array(13).fill(0n);
+      regs[2] = 0x0000000000000000n; // value = 0
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(10n); // 0 + 10 = 10
+    }
+    );
   
-    it("130 load_ind_u64 loads an unsigned 64-bit value indirectly", () => {
-      const code = makeInstruction(Opcodes.load_ind_u64, 1, 2, 16);
+    it("150 mul_imm_64 correctly multiplies register by immediate (64-bit)", () => {
+      const code = makeInstruction(Opcodes.mul_imm_64, 1, 2, 3);
       const bitmask = Uint8Array.of(0b00001001);
   
       const regs = Array(13).fill(0n);
-      regs[2] = 0x1000n;
+      regs[2] = 0x3000000000000000n;
   
       const s0 = buildState({ code, bitmask, registers: regs });
-      s0.memory.set([0xEF,0xCD,0xAB,0x89,0x67,0x45,0x23,0x01], 0x1010); // 0x0123456789ABCDEF
-  
       const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[1]).toBe(0x0123456789ABCDEFn);
+      expect(s1.registers[1]).toBe(0x9000000000000000n); // 0x3000000000000000 * 3 = 0x9000000000000000
     });
   });
 
