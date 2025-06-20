@@ -553,6 +553,33 @@ const storeIndU16Handler = storeInd(2); // 121
 const storeIndU32Handler = storeInd(4); // 122
 const storeIndU64Handler = storeInd(8); // 123
 
+const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
+  (state, [rA, rB, imm]) => {
+    const addr = Number(state.registers[rB]) + Number(imm);
+    if (addr < 0 || addr + bytes > state.memory.length) return panic(state);
+
+    let value = 0n;
+    for (let i = 0; i < bytes; i++) 
+      value |= BigInt(state.memory[addr + i]) << BigInt(8 * i);
+
+    if (signed) 
+      value = BigInt.asIntN(bytes * 8, value);
+
+    const registers = state.registers.slice();
+    registers[rA] = value;
+
+    return { ...state, registers, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
+  };
+
+  // Load indirect ops (124-130)
+  const loadIndU8Handler  = loadInd(1, false);  // 124
+  const loadIndI8Handler  = loadInd(1, true);   // 125
+  const loadIndU16Handler = loadInd(2, false);  // 126
+  const loadIndI16Handler = loadInd(2, true);   // 127
+  const loadIndU32Handler = loadInd(4, false);  // 128
+  const loadIndI32Handler = loadInd(4, true);   // 129
+  const loadIndU64Handler = loadInd(8, false);  // 130
+
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
   [Opcodes.ecalli]: ecalliHandler,
@@ -607,5 +634,12 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.store_ind_u16]: storeIndU16Handler,
   [Opcodes.store_ind_u32]: storeIndU32Handler,
   [Opcodes.store_ind_u64]: storeIndU64Handler,
+  [Opcodes.load_ind_u8]: loadIndU8Handler,
+  [Opcodes.load_ind_i8]: loadIndI8Handler,
+  [Opcodes.load_ind_u16]: loadIndU16Handler,
+  [Opcodes.load_ind_i16]: loadIndI16Handler,
+  [Opcodes.load_ind_u32]: loadIndU32Handler,
+  [Opcodes.load_ind_i32]: loadIndI32Handler,
+  [Opcodes.load_ind_u64]: loadIndU64Handler,
   
 };
