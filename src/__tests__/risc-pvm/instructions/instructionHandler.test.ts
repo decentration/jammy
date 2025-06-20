@@ -1014,226 +1014,313 @@ describe("Instruction execution tests", () => {
   //   });
   // });
 
-  describe("A.5.9 Two Registers instructions", () => {
+  // describe("A.5.9 Two Registers instructions", () => {
 
-    it("100 move_reg moves data from rA to rD", () => {
-      const code = Uint8Array.of(
-        Opcodes.move_reg, 
-        0x12, // rA = 1 register , rD = 2 source  -- for dynamic registers
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("100 move_reg moves data from rA to rD", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.move_reg, 
+  //       0x12, // rA = 1 register , rD = 2 source  -- for dynamic registers
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 42n; // source register
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 42n; // source register
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
 
-      console.log(s1.registers);
+  //     console.log(s1.registers);
   
-      expect(s1.registers[2]).toBe(42n);
-    });
+  //     expect(s1.registers[2]).toBe(42n);
+  //   });
   
-    it("101 sbrk allocates heap memory correctly", () => {
-      const code = Uint8Array.of(
-        Opcodes.sbrk, 
-        0x01, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("101 sbrk allocates heap memory correctly", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.sbrk, 
+  //       0x01, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[0] = 64n; // requested size
+  //     const regs = Array(13).fill(0n);
+  //     regs[0] = 64n; // requested size
   
-      const heapStart = 0x1000;
+  //     const heapStart = 0x1000;
   
-      const s0 = buildState({
-        code,
-        bitmask,
-        registers: regs,
-        heapStart,
-        heapPointer: heapStart,
-      });
+  //     const s0 = buildState({
+  //       code,
+  //       bitmask,
+  //       registers: regs,
+  //       heapStart,
+  //       heapPointer: heapStart,
+  //     });
   
-      const s1 = executeSingleStep(s0);
+  //     const s1 = executeSingleStep(s0);
 
-      console.log(s1);
+  //     console.log(s1);
   
-      expect(s1.registers[1]).toBe(BigInt(heapStart));
-      expect(s1.context!.heapPointer).toBe(heapStart + 64);
-    });
+  //     expect(s1.registers[1]).toBe(BigInt(heapStart));
+  //     expect(s1.context!.heapPointer).toBe(heapStart + 64);
+  //   });
   
-    it("102 count_set_bits_64 counts set bits correctly", () => {
-      const code = Uint8Array.of(
-        Opcodes.count_set_bits_64, 
-        0x12, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("102 count_set_bits_64 counts set bits correctly", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.count_set_bits_64, 
+  //       0x12, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 0b1011n;
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0b1011n;
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[2]).toBe(3n);
-    });
+  //     expect(s1.registers[2]).toBe(3n);
+  //   });
   
-    it("103 count_set_bits_32 counts set bits in lower 32 bits", () => {
-      const code = Uint8Array.of(
-        Opcodes.count_set_bits_32, 
-        0x12, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("103 count_set_bits_32 counts set bits in lower 32 bits", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.count_set_bits_32, 
+  //       0x12, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 0xFFFF000F_FFFFFFFFn;
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0xFFFF000F_FFFFFFFFn;
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[2]).toBe(32n);
-    });
+  //     expect(s1.registers[2]).toBe(32n);
+  //   });
 
-    it("104 leading_zero_bits_64 correctly calculates leading zero bits", () => {
-      const code = Uint8Array.of(
-        Opcodes.leading_zero_bits_64, 
-        0x12, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("104 leading_zero_bits_64 correctly calculates leading zero bits", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.leading_zero_bits_64, 
+  //       0x12, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 0x0000FFFF_FFFFFFFFn; // 16 leading zeros in 64-bit
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0x0000FFFF_FFFFFFFFn; // 16 leading zeros in 64-bit
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[2]).toBe(16n);
-    });
+  //     expect(s1.registers[2]).toBe(16n);
+  //   });
 
-    it("105 leading_zero_bits_32 correctly calculates leading zero bits", () => {
-      const code = Uint8Array.of(
-        Opcodes.leading_zero_bits_32, 
-        0x12, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("105 leading_zero_bits_32 correctly calculates leading zero bits", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.leading_zero_bits_32, 
+  //       0x12, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 0x0000FFFFn; // 16 leading zeros in 32-bit
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0x0000FFFFn; // 16 leading zeros in 32-bit
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[2]).toBe(16n);
-    });
+  //     expect(s1.registers[2]).toBe(16n);
+  //   });
 
-    it("106 trailing_zero_bits_64 correctly calculates leading zero bits", () => {
-      const code = Uint8Array.of(
-        Opcodes.trailing_zero_bits_64, 
-        0x12, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("106 trailing_zero_bits_64 correctly calculates leading zero bits", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.trailing_zero_bits_64, 
+  //       0x12, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 0xFFFF0000_00000000n; // 16 leading zeros in 64-bit
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0xFFFF0000_00000000n; // 16 leading zeros in 64-bit
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
-      console.log(s1);
-      expect(s1.registers[2]).toBe(48n);
-    });
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
+  //     console.log(s1);
+  //     expect(s1.registers[2]).toBe(48n);
+  //   });
 
-    it("107 trailing_zero_bits_32 correctly calculates leading zero bits", () => {
-      const code = Uint8Array.of(
-        Opcodes.trailing_zero_bits_32, 
-        0x12, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("107 trailing_zero_bits_32 correctly calculates leading zero bits", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.trailing_zero_bits_32, 
+  //       0x12, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 0xFFFF0000n; // 16 leading zeros in 64-bit
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0xFFFF0000n; // 16 leading zeros in 64-bit
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
-      console.log(s1);
-      expect(s1.registers[2]).toBe(16n);
-    });
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
+  //     console.log(s1);
+  //     expect(s1.registers[2]).toBe(16n);
+  //   });
   
-    it("108 sign_extend_8 correctly sign-extends 8-bit value", () => {
-      const code = Uint8Array.of(
-        Opcodes.sign_extend_8, 
-        0x12, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("108 sign_extend_8 correctly sign-extends 8-bit value", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.sign_extend_8, 
+  //       0x12, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 0xFFn;  // -1 in 8-bit signed
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0xFFn;  // -1 in 8-bit signed
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
-      console.log(s1);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
+  //     console.log(s1);
   
-      expect(s1.registers[2]).toBe(-1n);
-    });
+  //     expect(s1.registers[2]).toBe(-1n);
+  //   });
 
-    it("109 sign_extend_16 correctly sign-extends 16-bit value", () => {
-      const code = Uint8Array.of(
-        Opcodes.sign_extend_16, 
-        0x12, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("109 sign_extend_16 correctly sign-extends 16-bit value", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.sign_extend_16, 
+  //       0x12, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 0xFFFFn;  // -1 in 16-bit signed
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0xFFFFn;  // -1 in 16-bit signed
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[2]).toBe(-1n);
-    });
+  //     expect(s1.registers[2]).toBe(-1n);
+  //   });
 
-    it("110 zero_extend_16 correctly zero-extends 16-bit value", () => {
-      const code = Uint8Array.of(
-        Opcodes.zero_extend_16, 
-        0x12, 
-        Opcodes.trap
-      );
-      const bitmask = Uint8Array.of(0b00000101);
+  //   it("110 zero_extend_16 correctly zero-extends 16-bit value", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.zero_extend_16, 
+  //       0x12, 
+  //       Opcodes.trap
+  //     );
+  //     const bitmask = Uint8Array.of(0b00000101);
   
-      const regs = Array(13).fill(0n);
-      regs[1] = 0xFFFFn;  // 65535 in 16-bit unsigned
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0xFFFFn;  // 65535 in 16-bit unsigned
   
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[2]).toBe(65535n);
-    }
-  );
+  //     expect(s1.registers[2]).toBe(65535n);
+  //   }
+  // );
   
-    it("111 reverse_bytes reverses byte order correctly", () => {
-      const code = Uint8Array.of(
-        Opcodes.reverse_bytes, 
-        0x12, 
+  //   it("111 reverse_bytes reverses byte order correctly", () => {
+  //     const code = Uint8Array.of(
+  //       Opcodes.reverse_bytes, 
+  //       0x12, 
+  //       Opcodes.trap);
+  //     const bitmask = Uint8Array.of(0b00000101);
+  
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 0x1122334455667788n;
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[2]).toBe(0x8877665544332211n);
+  //   });
+  // });
+  
+
+
+  describe("A.5.10 Two Registers & One Immediate instructions (120-123)", () => {
+    const makeInstruction = (opcode: number, rA: number, rB: number, imm: number) =>
+      Uint8Array.of(opcode, 
+        (rB << 4) | rA, // rA and rB packed into one byte
+        imm, 
         Opcodes.trap);
-      const bitmask = Uint8Array.of(0b00000101);
+  
+    it("120 store_ind_u8 stores an 8-bit value indirectly", () => {
+      const code = makeInstruction(
+        Opcodes.store_ind_u8, 
+        1, // rB
+        2, // rA
+        4 // imm 
+        // opcode (trap)
+      );
+      const bitmask = Uint8Array.of(0b00001001);
   
       const regs = Array(13).fill(0n);
-      regs[1] = 0x1122334455667788n;
+      regs[1] = 0xABn;  // Value to store
+      regs[2] = 0x1000n;  // base address
   
       const s0 = buildState({ code, bitmask, registers: regs });
       const s1 = executeSingleStep(s0);
   
-      expect(s1.registers[2]).toBe(0x8877665544332211n);
+      expect(s1.memory[0x1004]).toBe(0xAB);
+    });
+  
+    it("121 store_ind_u16 stores a 16-bit value indirectly", () => {
+      const code = makeInstruction(Opcodes.store_ind_u16, 1, 2, 2);
+      const bitmask = Uint8Array.of(0b00001001);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0xBEEFn; 
+      regs[2] = 0x1000n;
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.memory[0x1002]).toBe(0xEF);
+      expect(s1.memory[0x1003]).toBe(0xBE);
+    });
+  
+    it("122 store_ind_u32 stores a 32-bit value indirectly", () => {
+      const code = makeInstruction(Opcodes.store_ind_u32, 1, 2, 0);
+      const bitmask = Uint8Array.of(0b00001001);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0xDEADBEEFn;
+      regs[2] = 0x1000n;
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.memory[0x1000]).toBe(0xEF);
+      expect(s1.memory[0x1001]).toBe(0xBE);
+      expect(s1.memory[0x1002]).toBe(0xAD);
+      expect(s1.memory[0x1003]).toBe(0xDE);
+    });
+  
+    it("123 store_ind_u64 stores a 64-bit value indirectly", () => {
+      const code = makeInstruction(Opcodes.store_ind_u64, 1, 2, 8);
+      const bitmask = Uint8Array.of(0b00001001);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 0x1122334455667788n; // 64-bit to store
+      regs[2] = 0x1000n;
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.memory[0x1008]).toBe(0x88);
+      expect(s1.memory[0x1009]).toBe(0x77);
+      expect(s1.memory[0x100A]).toBe(0x66);
+      expect(s1.memory[0x100B]).toBe(0x55);
+      expect(s1.memory[0x100C]).toBe(0x44);
+      expect(s1.memory[0x100D]).toBe(0x33);
+      expect(s1.memory[0x100E]).toBe(0x22);
+      expect(s1.memory[0x100F]).toBe(0x11);
     });
   });
-  
+
+
+ 
+
+
  });

@@ -530,6 +530,29 @@ const reverseBytesHandler = twoRegisterOp((a) => {
   return val;
 });
 
+
+// A.5.10
+
+//storeInd for indirect memory access, where the address is computed from a base register and an immediate offset
+const storeInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
+  (state, [rA, rB, imm]) => {
+    const addr = Number(state.registers[rB]) + Number(imm);
+    if (addr < 0 || addr + bytes > state.memory.length) return panic(state);
+
+    const memory = state.memory.slice();
+    let value = state.registers[rA];
+
+    for (let i = 0; i < bytes; i++)
+      memory[addr + i] = Number((value >> BigInt(8 * i)) & 0xFFn);
+
+    return { ...state, memory, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
+  };
+
+const storeIndU8Handler  = storeInd(1); // 120
+const storeIndU16Handler = storeInd(2); // 121
+const storeIndU32Handler = storeInd(4); // 122
+const storeIndU64Handler = storeInd(8); // 123
+
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
   [Opcodes.ecalli]: ecalliHandler,
@@ -580,5 +603,9 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.sign_extend_16]: signExtend16Handler,
   [Opcodes.zero_extend_16]: zeroExtend16Handler,
   [Opcodes.reverse_bytes]: reverseBytesHandler,
+  [Opcodes.store_ind_u8]: storeIndU8Handler,
+  [Opcodes.store_ind_u16]: storeIndU16Handler,
+  [Opcodes.store_ind_u32]: storeIndU32Handler,
+  [Opcodes.store_ind_u64]: storeIndU64Handler,
   
 };
