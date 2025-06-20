@@ -572,6 +572,8 @@ const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
     return { ...state, registers, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
   };
 
+
+
   // Load indirect ops
   const loadIndU8Handler  = loadInd(1, false);  // 124
   const loadIndI8Handler  = loadInd(1, true);   // 125
@@ -595,7 +597,42 @@ const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
   const orImmHandler       = twoRegImmOp((a, imm) => a | imm);              // OR 134
   const mulImm32Handler    = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFn); // 135
   
-  // TODO: 136-148 
+  // TODO: 136-146 
+
+  // 147
+  //  Moves the imm value to destination register rA if source rB is exactly zero, else destination is left unchanged
+  const cmovIzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
+    const registers = state.registers.slice();
+
+    // Check if the source register rB is zero
+    registers[rA] = registers[rB] === 0n ? imm : registers[rA];
+  
+    return { 
+      ...state, 
+      registers, 
+      pc: nextPc(state), 
+      gas: state.gas - GAS_PER_INSTRUCTION, 
+      exit: { type: ExitReasonType.Continue } 
+    };
+  };
+  
+  // 148
+  // Moves the imm value to destination register rA if source rB is not zero, else destination is left unchanged
+  const cmovNzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
+    const registers = state.registers.slice();
+
+    // Check if rB is not zero, if so, set rA to imm, else keep rA unchanged
+    registers[rA] = registers[rB] !== 0n ? imm : registers[rA];
+  
+    return { 
+      ...state, 
+      registers, 
+      pc: nextPc(state), 
+      gas: state.gas - GAS_PER_INSTRUCTION, 
+      exit: { type: ExitReasonType.Continue } 
+    };
+  };
+
 
   // Continued twoRegImmOp
   const addImm64Handler    = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFFFFFFFFFn); // 149
@@ -668,6 +705,8 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.or_imm]: orImmHandler,
   [Opcodes.mul_imm_32]: mulImm32Handler,
   //... TODO add in between 
+  [Opcodes.cmov_iz_imm]: cmovIzImmHandler,
+  [Opcodes.cmov_nz_imm]: cmovNzImmHandler,
   [Opcodes.add_imm_64]: addImm64Handler,
   [Opcodes.mul_imm_64]: mulImm64Handler,
   
