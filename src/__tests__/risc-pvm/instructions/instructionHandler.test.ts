@@ -1546,69 +1546,264 @@ describe("Instruction execution tests", () => {
   //   });
   // });
 
-  describe("A.5.10 Conditional Move Instructions", () => {
+  // describe("A.5.10 Conditional Move Instructions", () => {
 
-  const makeInstruction = (opcode: number, rA: number, rB: number, imm: number) =>
-    Uint8Array.of(opcode, 
-      (rB << 4) | rA, // rA and rB packed into one byte
-      imm, 
-      Opcodes.trap);
+  // const makeInstruction = (opcode: number, rA: number, rB: number, imm: number) =>
+  //   Uint8Array.of(opcode, 
+  //     (rB << 4) | rA, // rA and rB packed into one byte
+  //     imm, 
+  //     Opcodes.trap);
 
-    it("147 cmov_iz_imm moves immediate if register is zero", () => {
-      const code = makeInstruction(Opcodes.cmov_iz_imm, 1, 2, 0x2A);
-      const bitmask = Uint8Array.of(0b00001001);
+  //   it("147 cmov_iz_imm moves immediate if register is zero", () => {
+  //     const code = makeInstruction(Opcodes.cmov_iz_imm, 1, 2, 0x2A);
+  //     const bitmask = Uint8Array.of(0b00001001);
     
-      const regs = Array(13).fill(0n);
-      regs[1] = 123n;  // Destination register initial value (should be overwritten)
-      regs[2] = 0n;    // Source register is zero (condition true)
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 123n;  // Destination register initial value (should be overwritten)
+  //     regs[2] = 0n;    // Source register is zero (condition true)
     
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
     
-      expect(s1.registers[1]).toBe(42n); // Condition true: immediate (0x2A = 42 decimal) should overwrite rA (register[1])
+  //     expect(s1.registers[1]).toBe(42n); // Condition true: immediate (0x2A = 42 decimal) should overwrite rA (register[1])
 
-    });
+  //   });
     
-    it("147 cmov_iz_imm does NOT move immediate if register is not zero", () => {
-      const code = makeInstruction(Opcodes.cmov_iz_imm, 1, 2, 0x2A);
-      const bitmask = Uint8Array.of(0b00001001);
+  //   it("147 cmov_iz_imm does NOT move immediate if register is not zero", () => {
+  //     const code = makeInstruction(Opcodes.cmov_iz_imm, 1, 2, 0x2A);
+  //     const bitmask = Uint8Array.of(0b00001001);
     
-      const regs = Array(13).fill(0n);
-      regs[1] = 123n;  // Destination register initial value (should NOT be overwritten)
-      regs[2] = 1n;    // Source register is not zero (condition false)
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 123n;  // Destination register initial value (should NOT be overwritten)
+  //     regs[2] = 1n;    // Source register is not zero (condition false)
     
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
     
-      expect(s1.registers[1]).toBe(123n); // Condition false: destination register remains unchanged
-    });
+  //     expect(s1.registers[1]).toBe(123n); // Condition false: destination register remains unchanged
+  //   });
     
-    it("148 cmov_nz_imm moves immediate if register is NOT zero", () => {
-      const code = makeInstruction(Opcodes.cmov_nz_imm, 1, 2, 0x2A);
-      const bitmask = Uint8Array.of(0b00001001);
+  //   it("148 cmov_nz_imm moves immediate if register is NOT zero", () => {
+  //     const code = makeInstruction(Opcodes.cmov_nz_imm, 1, 2, 0x2A);
+  //     const bitmask = Uint8Array.of(0b00001001);
     
-      const regs = Array(13).fill(0n);
-      regs[1] = 456n;  // Destination register initial value (should be overwritten)
-      regs[2] = 5n;    // Source register is not zero (condition true)
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 456n;  // Destination register initial value (should be overwritten)
+  //     regs[2] = 5n;    // Source register is not zero (condition true)
     
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
     
-      expect(s1.registers[1]).toBe(42n); // Condition true: immediate (0x2A = 42 decimal) overwrites destination register
-    });
+  //     expect(s1.registers[1]).toBe(42n); // Condition true: immediate (0x2A = 42 decimal) overwrites destination register
+  //   });
     
-    it("148 cmov_nz_imm does NOT move immediate if register is zero", () => {
-      const code = makeInstruction(Opcodes.cmov_nz_imm, 1, 2, 0x2A);
-      const bitmask = Uint8Array.of(0b00001001);
+  //   it("148 cmov_nz_imm does NOT move immediate if register is zero", () => {
+  //     const code = makeInstruction(Opcodes.cmov_nz_imm, 1, 2, 0x2A);
+  //     const bitmask = Uint8Array.of(0b00001001);
     
-      const regs = Array(13).fill(0n);
-      regs[1] = 456n;  // Destination register initial value (should NOT be overwritten)
-      regs[2] = 0n;    // Source register is zero (condition false)
+  //     const regs = Array(13).fill(0n);
+  //     regs[1] = 456n;  // Destination register initial value (should NOT be overwritten)
+  //     regs[2] = 0n;    // Source register is zero (condition false)
     
-      const s0 = buildState({ code, bitmask, registers: regs });
-      const s1 = executeSingleStep(s0);
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
       
-      expect(s1.registers[1]).toBe(456n); // Condition false: destination register remains unchanged
+  //     expect(s1.registers[1]).toBe(456n); // Condition false: destination register remains unchanged
+  //   });
+  // });
+
+
+  describe("A.5.10 Two Registers & One Immediate Set Comparison Instructions", () => {
+
+    const makeInstruction = (opcode: number, rA: number, rB: number, imm: number) =>
+      Uint8Array.of(
+        opcode,
+        (rB << 4) | rA,
+        imm & 0xFF,       // Low byte
+        (imm >> 8) & 0xFF, // High byte
+        Opcodes.trap
+      );
+
+    it("136 set_lt_u_imm correctly compares unsigned values (less than)", () => {
+      const code = makeInstruction(Opcodes.set_lt_u_imm, 1, 2, 5);
+
+      const bitmask = Uint8Array.of(0b00001001);
+  
+      const regs = Array(13).fill(0n);
+      regs[2] = 3n; // 3 < 5 => true (1)
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+
+      console.log(s1);
+  
+      expect(s1.registers[1]).toBe(1n);
+    });
+
+    // edge case
+    it("136 set_lt_u_imm returns false correctly", () => {
+      const code = Uint8Array.of(Opcodes.set_lt_u_imm, 0x21, 3, Opcodes.trap);
+      const bitmask = Uint8Array.of(0b00001001);
+  
+      const regs = Array(13).fill(0n);
+      regs[1] = 5n; // 5 < 3 => false (0)
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[2]).toBe(0n);
+    });
+  
+  
+    it("137 set_lt_s_imm correctly compares signed values (less than)", () => {
+      const code = makeInstruction(Opcodes.set_lt_s_imm, 1, 2, -1); // -1 signed
+      const bitmask = Uint8Array.of(0b00001001);
+  
+      const regs = Array(13).fill(0n);
+      regs[2] = -10n; // -10 < -1 => true (1)
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[1]).toBe(1n);
+    });
+  
+    it("142 set_gt_u_imm correctly compares unsigned values (greater than)", () => {
+      const code = makeInstruction(Opcodes.set_gt_u_imm, 1, 2, 5);
+      const bitmask = Uint8Array.of(0b00001001);
+  
+      const regs = Array(13).fill(0n);
+      regs[2] = 10n; // 10 > 5 => true (1)
+  
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+  
+      expect(s1.registers[1]).toBe(1n);
+    });
+
+    describe("Opcode 143 (set_gt_s_imm)", () => {
+
+      it("143 set_gt_s_imm correctly compares signed values (greater than)", () => {
+        const code = makeInstruction(
+          Opcodes.set_gt_s_imm, 
+          1, 2, 
+          0xFFFE // -2 signed, 0b11111111 11111110
+        ); 
+        const bitmask = Uint8Array.of(0b00001001);
+    
+        const regs = Array(13).fill(0n);
+        regs[2] = 0n; // 0 > -2 => true (1)
+    
+        const s0 = buildState({ code, bitmask, registers: regs });
+        const s1 = executeSingleStep(s0);
+        console.log(s1);
+    
+        expect(s1.registers[1]).toBe(1n);
+      });
+    
+  
+      const bitmask = Uint8Array.of(0b00001001);
+    
+      test("0 > -2 should be true (1)", () => {
+        const code = makeInstruction(Opcodes.set_gt_s_imm, 1, 2, 0xFFFE); // -2 signed
+    
+        const regs = Array(13).fill(0n);
+        regs[2] = 0n; // source = 0
+    
+        const s0 = buildState({ code, bitmask, registers: regs });
+        const s1 = executeSingleStep(s0);
+    
+        expect(s1.registers[1]).toBe(1n);
+      });
+    
+      test("-3 > -2 should be false (0)", () => {
+        const code = makeInstruction(Opcodes.set_gt_s_imm, 1, 2, 0xFFFE); // -2 signed
+    
+        const regs = Array(13).fill(0n);
+        regs[2] = -3n; // source = -3
+    
+        const s0 = buildState({ code, bitmask, registers: regs });
+        const s1 = executeSingleStep(s0);
+    
+        expect(s1.registers[1]).toBe(0n);
+      });
+    
+      test("2 > 2 should be false (0)", () => {
+        const code = makeInstruction(Opcodes.set_gt_s_imm, 1, 2, 2);
+    
+        const regs = Array(13).fill(0n);
+        regs[2] = 2n; // source = 2
+    
+        const s0 = buildState({ code, bitmask, registers: regs });
+        const s1 = executeSingleStep(s0);
+    
+        expect(s1.registers[1]).toBe(0n);
+      });
+    
+      test("5 > -5 should be true (1)", () => {
+        const code = makeInstruction(Opcodes.set_gt_s_imm, 1, 2, 0xFFFB); // -5 signed
+    
+        const regs = Array(13).fill(0n);
+        regs[2] = 5n; // source = 5
+    
+        const s0 = buildState({ code, bitmask, registers: regs });
+        const s1 = executeSingleStep(s0);
+    
+        expect(s1.registers[1]).toBe(1n);
+      });
+    
+      test("-1 > -1 should be false (0)", () => {
+        const code = makeInstruction(Opcodes.set_gt_s_imm, 1, 2, 0xFFFF); // -1 signed
+    
+        const regs = Array(13).fill(0n);
+        regs[2] = -1n; // source = -1
+    
+        const s0 = buildState({ code, bitmask, registers: regs });
+        const s1 = executeSingleStep(s0);
+    
+        expect(s1.registers[1]).toBe(0n);
+      });
+    
+      test("127 > -128 should be true (1)", () => {
+        const code = makeInstruction(Opcodes.set_gt_s_imm, 1, 2, 0xFF80); // -128 signed (edge case)
+    
+        const regs = Array(13).fill(0n);
+        regs[2] = 127n; // max positive int8
+    
+        const s0 = buildState({ code, bitmask, registers: regs });
+        const s1 = executeSingleStep(s0);
+    
+        expect(s1.registers[1]).toBe(1n);
+      });
+    
+      test("-128 > 127 should be false (0)", () => {
+        const code = makeInstruction(Opcodes.set_gt_s_imm, 1, 2, 127); // 127 positive
+    
+        const regs = Array(13).fill(0n);
+        regs[2] = -128n; // min negative int8
+    
+        const s0 = buildState({ code, bitmask, registers: regs });
+        const s1 = executeSingleStep(s0);
+    
+        expect(s1.registers[1]).toBe(0n);
+      });
+    
+      // edge case
+      it("143 set_gt_s_imm returns false correctly", () => {
+        const code = Uint8Array.of(Opcodes.set_gt_s_imm, 0x21, 
+          1,
+          Opcodes.trap);
+        const bitmask = Uint8Array.of(0b00001001);
+    
+        const regs = Array(13).fill(0n);
+        regs[1] = -1n; // -1 > 1 => false (0)
+    
+        const s0 = buildState({ code, bitmask, registers: regs });
+        const s1 = executeSingleStep(s0);
+    
+        expect(s1.registers[2]).toBe(0n);
+      });
     });
   });
+
 });

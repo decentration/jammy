@@ -130,7 +130,7 @@ export enum Opcodes {
     shar_r_imm_32 = 140, // shift right arithmetic
     neg_add_imm_32 = 141, // negate and add immediate
     set_gt_u_imm = 142, // set greater than unsigned immediate
-    set_get_s_imm = 143, // set greater than signed immediate
+    set_gt_s_imm = 143, // set greater than signed immediate
     shlo_l_imm_alt_32 = 144, // alternative shift left logical
     shlo_r_imm_alt_32 = 145, // alternative shift right logical
     shar_r_imm_alt_32 = 146, // alternative shift right arithmetic
@@ -278,7 +278,7 @@ export const OpcodeTable: Record<Opcodes, InstructionAddressTypes> = {
     [Opcodes.shar_r_imm_32]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
     [Opcodes.neg_add_imm_32]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
     [Opcodes.set_gt_u_imm]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
-    [Opcodes.set_get_s_imm]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
+    [Opcodes.set_gt_s_imm]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
     [Opcodes.shlo_l_imm_alt_32]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
     [Opcodes.shlo_r_imm_alt_32]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,
     [Opcodes.shar_r_imm_alt_32]: InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE,

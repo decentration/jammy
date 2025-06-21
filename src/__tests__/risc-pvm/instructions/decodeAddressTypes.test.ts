@@ -1,3 +1,5 @@
+import { buildState } from "../../../risc-pvm/interpreter/buildState";
+import { executeSingleStep } from "../../../risc-pvm/interpreter/executeSingleStep";
 import { decodeInstruction, } from "../../../risc-pvm/interpreter/instructions/decodeInstruction";
 import { InstructionAddressTypes, Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 
@@ -168,17 +170,25 @@ describe("TWO_REGISTERS decode", () => {
   
   
 // 10) TWO_REGISTERS_ONE_IMMEDIATE  (add_imm_32)
-describe("TWO_REGISTERS_ONE_IMMEDIATE decode", () => {
-  it("add_imm_32 rA=3, rB=4, imm=126", () => {
-    const opcode   = Opcodes.add_imm_32;    // 131
-    const regByte  = (0x4 << 4) | 0x3;      // rB = 4, rA = 3
-    const imm      = 0x7E;                  // +126
+describe("TWO_REGISTERS_ONE_IMMEDIATE (add_imm_32)", () => {
+  it("correctly decodes and executes add_imm_32 instruction", () => {
+    const opcode = Opcodes.add_imm_32;          // 131
+    const regByte = (0x4 << 4) | 0x3;           // rB = 4, rA = 3
+    const imm = 126;                            // +126 immediate value
 
-    const mem      = instruction(opcode, regByte, imm);
-    const decoded  = decodeInstruction(mem, 0);
+    const code = Uint8Array.of(opcode, regByte, imm, Opcodes.trap);
+    const bitmask = Uint8Array.of(0b00001001);
 
-    expect(decoded.type).toBe(InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE);
-    expect(decoded.operands).toEqual([3, 4, 126n]);        // bigint from decodeSignedIntLE
+    const regs = Array(13).fill(0n);
+    regs[4] = 100n;  // rB initial value is 100
+
+    const s0 = buildState({ code, bitmask, registers: regs });
+
+    const s1 = executeSingleStep(s0);
+
+    expect(s1.registers[3]).toBe(226n); // rA (register 3) should hold rB + imm (100 + 126)
+
+    expect(s1.pc).toBe(3); // pc should advance to next instruction after add_imm_32
   });
 });
   

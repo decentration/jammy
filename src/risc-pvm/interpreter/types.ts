@@ -5,6 +5,8 @@ interface InterpreterContext {
   jumpTable: number[];          // deconstructed jump from deblob
   jumpEntryLength: number;        // Size of each jump index in bytes
   basicBlockStarts: Set<number>; // Precomputed basic block starts
+  heapStart: number;      // Initial heap start address for dynamic memeory allocation
+  heapPointer: number;    // Current position of the heap pointer for dynamic memory allocation
 }
 export type InterpreterState = {
   code: Uint8Array;            // Code to execute (ϲ), typically an ArrayBuffer-backed typed array

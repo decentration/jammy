@@ -98,7 +98,7 @@ export function decodeInstruction(memory: Uint8Array, pc: number): Instruction {
           console.log("Decoding ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET instruction", {pc, skipLen, memory});
           // A.26 
           const rA = memory[pc + 1] % 16;
-          const lX = Math.min(4, Math.floor(memory[pc + 1] / 16) % 8);
+          const lX = Math.min(4, Math.floor(memory[pc + 1] / 16) % 8); // length in bytes of first immediate, derived from upper nibble
           const immBytes = memory.slice(pc + 2, pc + 2 + lX);
           console.log("immBytes", immBytes);
           const imm = decodeSignedIntLE(immBytes);
@@ -121,11 +121,13 @@ export function decodeInstruction(memory: Uint8Array, pc: number): Instruction {
     
         case InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE: {
           // A.28 
-          const rA = memory[pc + 1] % 16;
-          const rB = Math.floor(memory[pc + 1] / 16);
-          const lX = immediateLength(skipLen - 1);
+          const rA = memory[pc + 1] % 16; // lower nibble is rA
+          const rB = Math.floor(memory[pc + 1] / 16); // upper nibble is rB
+          const lX = immediateLength(skipLen - 2); // 
+          console.log("Decoding TWO_REGISTERS_ONE_IMMEDIATE instruction", {rA, rB, lX, pc, skipLen});
           const immBytes = memory.slice(pc + 2, pc + 2 + lX);
           const imm = decodeSignedIntLE(immBytes);
+          console.log("Decoded TWO_REGISTERS_ONE_IMMEDIATE instruction", {rA, rB, imm, immBytes});
     
           instruction.operands = [rA, rB, imm];
           break;
@@ -147,7 +149,7 @@ export function decodeInstruction(memory: Uint8Array, pc: number): Instruction {
           // A.30 
           const rA = memory[pc + 1] % 16;
           const rB = Math.floor(memory[pc + 1] / 16);
-          const lX = Math.min(4, memory[pc + 2] % 8);
+          const lX = Math.min(4, memory[pc + 2] % 8); // length in bytes of first immediate, derived from upper nibble 
           const immXBytes = memory.slice(pc + 3, pc + 3 + lX);
           const immX = decodeSignedIntLE(immXBytes);
     

@@ -597,7 +597,57 @@ const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
   const orImmHandler       = twoRegImmOp((a, imm) => a | imm);              // OR 134
   const mulImm32Handler    = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFn); // 135
   
-  // TODO: 136-146 
+  // less than (signed and unsigned)
+  // const set_lt_u_imm = setCompareImm((a, b) => a < b); // 136
+
+  // opcode 136 (unsigned less than immediate)
+  const setLtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
+    ...state,
+    registers: state.registers.with(rA, state.registers[rB] < BigInt(imm) ? 1n : 0n),
+    pc: nextPc(state),
+    gas: state.gas - GAS_PER_INSTRUCTION,
+    exit: { type: ExitReasonType.Continue },
+
+  });
+
+  // opcode 137 (signed less than immediate)
+  const setLtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
+    ...state,
+    registers: state.registers.with(
+      rA,
+      BigInt.asIntN(64, state.registers[rB]) < BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
+    ),
+    pc: nextPc(state),
+    gas: state.gas - GAS_PER_INSTRUCTION,
+    exit: { type: ExitReasonType.Continue },
+
+  }); // 137
+
+  // TODO: 138-141
+
+  // greater than (signed and unsigned)
+  // opcode 142 (unsigned greater than immediate)
+  const setGtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
+    ...state,
+    registers: state.registers.with(rA, state.registers[rB] > BigInt(imm) ? 1n : 0n),
+    pc: nextPc(state),
+    gas: state.gas - GAS_PER_INSTRUCTION,
+    exit: { type: ExitReasonType.Continue },
+  });
+
+  // opcode 143 (signed greater than immediate)
+  const setGtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
+    ...state,
+    registers: state.registers.with(
+      rA,
+      BigInt.asIntN(64, state.registers[rB]) > BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
+    ),
+    pc: nextPc(state),
+    gas: state.gas - GAS_PER_INSTRUCTION,
+    exit: { type: ExitReasonType.Continue },
+  });
+
+  // TODO: 144-146
 
   // 147
   //  Moves the imm value to destination register rA if source rB is exactly zero, else destination is left unchanged
@@ -637,6 +687,8 @@ const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
   // Continued twoRegImmOp
   const addImm64Handler    = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFFFFFFFFFn); // 149
   const mulImm64Handler    = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFFFFFFFFFn); // 150
+
+  // TODO: 151-161
 
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
@@ -703,12 +755,18 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.and_imm]: andImmHandler,
   [Opcodes.xor_imm]: xorImmHandler,
   [Opcodes.or_imm]: orImmHandler,
-  [Opcodes.mul_imm_32]: mulImm32Handler,
+  [Opcodes.mul_imm_32]: mulImm32Handler, // 135
+  [Opcodes.set_lt_u_imm]: setLtUImmHandler, // 136
+  [Opcodes.set_lt_s_imm]: setLtSImmHandler, // 137
   //... TODO add in between 
-  [Opcodes.cmov_iz_imm]: cmovIzImmHandler,
+  [Opcodes.set_gt_u_imm]: setGtUImmHandler, // 142
+  [Opcodes.set_gt_s_imm]: setGtSImmHandler, // 143
+  //... TODO add in between
+  [Opcodes.cmov_iz_imm]: cmovIzImmHandler, // 147
   [Opcodes.cmov_nz_imm]: cmovNzImmHandler,
   [Opcodes.add_imm_64]: addImm64Handler,
   [Opcodes.mul_imm_64]: mulImm64Handler,
+  //.. TODO 151-161
   
   
 };
