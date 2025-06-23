@@ -623,7 +623,21 @@ const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
 
   }); // 137
 
-  // TODO: 138-141
+  // opcode 138 shift left logical immediate 32 bits
+  const shloLImm32Handler = twoRegImmOp((rB, imm) => ((rB << BigInt(imm % 32n)) & 0xFFFFFFFFn)); // 138
+
+  
+  // opcode 139 shift right logical immediate 32 bits
+  const shloRImm32Handler = twoRegImmOp((rB, imm) => ((rB & 0xFFFFFFFFn) >> BigInt(imm % 32n))); // 139
+
+  // opcode 140: shift right arithmetic immediate 32 bits
+  const sharRImm32Handler = twoRegImmOp((rB, imm) => 
+    BigInt.asIntN(32, rB & 0xFFFFFFFFn) >> BigInt(imm % 32n) // 140 
+  );
+
+  // opcode 141: negate and add immediate 32 bits
+  const negAddImm32Handler = twoRegImmOp((rB, imm) => (BigInt(imm) + (1n << 32n) - (rB & 0xFFFFFFFFn)) & 0xFFFFFFFFn); // 141
+
 
   // greater than (signed and unsigned)
   // opcode 142 (unsigned greater than immediate)
@@ -758,7 +772,10 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.mul_imm_32]: mulImm32Handler, // 135
   [Opcodes.set_lt_u_imm]: setLtUImmHandler, // 136
   [Opcodes.set_lt_s_imm]: setLtSImmHandler, // 137
-  //... TODO add in between 
+  [Opcodes.shlo_l_imm_32]: shloLImm32Handler, // 138  
+  [Opcodes.shlo_r_imm_32]: shloRImm32Handler, // 139
+  [Opcodes.shar_r_imm_32]: sharRImm32Handler, // 140
+  [Opcodes.neg_add_imm_32]: negAddImm32Handler, // 141
   [Opcodes.set_gt_u_imm]: setGtUImmHandler, // 142
   [Opcodes.set_gt_s_imm]: setGtSImmHandler, // 143
   //... TODO add in between
