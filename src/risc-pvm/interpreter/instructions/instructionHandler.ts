@@ -661,7 +661,21 @@ const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
     exit: { type: ExitReasonType.Continue },
   });
 
-  // TODO: 144-146
+  // opcode 144: shift left logical immediate alternative 32 bits
+const shloLImmAlt32Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asUintN(32, BigInt(imm) << (rB & 0x1Fn)) // wrap-around shift for 32-bit integers
+);
+
+// opcode 145: shift right logical immediate alternative 32 bits
+const shloRImmAlt32Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asUintN(32, BigInt(imm) >> (rB & 0x1Fn))
+);
+
+// opcode 146: shift right arithmetic immediate alternative 32 bits
+const sharRImmAlt32Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asIntN(32, BigInt.asIntN(32, imm) >> (rB & 0x1Fn))
+);
+
 
   // 147
   //  Moves the imm value to destination register rA if source rB is exactly zero, else destination is left unchanged
@@ -778,7 +792,9 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.neg_add_imm_32]: negAddImm32Handler, // 141
   [Opcodes.set_gt_u_imm]: setGtUImmHandler, // 142
   [Opcodes.set_gt_s_imm]: setGtSImmHandler, // 143
-  //... TODO add in between
+  [Opcodes.shlo_l_imm_alt_32]: shloLImmAlt32Handler, // 144
+  [Opcodes.shlo_r_imm_alt_32]: shloRImmAlt32Handler, // 145
+  [Opcodes.shar_r_imm_alt_32]: sharRImmAlt32Handler, // 146
   [Opcodes.cmov_iz_imm]: cmovIzImmHandler, // 147
   [Opcodes.cmov_nz_imm]: cmovNzImmHandler,
   [Opcodes.add_imm_64]: addImm64Handler,
