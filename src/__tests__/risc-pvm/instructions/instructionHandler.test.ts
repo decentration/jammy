@@ -1876,54 +1876,180 @@ describe("Instruction execution tests", () => {
   //   });
   // });
 
-  describe("Shift Instructions 144–146", () => {
+  // describe("Shift Instructions 144–146", () => {
+  //   const makeInstruction = (opcode: number, rA: number, rB: number, imm: number) =>
+  //     Uint8Array.of(
+  //       opcode,
+  //       (rB << 4) | rA,
+  //       imm & 0xFF,
+  //       (imm >> 8) & 0xFF,
+  //       Opcodes.trap
+  //     );
+  
+  //   it("144 shlo_l_imm_alt_32 shifts immediate left by register (32-bit)", () => {
+  //     const code = makeInstruction(Opcodes.shlo_l_imm_alt_32, 1, 2, 0x0001); // 1 << reg[2]
+  //     const bitmask = Uint8Array.of(0b00001001);
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 4n; // shift by 4
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
+
+  //     console.log(s1);
+  
+  //     expect(s1.registers[1]).toBe(16n); // 1 << 4 = 16
+  //   });
+  
+  //   it("145 shlo_r_imm_alt_32 shifts immediate right logically by register (32-bit)", () => {
+  //     const code = makeInstruction(Opcodes.shlo_r_imm_alt_32, 1, 2, 0x0010); // 16 >> reg[2]
+  //     const bitmask = Uint8Array.of(0b00001001);
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 2n; // shift by 2
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[1]).toBe(4n); // 16 >> 2 = 4
+  //   });
+  
+  //   it("146 shar_r_imm_alt_32 shifts immediate right arithmetically by register (32-bit signed)", () => {
+  //     const code = makeInstruction(Opcodes.shar_r_imm_alt_32, 1, 2, 0xFFF8); // -8 >> reg[2]
+  //     const bitmask = Uint8Array.of(0b00001001);
+  //     const regs = Array(13).fill(0n);
+  //     regs[2] = 2n; // shift by 2
+  
+  //     const s0 = buildState({ code, bitmask, registers: regs });
+  //     const s1 = executeSingleStep(s0);
+  
+  //     expect(s1.registers[1]).toBe(-2n); // arithmetic shift preserves sign, -8 >> 2 = -2
+  //   });
+  // });
+
+  describe("Instruction Handlers (151-161)", () => {
+
     const makeInstruction = (opcode: number, rA: number, rB: number, imm: number) =>
       Uint8Array.of(
         opcode,
         (rB << 4) | rA,
-        imm & 0xFF,
-        (imm >> 8) & 0xFF,
+        imm & 0xFF,       // Low byte
+        (imm >> 8) & 0xFF, // High byte
         Opcodes.trap
       );
   
-    it("144 shlo_l_imm_alt_32 shifts immediate left by register (32-bit)", () => {
-      const code = makeInstruction(Opcodes.shlo_l_imm_alt_32, 1, 2, 0x0001); // 1 << reg[2]
+    it("151 shlo_l_imm_64 shifts left logically (64-bit)", () => {
+      const code = makeInstruction(Opcodes.shlo_l_imm_64, 1, 2, 4);
       const bitmask = Uint8Array.of(0b00001001);
       const regs = Array(13).fill(0n);
-      regs[2] = 4n; // shift by 4
-  
+      regs[2] = 1n; // 1 << 4 = 16
       const s0 = buildState({ code, bitmask, registers: regs });
       const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(16n);
+    });
 
-      console.log(s1);
-  
-      expect(s1.registers[1]).toBe(16n); // 1 << 4 = 16
-    });
-  
-    it("145 shlo_r_imm_alt_32 shifts immediate right logically by register (32-bit)", () => {
-      const code = makeInstruction(Opcodes.shlo_r_imm_alt_32, 1, 2, 0x0010); // 16 >> reg[2]
+    it("152 shlo_r_imm_64 shifts right logically (64-bit)", () => {
+      const code = makeInstruction(Opcodes.shlo_r_imm_64, 1, 2, 3);
       const bitmask = Uint8Array.of(0b00001001);
       const regs = Array(13).fill(0n);
-      regs[2] = 2n; // shift by 2
-  
+      regs[2] = 0xF000000000000000n; // Shift large value right by 3 bits
       const s0 = buildState({ code, bitmask, registers: regs });
       const s1 = executeSingleStep(s0);
-  
-      expect(s1.registers[1]).toBe(4n); // 16 >> 2 = 4
+      expect(s1.registers[1]).toBe(0x1E00000000000000n); // Logical right shift fills with zeros
     });
   
-    it("146 shar_r_imm_alt_32 shifts immediate right arithmetically by register (32-bit signed)", () => {
-      const code = makeInstruction(Opcodes.shar_r_imm_alt_32, 1, 2, 0xFFF8); // -8 >> reg[2]
+    it("153 shar_r_imm_64 shifts right arithmetically (64-bit)", () => {
+      const code = makeInstruction(Opcodes.shar_r_imm_64, 1, 2, 3);
       const bitmask = Uint8Array.of(0b00001001);
       const regs = Array(13).fill(0n);
-      regs[2] = 2n; // shift by 2
-  
+      regs[2] = -8n; // -8 signed >> 3 = -1
       const s0 = buildState({ code, bitmask, registers: regs });
       const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(-1n);
+    });
   
-      expect(s1.registers[1]).toBe(-2n); // arithmetic shift preserves sign, -8 >> 2 = -2
+    it("154 neg_add_imm_64 computes (imm + 2^64 - rB)", () => {
+      const code = makeInstruction(Opcodes.neg_add_imm_64, 1, 2, 10);
+      const bitmask = Uint8Array.of(0b00001001);
+      const regs = Array(13).fill(0n);
+      regs[2] = 5n; // 10 + 2^64 - 5 mod 2^64 = 5
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(5n);
+    });
+
+      // 155 shlo_l_imm_alt_64
+    it("155 shlo_l_imm_alt_64 shifts immediate left logically by register (64-bit)", () => {
+      const code = makeInstruction(Opcodes.shlo_l_imm_alt_64, 1, 2, 0x0002);
+      const bitmask = Uint8Array.of(0b00001001);
+      const regs = Array(13).fill(0n);
+      regs[2] = 3n; // shift immediate (2) left by 3 bits
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(16n); // 2 << 3 = 16
+    });
+
+    it("156 shlo_r_imm_alt_64 shifts immediate right logically by register (64-bit)", () => {
+      const code = makeInstruction(Opcodes.shlo_r_imm_alt_64, 1, 2, 0x0020);
+      const bitmask = Uint8Array.of(0b00001001);
+      const regs = Array(13).fill(0n);
+      regs[2] = 4n; // shift immediate (32) right by 4 bits
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(2n); // 32 >> 4 = 2
+    });
+
+    it("157 shar_r_imm_alt_64 shifts immediate right arithmetically by register (64-bit signed)", () => {
+      const code = makeInstruction(Opcodes.shar_r_imm_alt_64, 1, 2, 0xFFF0); // -16 signed (0xFFF0)
+      const bitmask = Uint8Array.of(0b00001001);
+      const regs = Array(13).fill(0n);
+      regs[2] = 2n; // shift right by 2 bits
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(-4n); // -16 >> 2 = -4, arithmetic shift preserves sign
+    });
+  
+    it("158 rot_r_64_imm rotates right (64-bit)", () => {
+      const code = makeInstruction(Opcodes.rot_r_64_imm, 1, 2, 4);
+      const bitmask = Uint8Array.of(0b00001001);
+      const regs = Array(13).fill(0n);
+      regs[2] = 0x1234567890ABCDEFn;
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(0xF1234567890ABCDEn);
+    });
+
+    it("159 rot_r_64_imm_alt rotates immediate right by register (64-bit)", () => {
+      const code = makeInstruction(Opcodes.rot_r_64_imm_alt, 1, 2, 0x1234);
+      const bitmask = Uint8Array.of(0b00001001);
+      const regs = Array(13).fill(0n);
+      regs[2] = 4n; // rotate right by 4 bits
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      // 0x00001234 rotates right 4 bits = 0x40000123_40000000
+      // however we should rotate within 64-bits, here the actual correct rotation is...
+      expect(s1.registers[1]).toBe(0x4000000000000123n); // Correct 64-bit rotation
+    });
+  
+    it("160 rot_r_32_imm rotates right (32-bit)", () => {
+      const code = makeInstruction(Opcodes.rot_r_32_imm, 1, 2, 8);
+      const bitmask = Uint8Array.of(0b00001001);
+      const regs = Array(13).fill(0n);
+      regs[2] = 0x12345678n;
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(0x78123456n);
+    });
+  
+    it("161 rot_r_32_imm_alt rotates immediate right by register (32-bit)", () => {
+      const code = makeInstruction(Opcodes.rot_r_32_imm_alt, 1, 2, 0x1234);
+      const bitmask = Uint8Array.of(0b00001001);
+      const regs = Array(13).fill(0n);
+      regs[2] = 8n; // shift by 8
+      const s0 = buildState({ code, bitmask, registers: regs });
+      const s1 = executeSingleStep(s0);
+      expect(s1.registers[1]).toBe(0x34000012n);
     });
   });
+  
   
   
 

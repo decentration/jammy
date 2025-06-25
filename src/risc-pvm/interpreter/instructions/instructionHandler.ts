@@ -713,10 +713,59 @@ const sharRImmAlt32Handler: ExecutionHandler = twoRegImmOp(
 
 
   // Continued twoRegImmOp
-  const addImm64Handler    = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFFFFFFFFFn); // 149
-  const mulImm64Handler    = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFFFFFFFFFn); // 150
+  const addImm64Handler: ExecutionHandler = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFFFFFFFFFn); // 149
+  const mulImm64Handler: ExecutionHandler = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFFFFFFFFFn); // 150
 
-  // TODO: 151-161
+  const shloLImm64Handler: ExecutionHandler = twoRegImmOp(
+    (rB, imm) => BigInt.asUintN(64, rB << (imm & 0x3Fn))
+  );
+  
+  const shloRImm64Handler: ExecutionHandler = twoRegImmOp(
+    (rB, imm) => BigInt.asUintN(64, rB >> (imm & 0x3Fn))
+  );
+  
+  const sharRImm64Handler: ExecutionHandler = twoRegImmOp(
+    (rB, imm) => BigInt.asIntN(64, BigInt.asIntN(64, rB) >> (imm & 0x3Fn))
+  );
+  
+  const negAddImm64Handler: ExecutionHandler = twoRegImmOp(
+    (rB, imm) => BigInt.asUintN(64, (imm + (1n << 64n) - rB))
+  );
+  
+  const shloLImmAlt64Handler: ExecutionHandler = twoRegImmOp(
+    (rB, imm) => BigInt.asUintN(64, imm << (rB & 0x3Fn))
+  );
+  
+  const shloRImmAlt64Handler: ExecutionHandler = twoRegImmOp(
+    (rB, imm) => BigInt.asUintN(64, imm >> (rB & 0x3Fn))
+  );
+  
+  const sharRImmAlt64Handler: ExecutionHandler = twoRegImmOp(
+    (rB, imm) => BigInt.asIntN(64, BigInt.asIntN(64, imm) >> (rB & 0x3Fn))
+  );
+  
+  const rotateR64ImmHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
+    const shift = Number(imm & 0x3Fn);
+    return BigInt.asUintN(64, (rB >> BigInt(shift)) | (rB << BigInt(64 - shift)));
+  });
+  
+  const rotateR64ImmAltHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
+    const shift = Number(rB & 0x3Fn);
+    return BigInt.asUintN(64, (imm >> BigInt(shift)) | (imm << BigInt(64 - shift)));
+  });
+  
+  const rotateR32ImmHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
+    const shift = Number(imm & 0x1Fn);
+    const val32 = BigInt.asUintN(32, rB);
+    return BigInt.asUintN(32, (val32 >> BigInt(shift)) | (val32 << BigInt(32 - shift)));
+  });
+  
+  const rotateR32ImmAltHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
+    const shift = Number(rB & 0x1Fn);
+    const val32 = BigInt.asUintN(32, imm);
+    return BigInt.asUintN(32, (val32 >> BigInt(shift)) | (val32 << BigInt(32 - shift))); // 
+  });
+  
 
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
@@ -799,7 +848,18 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.cmov_nz_imm]: cmovNzImmHandler,
   [Opcodes.add_imm_64]: addImm64Handler,
   [Opcodes.mul_imm_64]: mulImm64Handler,
-  //.. TODO 151-161
+  [Opcodes.shlo_l_imm_64]: shloLImm64Handler, // 151
+  [Opcodes.shlo_r_imm_64]: shloRImm64Handler, // 152
+  [Opcodes.shar_r_imm_64]: sharRImm64Handler, // 153
+  [Opcodes.neg_add_imm_64]: negAddImm64Handler, // 154
+  [Opcodes.shlo_l_imm_alt_64]: shloLImmAlt64Handler, // 155
+  [Opcodes.shlo_r_imm_alt_64]: shloRImmAlt64Handler, // 156
+  [Opcodes.shar_r_imm_alt_64]: sharRImmAlt64Handler, // 157
+  [Opcodes.rot_r_64_imm]: rotateR64ImmHandler, // 158
+  [Opcodes.rot_r_64_imm_alt]: rotateR64ImmAltHandler, // 159
+  [Opcodes.rot_r_32_imm]: rotateR32ImmHandler, // 160
+  [Opcodes.rot_r_32_imm_alt]: rotateR32ImmAltHandler, // 161
+
   
   
 };
