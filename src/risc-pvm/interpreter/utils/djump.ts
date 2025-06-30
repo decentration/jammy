@@ -5,12 +5,12 @@ type DjumpResult = { exitReason: ExitReasonType; pc: number };
 
 // (A.18) from protocol spec 
 export function djump(a: number, jumpTable: number[], basicBlockStarts: Set<number>): DjumpResult {
+  console.log("Executing djump with a:", a, "jumpTable length:", jumpTable.length, "basicBlockStarts size:", basicBlockStarts.size);
 
   // first condition of djump function
-  if (a === (2**32 - 2**16)) {
+  if (a === (2**32 - 2**16)) { // 2**32 means 
     return { exitReason: ExitReasonType.Halt, pc: 0 };
   }
-
 
   // second confition of djump function
   if ( a === 0 || a % JUMP_ALIGNMENT_FACTOR !== 0 ||

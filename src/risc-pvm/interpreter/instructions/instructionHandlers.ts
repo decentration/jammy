@@ -574,94 +574,94 @@ const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
 
 
 
-  // Load indirect ops
-  const loadIndU8Handler  = loadInd(1, false);  // 124
-  const loadIndI8Handler  = loadInd(1, true);   // 125
-  const loadIndU16Handler = loadInd(2, false);  // 126
-  const loadIndI16Handler = loadInd(2, true);   // 127
-  const loadIndU32Handler = loadInd(4, false);  // 128
-  const loadIndI32Handler = loadInd(4, true);   // 129
-  const loadIndU64Handler = loadInd(8, false);  // 130
+// Load indirect ops
+const loadIndU8Handler  = loadInd(1, false);  // 124
+const loadIndI8Handler  = loadInd(1, true);   // 125
+const loadIndU16Handler = loadInd(2, false);  // 126
+const loadIndI16Handler = loadInd(2, true);   // 127
+const loadIndU32Handler = loadInd(4, false);  // 128
+const loadIndI32Handler = loadInd(4, true);   // 129
+const loadIndU64Handler = loadInd(8, false);  // 130
 
-  const twoRegImmOp = (fn: (regVal: bigint, imm: bigint) => bigint): ExecutionHandler =>
-    (state, [rA, rB, imm]) => {
-      const registers = state.registers.slice();
-      registers[rA] = fn(registers[rB], imm);
-      return { ...state, registers, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
-    };
+const twoRegImmOp = (fn: (regVal: bigint, imm: bigint) => bigint): ExecutionHandler =>
+  (state, [rA, rB, imm]) => {
+    const registers = state.registers.slice();
+    registers[rA] = fn(registers[rB], imm);
+    return { ...state, registers, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
+  };
 
-  // twoRegImmOp: Arithmetic and logical using twoRegImmOp
-  const addImm32Handler    = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFn); // 131
-  const andImmHandler      = twoRegImmOp((a, imm) => a & imm);                 // 132
-  const xorImmHandler      = twoRegImmOp((a, imm) => a ^ imm);             // XOR 133
-  const orImmHandler       = twoRegImmOp((a, imm) => a | imm);              // OR 134
-  const mulImm32Handler    = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFn); // 135
-  
-  // less than (signed and unsigned)
-  // const set_lt_u_imm = setCompareImm((a, b) => a < b); // 136
+// twoRegImmOp: Arithmetic and logical using twoRegImmOp
+const addImm32Handler    = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFn); // 131
+const andImmHandler      = twoRegImmOp((a, imm) => a & imm);                 // 132
+const xorImmHandler      = twoRegImmOp((a, imm) => a ^ imm);             // XOR 133
+const orImmHandler       = twoRegImmOp((a, imm) => a | imm);              // OR 134
+const mulImm32Handler    = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFn); // 135
 
-  // opcode 136 (unsigned less than immediate)
-  const setLtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
-    ...state,
-    registers: state.registers.with(rA, state.registers[rB] < BigInt(imm) ? 1n : 0n),
-    pc: nextPc(state),
-    gas: state.gas - GAS_PER_INSTRUCTION,
-    exit: { type: ExitReasonType.Continue },
+// less than (signed and unsigned)
+// const set_lt_u_imm = setCompareImm((a, b) => a < b); // 136
 
-  });
+// opcode 136 (unsigned less than immediate)
+const setLtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
+  ...state,
+  registers: state.registers.with(rA, state.registers[rB] < BigInt(imm) ? 1n : 0n),
+  pc: nextPc(state),
+  gas: state.gas - GAS_PER_INSTRUCTION,
+  exit: { type: ExitReasonType.Continue },
 
-  // opcode 137 (signed less than immediate)
-  const setLtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
-    ...state,
-    registers: state.registers.with(
-      rA,
-      BigInt.asIntN(64, state.registers[rB]) < BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
-    ),
-    pc: nextPc(state),
-    gas: state.gas - GAS_PER_INSTRUCTION,
-    exit: { type: ExitReasonType.Continue },
+});
 
-  }); // 137
+// opcode 137 (signed less than immediate)
+const setLtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
+  ...state,
+  registers: state.registers.with(
+    rA,
+    BigInt.asIntN(64, state.registers[rB]) < BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
+  ),
+  pc: nextPc(state),
+  gas: state.gas - GAS_PER_INSTRUCTION,
+  exit: { type: ExitReasonType.Continue },
 
-  // opcode 138 shift left logical immediate 32 bits
-  const shloLImm32Handler = twoRegImmOp((rB, imm) => ((rB << BigInt(imm % 32n)) & 0xFFFFFFFFn)); // 138
+}); // 137
 
-  
-  // opcode 139 shift right logical immediate 32 bits
-  const shloRImm32Handler = twoRegImmOp((rB, imm) => ((rB & 0xFFFFFFFFn) >> BigInt(imm % 32n))); // 139
-
-  // opcode 140: shift right arithmetic immediate 32 bits
-  const sharRImm32Handler = twoRegImmOp((rB, imm) => 
-    BigInt.asIntN(32, rB & 0xFFFFFFFFn) >> BigInt(imm % 32n) // 140 
-  );
-
-  // opcode 141: negate and add immediate 32 bits
-  const negAddImm32Handler = twoRegImmOp((rB, imm) => (BigInt(imm) + (1n << 32n) - (rB & 0xFFFFFFFFn)) & 0xFFFFFFFFn); // 141
+// opcode 138 shift left logical immediate 32 bits
+const shloLImm32Handler = twoRegImmOp((rB, imm) => ((rB << BigInt(imm % 32n)) & 0xFFFFFFFFn)); // 138
 
 
-  // greater than (signed and unsigned)
-  // opcode 142 (unsigned greater than immediate)
-  const setGtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
-    ...state,
-    registers: state.registers.with(rA, state.registers[rB] > BigInt(imm) ? 1n : 0n),
-    pc: nextPc(state),
-    gas: state.gas - GAS_PER_INSTRUCTION,
-    exit: { type: ExitReasonType.Continue },
-  });
+// opcode 139 shift right logical immediate 32 bits
+const shloRImm32Handler = twoRegImmOp((rB, imm) => ((rB & 0xFFFFFFFFn) >> BigInt(imm % 32n))); // 139
 
-  // opcode 143 (signed greater than immediate)
-  const setGtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
-    ...state,
-    registers: state.registers.with(
-      rA,
-      BigInt.asIntN(64, state.registers[rB]) > BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
-    ),
-    pc: nextPc(state),
-    gas: state.gas - GAS_PER_INSTRUCTION,
-    exit: { type: ExitReasonType.Continue },
-  });
+// opcode 140: shift right arithmetic immediate 32 bits
+const sharRImm32Handler = twoRegImmOp((rB, imm) => 
+  BigInt.asIntN(32, rB & 0xFFFFFFFFn) >> BigInt(imm % 32n) // 140 
+);
 
-  // opcode 144: shift left logical immediate alternative 32 bits
+// opcode 141: negate and add immediate 32 bits
+const negAddImm32Handler = twoRegImmOp((rB, imm) => (BigInt(imm) + (1n << 32n) - (rB & 0xFFFFFFFFn)) & 0xFFFFFFFFn); // 141
+
+
+// greater than (signed and unsigned)
+// opcode 142 (unsigned greater than immediate)
+const setGtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
+  ...state,
+  registers: state.registers.with(rA, state.registers[rB] > BigInt(imm) ? 1n : 0n),
+  pc: nextPc(state),
+  gas: state.gas - GAS_PER_INSTRUCTION,
+  exit: { type: ExitReasonType.Continue },
+});
+
+// opcode 143 (signed greater than immediate)
+const setGtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
+  ...state,
+  registers: state.registers.with(
+    rA,
+    BigInt.asIntN(64, state.registers[rB]) > BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
+  ),
+  pc: nextPc(state),
+  gas: state.gas - GAS_PER_INSTRUCTION,
+  exit: { type: ExitReasonType.Continue },
+});
+
+// opcode 144: shift left logical immediate alternative 32 bits
 const shloLImmAlt32Handler: ExecutionHandler = twoRegImmOp(
   (rB, imm) => BigInt.asUintN(32, BigInt(imm) << (rB & 0x1Fn)) // wrap-around shift for 32-bit integers
 );
@@ -677,95 +677,269 @@ const sharRImmAlt32Handler: ExecutionHandler = twoRegImmOp(
 );
 
 
-  // 147
-  //  Moves the imm value to destination register rA if source rB is exactly zero, else destination is left unchanged
-  const cmovIzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
-    const registers = state.registers.slice();
+// 147
+//  Moves the imm value to destination register rA if source rB is exactly zero, else destination is left unchanged
+const cmovIzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
+  const registers = state.registers.slice();
 
-    // Check if the source register rB is zero
-    registers[rA] = registers[rB] === 0n ? imm : registers[rA];
+  // Check if the source register rB is zero
+  registers[rA] = registers[rB] === 0n ? imm : registers[rA];
+
+  return { 
+    ...state, 
+    registers, 
+    pc: nextPc(state), 
+    gas: state.gas - GAS_PER_INSTRUCTION, 
+    exit: { type: ExitReasonType.Continue } 
+  };
+};
+
+// 148
+// Moves the imm value to destination register rA if source rB is not zero, else destination is left unchanged
+const cmovNzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
+  const registers = state.registers.slice();
+
+  // Check if rB is not zero, if so, set rA to imm, else keep rA unchanged
+  registers[rA] = registers[rB] !== 0n ? imm : registers[rA];
+
+  return { 
+    ...state, 
+    registers, 
+    pc: nextPc(state), 
+    gas: state.gas - GAS_PER_INSTRUCTION, 
+    exit: { type: ExitReasonType.Continue } 
+  };
+};
+
+
+const addImm64Handler: ExecutionHandler = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFFFFFFFFFn); // 149
+const mulImm64Handler: ExecutionHandler = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFFFFFFFFFn); // 150
+
+const shloLImm64Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asUintN(64, rB << (imm & 0x3Fn))
+); // 151
+
+const shloRImm64Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asUintN(64, rB >> (imm & 0x3Fn))
+); // 152
+
+const sharRImm64Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asIntN(64, BigInt.asIntN(64, rB) >> (imm & 0x3Fn))
+); // 153
+
+const negAddImm64Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asUintN(64, (imm + (1n << 64n) - rB))
+); // 154
+
+const shloLImmAlt64Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asUintN(64, imm << (rB & 0x3Fn))
+); // 155
+
+const shloRImmAlt64Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asUintN(64, imm >> (rB & 0x3Fn))
+); // 156
+
+const sharRImmAlt64Handler: ExecutionHandler = twoRegImmOp(
+  (rB, imm) => BigInt.asIntN(64, BigInt.asIntN(64, imm) >> (rB & 0x3Fn))
+); // 157
+
+const rotateR64ImmHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
+  const shift = Number(imm & 0x3Fn);
+  return BigInt.asUintN(64, (rB >> BigInt(shift)) | (rB << BigInt(64 - shift)));
+}); // 158
+
+const rotateR64ImmAltHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
+  const shift = Number(rB & 0x3Fn);
+  return BigInt.asUintN(64, (imm >> BigInt(shift)) | (imm << BigInt(64 - shift)));
+}); // 159
+
+const rotateR32ImmHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
+  const shift = Number(imm & 0x1Fn);
+  const val32 = BigInt.asUintN(32, rB);
+  return BigInt.asUintN(32, (val32 >> BigInt(shift)) | (val32 << BigInt(32 - shift)));
+}); // 160
+
+const rotateR32ImmAltHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
+  const shift = Number(rB & 0x1Fn);
+  const val32 = BigInt.asUintN(32, imm);
+  return BigInt.asUintN(32, (val32 >> BigInt(shift)) | (val32 << BigInt(32 - shift))); // 
+}); // 161
+
+const branchRegisterHandler = (
+  condition: (regA: bigint, regB: bigint) => boolean
+): ExecutionHandler => (state, [rA, rB, offset]) => {
+
+  const basicBlockStarts = state.context?.basicBlockStarts;
+  if (!basicBlockStarts) return panic(state);
+
+  const regAVal = state.registers[rA];
+  const regBVal = state.registers[rB];
+  const shouldBranch = condition(regAVal, regBVal);
+  const targetPc = state.pc + Number(offset);
+
+  const { exitReason, pc } = branch(
+    targetPc,
+    shouldBranch,
+    basicBlockStarts,
+    nextPc(state)
+  );
+
+  return {
+    ...state,
+    pc,
+    gas: state.gas - GAS_COST_JUMP,
+    exit: { type: exitReason },
+  };
+};
+
+const branchEqHandler = branchRegisterHandler((a, b) => a === b); // 170
+const branchNeHandler = branchRegisterHandler((a, b) => a !== b); // 171
+const branchLtUHandler = branchRegisterHandler((a, b) => a < b);  // 172
+const branchLtSHandler = branchRegisterHandler((a, b) => BigInt.asIntN(64, a) < BigInt.asIntN(64, b));  // 173
+const branchGeUHandler = branchRegisterHandler((a, b) => a >= b);  // 174
+const branchGeSHandler = branchRegisterHandler((a, b) => BigInt.asIntN(64, a) >= BigInt.asIntN(64, b)); // 175
+
+const loadImmJumpIndHandler: ExecutionHandler = (state, [rA, rB, immX, immY]) => {
+  const registers = state.registers.slice();
   
-    return { 
-      ...state, 
-      registers, 
-      pc: nextPc(state), 
-      gas: state.gas - GAS_PER_INSTRUCTION, 
-      exit: { type: ExitReasonType.Continue } 
+  // Load immediate vX directly into rA
+  registers[rA] = BigInt(immX);
+
+  // Compute the indirect jump address as (wB + vY) mod 2^32
+  const jumpIndex = Number((state.registers[rB] + BigInt(immY)) & 0xFFFFFFFFn);
+  
+  // djump via the jump table to find actual target pc
+  const { pc, exitReason } = djump(jumpIndex, state.context!.jumpTable, state.context!.basicBlockStarts);
+
+  return {
+    ...state,
+    registers,
+    pc,
+    gas: state.gas - 1,
+    exit: { type: exitReason },  
+  };
+};
+
+const threeRegOp = ( 
+  fn: (a: bigint, b: bigint) => bigint,
+  gas: number = GAS_PER_INSTRUCTION): ExecutionHandler =>
+  (s, [rA, rB, rD]) => {
+    console.log(`Executing threeRegOp with rD: ${rD}, rA: ${rA}, rB: ${rB}`);
+    const regs = s.registers.slice();
+    regs[rD] = fn(regs[rA], regs[rB]);
+
+    return {
+      ...s,
+      registers: regs,
+      pc : nextPc(s),
+      gas: s.gas - gas,
+      exit: { type: ExitReasonType.Continue }
     };
   };
-  
-  // 148
-  // Moves the imm value to destination register rA if source rB is not zero, else destination is left unchanged
-  const cmovNzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
-    const registers = state.registers.slice();
 
-    // Check if rB is not zero, if so, set rA to imm, else keep rA unchanged
-    registers[rA] = registers[rB] !== 0n ? imm : registers[rA];
-  
-    return { 
-      ...state, 
-      registers, 
-      pc: nextPc(state), 
-      gas: state.gas - GAS_PER_INSTRUCTION, 
-      exit: { type: ExitReasonType.Continue } 
-    };
-  };
+// mask BigInt to lowest 32 bits
+const low32 = (x: bigint) => x & 0xFFFF_FFFFn;
 
+// sign-extend lowest 32 bits to 64-bit BigInt
+const toSigned32  = (x: bigint) => BigInt.asIntN(32, x);
 
-  // Continued twoRegImmOp
-  const addImm64Handler: ExecutionHandler = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFFFFFFFFFn); // 149
-  const mulImm64Handler: ExecutionHandler = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFFFFFFFFFn); // 150
+const add32Handler = threeRegOp((a, b) => low32(a + b)); // 190
+const sub32Handler = threeRegOp((a, b) => low32(a + (0x1_0000_0000n - low32(b)))); // 191
+const mul32Handler = threeRegOp((a, b) => low32(a * b)); // 192
+const divU32Handler = threeRegOp((a, b) => low32(b) === 0n ? 0xFFFF_FFFFn : low32(a) / low32(b)); // 193
 
-  const shloLImm64Handler: ExecutionHandler = twoRegImmOp(
-    (rB, imm) => BigInt.asUintN(64, rB << (imm & 0x3Fn))
-  );
-  
-  const shloRImm64Handler: ExecutionHandler = twoRegImmOp(
-    (rB, imm) => BigInt.asUintN(64, rB >> (imm & 0x3Fn))
-  );
-  
-  const sharRImm64Handler: ExecutionHandler = twoRegImmOp(
-    (rB, imm) => BigInt.asIntN(64, BigInt.asIntN(64, rB) >> (imm & 0x3Fn))
-  );
-  
-  const negAddImm64Handler: ExecutionHandler = twoRegImmOp(
-    (rB, imm) => BigInt.asUintN(64, (imm + (1n << 64n) - rB))
-  );
-  
-  const shloLImmAlt64Handler: ExecutionHandler = twoRegImmOp(
-    (rB, imm) => BigInt.asUintN(64, imm << (rB & 0x3Fn))
-  );
-  
-  const shloRImmAlt64Handler: ExecutionHandler = twoRegImmOp(
-    (rB, imm) => BigInt.asUintN(64, imm >> (rB & 0x3Fn))
-  );
-  
-  const sharRImmAlt64Handler: ExecutionHandler = twoRegImmOp(
-    (rB, imm) => BigInt.asIntN(64, BigInt.asIntN(64, imm) >> (rB & 0x3Fn))
-  );
-  
-  const rotateR64ImmHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
-    const shift = Number(imm & 0x3Fn);
-    return BigInt.asUintN(64, (rB >> BigInt(shift)) | (rB << BigInt(64 - shift)));
-  });
-  
-  const rotateR64ImmAltHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
-    const shift = Number(rB & 0x3Fn);
-    return BigInt.asUintN(64, (imm >> BigInt(shift)) | (imm << BigInt(64 - shift)));
-  });
-  
-  const rotateR32ImmHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
-    const shift = Number(imm & 0x1Fn);
-    const val32 = BigInt.asUintN(32, rB);
-    return BigInt.asUintN(32, (val32 >> BigInt(shift)) | (val32 << BigInt(32 - shift)));
-  });
-  
-  const rotateR32ImmAltHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
-    const shift = Number(rB & 0x1Fn);
-    const val32 = BigInt.asUintN(32, imm);
-    return BigInt.asUintN(32, (val32 >> BigInt(shift)) | (val32 << BigInt(32 - shift))); // 
-  });
-  
+// 194
+const divS32Handler = threeRegOp((a, b) => {
+  const a32 = toSigned32(a);
+  const b32 = toSigned32(b);
+
+  if (b32 === 0n) return 0xFFFF_FFFFn; // division-by-zero case
+  if (a32 === -0x8000_0000n && b32 === -1n) return 0x8000_0000n; // special saturation case
+
+  // Regular signed division, then converted back to unsigned 32-bit storage
+  return low32(a32 / b32);
+});
+
+const remU32Handler = threeRegOp((a, b) => low32(b) === 0n ? low32(a) : low32(a) % low32(b)); // 195
+
+// 196
+const remS32Handler = threeRegOp((a, b) => {
+  const A = toSigned32(a), B = toSigned32(b);
+  if (B === 0n) return 0n;
+  if (A === (-0x8000_0000n) && B === -1n) return 0n;
+  return low32(BigInt.asIntN(32, A % B));
+});
+
+const shloL32Handler = threeRegOp((a, b) => low32(a << (b & 31n))); // 197
+const shloR32Handler = threeRegOp((a, b) => low32(a) >> (b & 31n)); // 198
+
+// 199
+const sharR32Handler = threeRegOp((a, b) => {
+  const a32 = toSigned32(a);
+  return low32(a32 >> (b & 31n));
+}); 
+
+const low64 = (x: bigint) => x & 0xFFFFFFFFFFFFFFFFn;
+
+const add64Handler = threeRegOp((a, b) => low64(a + b)); // 200
+const sub64Handler = threeRegOp((a, b) => low64(a - b)); // 201
+const mul64Handler = threeRegOp((a, b) => low64(a * b)); // 202
+const divU64Handler = threeRegOp((a, b) => b === 0n ? 0xFFFFFFFFFFFFFFFFn : low64(a / b)); // 203
+
+// 204
+const divS64Handler = threeRegOp((a, b) => {
+  const sa = toSigned64(a), sb = toSigned64(b);
+  if (sb === 0n) return 0xFFFFFFFFFFFFFFFFn;
+  if (sa === -0x8000000000000000n && sb === -1n) return sa;
+  return low64(sa / sb);
+});
+
+const remU64Handler = threeRegOp((a, b) => b === 0n ? a : low64(a % b)); // 205
+
+// 206
+const remS64Handler = threeRegOp((a, b) => {
+  const sa = toSigned64(a), sb = toSigned64(b);
+  if (sa === -0x8000000000000000n && sb === -1n) return 0n;
+  return low64(sa % sb);
+});
+
+const shloL64Handler = threeRegOp((a, b) => low64(a << (b % 64n))); // 207
+const shloR64Handler = threeRegOp((a, b) => low64(a >> (b % 64n))); // 208
+const sharR64Handler = threeRegOp((a, b) => toSigned64(a) >> (b % 64n)); // 209
+const andHandler = threeRegOp((a, b) => a & b); // 210
+const xorHandler = threeRegOp((a, b) => a ^ b); // 211
+const orHandler = threeRegOp((a, b) => a | b); // 212
+const mulUpperSSHandler = threeRegOp((a, b) => BigInt.asIntN(64, (BigInt.asIntN(64, a) * BigInt.asIntN(64, b)) >> 64n)); // 213
+const mulUpperUUHandler = threeRegOp((a, b) => (a * b) >> 64n); // 214
+const mulUpperSUHandler = threeRegOp((a, b) => BigInt.asIntN(64, (BigInt.asIntN(64, a) * b) >> 64n)); // 215
+const setLtUHandler = threeRegOp((a, b) => (a < b ? 1n : 0n)); // 216
+const setLtSHandler = threeRegOp((a, b) => (toSigned64(a) < toSigned64(b) ? 1n : 0n)); // 217
+
+// 218
+const cmovIzHandler: ExecutionHandler = (s, [rB, rA, rD]) => {
+  const regs = s.registers.slice();
+  if (regs[rB] === 0n) regs[rD] = regs[rA];
+  return { ...s, registers: regs, pc: nextPc(s), gas: s.gas - GAS_PER_INSTRUCTION };
+};
+
+// 219
+const cmovNzHandler: ExecutionHandler = (s, [rB, rA, rD]) => {
+  const regs = s.registers.slice();
+  if (regs[rB] !== 0n) regs[rD] = regs[rA];
+  return { ...s, registers: regs, pc: nextPc(s), gas: s.gas - GAS_PER_INSTRUCTION };
+};
+
+const rotL64Handler = threeRegOp((a, b) => ((a << (b % 64n)) | (a >> (64n - (b % 64n)))) & 0xFFFF_FFFF_FFFF_FFFFn); // 220
+const rotL32Handler = threeRegOp((a, b) => ((a << (b % 32n)) | (a >> (32n - (b % 32n)))) & 0xFFFF_FFFFn); // 221
+const rotR64Handler = threeRegOp((a, b) => ((a >> (b % 64n)) | (a << (64n - (b % 64n)))) & 0xFFFF_FFFF_FFFF_FFFFn); // 222
+const rotR32Handler = threeRegOp((a, b) => ((a >> (b % 32n)) | (a << (32n - (b % 32n)))) & 0xFFFF_FFFFn); // 223
+const andInvHandler = threeRegOp((a, b) => a & (~b & 0xFFFF_FFFF_FFFF_FFFFn)); // 224
+const orInvHandler  = threeRegOp((a, b) => a | (~b & 0xFFFF_FFFF_FFFF_FFFFn)); // 225
+const xnorHandler   = threeRegOp((a, b) => ~(a ^ b) & 0xFFFF_FFFF_FFFF_FFFFn); // 226
+const maxSignedHandler = threeRegOp((a, b) => BigInt.asIntN(64, a) > BigInt.asIntN(64, b) ? BigInt.asIntN(64, a) : BigInt.asIntN(64, b));
+const maxUnsignedHandler = threeRegOp((a, b) => a > b ? a : b);
+const minSignedHandler = threeRegOp((a, b) => BigInt.asIntN(64, a) < BigInt.asIntN(64, b) ? BigInt.asIntN(64, a) : BigInt.asIntN(64, b));
+const minUnsignedHandler = threeRegOp((a, b) => a < b ? a : b);
 
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
@@ -831,7 +1005,7 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.add_imm_32]: addImm32Handler,
   [Opcodes.and_imm]: andImmHandler,
   [Opcodes.xor_imm]: xorImmHandler,
-  [Opcodes.or_imm]: orImmHandler,
+  [Opcodes.or_imm]: orImmHandler, 
   [Opcodes.mul_imm_32]: mulImm32Handler, // 135
   [Opcodes.set_lt_u_imm]: setLtUImmHandler, // 136
   [Opcodes.set_lt_s_imm]: setLtSImmHandler, // 137
@@ -859,7 +1033,53 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.rot_r_64_imm_alt]: rotateR64ImmAltHandler, // 159
   [Opcodes.rot_r_32_imm]: rotateR32ImmHandler, // 160
   [Opcodes.rot_r_32_imm_alt]: rotateR32ImmAltHandler, // 161
+  [Opcodes.branch_eq]: branchEqHandler, // 170
+  [Opcodes.branch_ne]: branchNeHandler, // 171
+  [Opcodes.branch_lt_u]: branchLtUHandler, // 172
+  [Opcodes.branch_lt_s]: branchLtSHandler, // 173
+  [Opcodes.branch_ge_u]: branchGeUHandler, // 174
+  [Opcodes.branch_ge_s]: branchGeSHandler, // 175
+  [Opcodes.load_imm_jump_ind]: loadImmJumpIndHandler, // 180
+  [Opcodes.add_32]: add32Handler, // 190
+  [Opcodes.sub_32]: sub32Handler, // 191
+  [Opcodes.mul_32]: mul32Handler, // 192
+  [Opcodes.div_u_32]: divU32Handler, // 193
+  [Opcodes.div_s_32]: divS32Handler, // 194
+  [Opcodes.rem_u_32]: remU32Handler, // 195
+  [Opcodes.rem_s_32]: remS32Handler, // 196
+  [Opcodes.shlo_l_32]: shloL32Handler, // 197
+  [Opcodes.shlo_r_32]: shloR32Handler, // 198
+  [Opcodes.shar_r_32]: sharR32Handler, // 199
+  [Opcodes.add_64]: add64Handler, // 200
+  [Opcodes.sub_64]: sub64Handler, // 201
+  [Opcodes.mul_64]: mul64Handler, // 202
+  [Opcodes.div_u_64]: divU64Handler, // 203
+  [Opcodes.div_s_64]: divS64Handler, // 204
+  [Opcodes.rem_u_64]: remU64Handler, // 205
+  [Opcodes.rem_s_64]: remS64Handler, // 206
+  [Opcodes.shlo_l_64]: shloL64Handler, // 207
+  [Opcodes.shlo_r_64]: shloR64Handler, // 208
+  [Opcodes.shar_r_64]: sharR64Handler, // 209
+  [Opcodes.and]: andHandler, // 210
+  [Opcodes.xor]: xorHandler, // 211
+  [Opcodes.or]: orHandler, // 212
+  [Opcodes.mul_upper_s_s]: mulUpperSSHandler, // 213
+  [Opcodes.mul_upper_u_u]: mulUpperUUHandler, // 214
+  [Opcodes.mul_upper_s_u]: mulUpperSUHandler, // 215
+  [Opcodes.set_lt_u]: setLtUHandler, // 216
+  [Opcodes.set_lt_s]: setLtSHandler, // 217
+  [Opcodes.cmov_iz]: cmovIzHandler, // 218
+  [Opcodes.cmov_nz]: cmovNzHandler, // 219
+  [Opcodes.rot_l_64]: rotL64Handler, // 220
+  [Opcodes.rot_l_32]: rotL32Handler, // 221
+  [Opcodes.rot_r_64]: rotR64Handler, // 222
+  [Opcodes.rot_r_32]: rotR32Handler, // 223
+  [Opcodes.and_inv]: andInvHandler, // 224
+  [Opcodes.or_inv]: orInvHandler, // 225
+  [Opcodes.xnor]: xnorHandler, // 226
+  [Opcodes.max]: maxSignedHandler, // 227
+  [Opcodes.max_u]: maxUnsignedHandler, // 228
+  [Opcodes.min]: minSignedHandler, // 229
+  [Opcodes.min_u]: minUnsignedHandler, // 230
 
-  
-  
 };

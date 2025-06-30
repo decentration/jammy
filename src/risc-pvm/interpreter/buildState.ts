@@ -6,8 +6,8 @@ import { computeBasicBlockStarts } from "./computeBasicBlockStarts";
 import { prettyState } from "./utils/debug";
 
 export function buildState(opts: {
-  code: Uint8Array;
-  bitmask: Uint8Array;
+  code?: Uint8Array;
+  bitmask?: Uint8Array;
   initialGas?: number;
   blob?: Uint8Array;
   registers?: bigint[];
@@ -33,6 +33,12 @@ export function buildState(opts: {
     jumpTable = jumpEntries.map(entry => decodeProtocolInt(entry).value);
   }
 
+  if (!instructionData || instructionData.length === 0) {
+    throw new Error("No instruction data provided. Either provide code or a valid blob.");
+  }
+  if (!opcodeBitmask || opcodeBitmask.length === 0) {
+    throw new Error("No opcode bitmask provided. Either provide bitmask or a valid blob.");
+  }
   const opcodeMaskBits = bitmaskToBoolean(opcodeBitmask, instructionData.length);
   const basicBlockStarts = computeBasicBlockStarts(instructionData, opcodeMaskBits);
 

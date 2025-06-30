@@ -1,5 +1,5 @@
 import { decodeInstruction } from "./instructions/decodeInstruction";
-import { instructionHandlers } from "./instructions/instructionHandler";
+import { instructionHandlers } from "./instructions/instructionHandlers";
 import { skip } from "./utils/skip";
 import { ExitReasonType, InterpreterState } from "./types";
 

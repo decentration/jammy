@@ -167,13 +167,13 @@ export enum Opcodes {
     mul_32 = 192, // multiply 32-bit
     div_u_32 = 193, // divide unsigned 32-bit
     div_s_32 = 194, // divide signed 32-bit
-    mod_u_32 = 195, // modulo unsigned 32-bit
-    rem_u_32 = 196, // remainder unsigned 32-bit
-    rem_s_32 = 197, // remainder signed 32-bit
-    shlo_l_32 = 198, // shift left logical 32-bit
-    shlo_r_32  = 199, // shift right logical 32-bit
-    shar_r_32 = 200, // shift right arithmetic 32-bit
-    add_64 = 201, // add 64-bit
+    rem_u_32 = 195, // remainder unsigned 32-bit
+    rem_s_32 = 196, // remainder signed 32-bit
+    shlo_l_32 = 197, // shift left logical 32-bit
+    shlo_r_32  = 198, // shift right logical 32-bit
+    shar_r_32 = 199, // shift right arithmetic 32-bit
+    add_64 = 200, // add 64-bit
+    sub_64 = 201, // subtract 64-bit
     mul_64 = 202, // multiply 64-bit
     div_u_64 = 203, // divide unsigned 64-bit
     div_s_64 = 204, // divide signed 64-bit
@@ -309,13 +309,13 @@ export const OpcodeTable: Record<Opcodes, InstructionAddressTypes> = {
     [Opcodes.mul_32]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.div_u_32]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.div_s_32]: InstructionAddressTypes.THREE_REGISTERS,
-    [Opcodes.mod_u_32]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.rem_u_32]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.rem_s_32]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.shlo_l_32]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.shlo_r_32]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.shar_r_32]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.add_64]: InstructionAddressTypes.THREE_REGISTERS,
+    [Opcodes.sub_64]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.mul_64]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.div_u_64]: InstructionAddressTypes.THREE_REGISTERS,
     [Opcodes.div_s_64]: InstructionAddressTypes.THREE_REGISTERS,

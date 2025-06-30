@@ -62,6 +62,23 @@ export function decodeSignedIntLE(bytes: Uint8Array): bigint {
 }
 
 
+// Decode an UNSIGNED LE integer of 1…8 octets
+export function decodeUnsignedIntLE(bytes: Uint8Array): number {
+  if (bytes.length === 0 || bytes.length > 6)  // max 6 bytes for safety
+    throw new Error("decodeUnsignedIntLE: length must be 1–6 (due to JS safe integer limits)");
+
+  let value = 0;
+  for (let i = 0; i < bytes.length; i++) {
+    value += bytes[i] * (2 ** (8 * i));
+  }
+
+  if (value > Number.MAX_SAFE_INTEGER)
+    throw new Error("decodeUnsignedIntLE: value exceeds JS safe integer range");
+
+  return value;
+}
+
+
 // ONE-IMMEDIATE family decoder (A.20)
 export function decodeOneImmediate(
     pc: number,

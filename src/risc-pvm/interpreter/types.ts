@@ -4,6 +4,7 @@ import { InstructionAddressTypes } from "./instructions/opcodes";
 interface InterpreterContext {
   jumpTable: number[];          // deconstructed jump from deblob
   jumpEntryLength: number;        // Size of each jump index in bytes
+  jumpEntries?: number[]; // deconstructed jump entries
   basicBlockStarts: Set<number>; // Precomputed basic block starts
   heapStart: number;      // Initial heap start address for dynamic memeory allocation
   heapPointer: number;    // Current position of the heap pointer for dynamic memory allocation
