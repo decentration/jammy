@@ -13,6 +13,14 @@ import { ExitReasonType, InterpreterState } from "./types";
   * @return The updated interpreter state after executing the step.
  */
 export function executeSingleStep(state: InterpreterState): InterpreterState {
+
+    if (state.gas <= 0) {
+      return {
+        ...state,
+        exit: { type: ExitReasonType.OutOfGas }
+      };
+    }
+
     if (state.exit?.type !== ExitReasonType.Continue) return state; // Explicit enum comparison
   
     // const opcode = state.code[state.pc];
@@ -23,9 +31,19 @@ export function executeSingleStep(state: InterpreterState): InterpreterState {
     const handler = instructionHandlers[instr.opcode];
   
     if (!handler) {
+      console.log("Unknown opcode at pc:", state.pc, "opcode:", instr.opcode);
       return { ...state, exit: { type: ExitReasonType.Panic } }; // unknown opcode
     }
   
-    const next = handler(state, instr.operands as any[]); 
-    return next;
+    const newState = handler(state, instr.operands ?? []);
+
+    if (newState.gas <= 0) {
+      return {
+        ...newState,
+        exit: { type: ExitReasonType.OutOfGas }
+      };
+    }
+  
+    return newState;
   }
+  

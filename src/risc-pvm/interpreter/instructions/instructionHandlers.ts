@@ -2,11 +2,18 @@ import { skip } from "../utils/skip";
 import { ExecutionHandler, ExitReasonType, InterpreterState } from "../types";
 import { Opcodes } from "./opcodes";
 import { branch } from "../utils/branch";
-import { GAS_PER_INSTRUCTION, GAS_HOST_CALL, GAS_COST_JUMP, GAS_COST_JUMP_IND } from "../consts";
+import { GAS_PER_INSTRUCTION, GAS_COST_JUMP, GAS_COST_JUMP_IND } from "../consts";
 import { djump } from "../utils/djump";
 
 export function nextPc(state: InterpreterState): number {
+
   const opBytes = skip(state.pc, state.opcodeMaskBits);
+  console.log("Next PC calculation:", {
+    pc: state.pc,
+    opBytes,
+    nextPc: state.pc + 1 + opBytes,
+  });
+
   return state.pc + 1 + opBytes;
 }
 
@@ -20,6 +27,7 @@ const branchHandler = (
   gasCost: number = GAS_COST_JUMP
 ): ExecutionHandler => {
   return (state, [rA, imm, offset]) => {
+    console.log("Branch Handler called with operands:", { rA, imm, offset });
     const basicBlockStarts = state.context?.basicBlockStarts;
     if (!basicBlockStarts) return panic(state);
 
@@ -27,6 +35,7 @@ const branchHandler = (
     const immVal = BigInt(imm);
     const shouldBranch = condition(regVal, immVal);
     const targetPc = state.pc + Number(offset);
+    console.log("Branch Handler:", { targetPc, shouldBranch, regVal, immVal, rA, offset });
 
     const { exitReason, pc } = branch(
       targetPc,
@@ -62,7 +71,7 @@ export const fallthroughHandler: ExecutionHandler = (s) => ({
 export const ecalliHandler: ExecutionHandler = (s, [imm]) => ({
   ...s,
   pc   : nextPc(s),
-  gas  : s.gas - GAS_HOST_CALL, // decrement gas by host-call rate
+  gas  : s.gas - 10, // decrement gas by host-call rate
   exit : { type: ExitReasonType.HostCall, id: BigInt(imm) },  // immediate passed
 });
 
@@ -72,7 +81,7 @@ export const loadImm64Handler: ExecutionHandler = (s, [rA, imm]) => {
   return {
     ...s,
     registers,
-    pc: s.pc + GAS_HOST_CALL,
+    pc: s.pc + 10,
     gas: s.gas - GAS_PER_INSTRUCTION,
     exit: { type: ExitReasonType.Continue }
   };
@@ -824,14 +833,13 @@ const threeRegOp = (
   fn: (a: bigint, b: bigint) => bigint,
   gas: number = GAS_PER_INSTRUCTION): ExecutionHandler =>
   (s, [rA, rB, rD]) => {
-    console.log(`Executing threeRegOp with rD: ${rD}, rA: ${rA}, rB: ${rB}`);
     const regs = s.registers.slice();
     regs[rD] = fn(regs[rA], regs[rB]);
 
     return {
       ...s,
       registers: regs,
-      pc : nextPc(s),
+      pc: nextPc(s),
       gas: s.gas - gas,
       exit: { type: ExitReasonType.Continue }
     };
