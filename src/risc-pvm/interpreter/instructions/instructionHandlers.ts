@@ -459,19 +459,25 @@ const branchGtSImmHandler = branchHandler((reg, imm) => toSigned64(reg) > toSign
 
 // A.5.9 
 
-//101
+//101 -> Set Break
 const sbrkHandler: ExecutionHandler = (state, [rD, rA]) => {
-  const registers = state.registers.slice();
   const requestedSize = Number(state.registers[rA]);
+
+  if (requestedSize < 0) {
+    return { ...state, exit: { type: ExitReasonType.Panic, detail: "sbrk negative" } };
+  }
+
   const heapStart = state.context?.heapStart ?? 0;  // Assume heapStart from context
   const heapPointer = state.context?.heapPointer ?? heapStart;
+  const heapEnd = state.context?.heapEnd ?? state.memory.length; // Assume heapEnd is the end of memory
 
   const newHeapPointer = heapPointer + requestedSize;
 
-  if (newHeapPointer > state.memory.length) {
-    return { ...state, exit: { type: ExitReasonType.Panic } };
+  if (newHeapPointer > heapEnd) {
+    return { ...state, exit: { type: ExitReasonType.Panic, detail: "heap overflow" } };
   }
 
+  const registers = state.registers.slice();
   registers[rD] = BigInt(heapPointer);
 
   return {
@@ -483,7 +489,7 @@ const sbrkHandler: ExecutionHandler = (state, [rD, rA]) => {
       ...state.context!,
       heapPointer: newHeapPointer,
     },
-    exit: undefined,
+    exit: { type: ExitReasonType.Continue },
   };
 };
 

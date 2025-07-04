@@ -8,6 +8,7 @@ interface InterpreterContext {
   basicBlockStarts: Set<number>; // Precomputed basic block starts
   heapStart: number;      // Initial heap start address for dynamic memeory allocation
   heapPointer: number;    // Current position of the heap pointer for dynamic memory allocation
+  heapEnd: number;
 }
 export type InterpreterState = {
   code: Uint8Array;            // Code to execute (ϲ), typically an ArrayBuffer-backed typed array
