@@ -1,8 +1,9 @@
 import { computeBasicBlockStarts } from "./computeBasicBlockStarts";
 import { deblob } from "./deblob";
 import { executeSingleStep } from "./executeSingleStep";
-import { InterpreterState, ExitReasonType } from "./types";
+import { InterpreterState, ExitReasonType, PAGE_SIZE } from "./types";
 import { bitmaskToBoolean } from "./utils/bitmask";
+import { createPageTable, mapPages } from "./memory";
 
 
 export interface RunBlobOpts {
@@ -17,10 +18,23 @@ export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts 
 
     const opcodeBits = bitmaskToBoolean(opcodeBitmask, instructionData.length);
 
-
     const MEM_SIZE   = opts.memSize   ?? 1024 * 1024;  // 1 MiB default
     const HEAP_START = opts.heapStart ?? 0x10000;      // 64 KiB offset
     const HEAP_END   = opts.heapEnd   ?? MEM_SIZE;     // top of RAM
+    const PAGES    = MEM_SIZE / PAGE_SIZE;
+
+    const pageTable = createPageTable(PAGES);
+
+    // program bytes (instructionData)
+
+    // convert bytesToPages 
+    const bytesToPages = (instructionData.length + PAGE_SIZE - 1) >>> 16
+    mapPages(pageTable, 0, bytesToPages, { read:true, write:false });
+
+    // heap zone => RW
+    const heapStartPage = HEAP_START >>> 16;
+    const heapEndPage   = HEAP_END   >>> 16;
+    mapPages(pageTable, heapStartPage, heapEndPage + 1, { read:true, write:true });
   
 
     let state: InterpreterState = {
@@ -39,6 +53,7 @@ export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts 
         heapStart: HEAP_START,
         heapPointer: HEAP_START,
         heapEnd: HEAP_END,
+        pageTable: pageTable
       },
     };
   

@@ -1,6 +1,11 @@
 import { InstructionAddressTypes } from "./instructions/opcodes";
 
 
+export const PAGE_SIZE = 0x10000; // 64 KiB
+
+export interface PageMeta { read: boolean; write: boolean; }
+export type PageTable = PageMeta[];
+
 interface InterpreterContext {
   jumpTable: number[];          // deconstructed jump from deblob
   jumpEntryLength: number;        // Size of each jump index in bytes
@@ -8,7 +13,9 @@ interface InterpreterContext {
   basicBlockStarts: Set<number>; // Precomputed basic block starts
   heapStart: number;      // Initial heap start address for dynamic memeory allocation
   heapPointer: number;    // Current position of the heap pointer for dynamic memory allocation
-  heapEnd: number;
+  heapEnd: number;        // Upper bound of the heap
+  pageTable: PageTable;   // Page table for memory access control
+
 }
 export type InterpreterState = {
   code: Uint8Array;            // Code to execute (ϲ), typically an ArrayBuffer-backed typed array

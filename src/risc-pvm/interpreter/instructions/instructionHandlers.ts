@@ -4,6 +4,7 @@ import { Opcodes } from "./opcodes";
 import { branch } from "../utils/branch";
 import { GAS_PER_INSTRUCTION, GAS_COST_JUMP, GAS_COST_JUMP_IND } from "../consts";
 import { djump } from "../utils/djump";
+import { writeBytes } from "./helpers";
 
 export function nextPc(state: InterpreterState): number {
 
@@ -553,15 +554,32 @@ const reverseBytesHandler = twoRegisterOp((a) => {
 const storeInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
   (state, [rA, rB, imm]) => {
     const addr = Number(state.registers[rB]) + Number(imm);
-    if (addr < 0 || addr + bytes > state.memory.length) return panic(state);
 
-    const memory = state.memory.slice();
-    let value = state.registers[rA];
+    // Build little-endian byte array from register value
+    const data = new Uint8Array(bytes);
+    let val = state.registers[rA];
+    for (let i = 0; i < bytes; i++) {
+      data[i] = Number((val >> BigInt(8 * i)) & 0xFFn);
+    }
 
-    for (let i = 0; i < bytes; i++)
-      memory[addr + i] = Number((value >> BigInt(8 * i)) & 0xFFn);
+    console.log("storeInd called with operands:", { rA, rB, imm, addr, data });
+    // Attempt write – may return a PageFault state
+    const stateAfter = writeBytes(state, addr, data);
 
-    return { ...state, memory, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
+    console.log("storeInd after writeBytes:", {
+      rA, rB, imm, addr, data, stateAfter
+    });
+    
+
+    // If writeBytes set PageFault, just propagate that state
+    if (stateAfter.exit?.type === ExitReasonType.PageFault) return stateAfter;
+
+    return {
+      ...stateAfter,
+      pc:  nextPc(stateAfter),
+      gas: stateAfter.gas - GAS_PER_INSTRUCTION,
+      exit:{ type: ExitReasonType.Continue },
+    };
   };
 
 const storeIndU8Handler  = storeInd(1); // 120
