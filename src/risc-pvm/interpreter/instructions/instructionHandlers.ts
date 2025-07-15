@@ -4,7 +4,8 @@ import { Opcodes } from "./opcodes";
 import { branch } from "../utils/branch";
 import { GAS_PER_INSTRUCTION, GAS_COST_JUMP, GAS_COST_JUMP_IND } from "../consts";
 import { djump } from "../utils/djump";
-import { writeBytes } from "./helpers";
+import { readBytes, toLE, writeBytes } from "./helpers";
+import { toBytes } from "../../../codecs";
 
 export function nextPc(state: InterpreterState): number {
 
@@ -88,86 +89,34 @@ export const loadImm64Handler: ExecutionHandler = (s, [rA, imm]) => {
   };
 };
 
-export const storeImmU8Handler: ExecutionHandler = (s, [address, value]) => {
-  const memory = s.memory.slice();
-  
-  if (address >= memory.length)  return panic(s);
 
-  memory[Number(address)] = Number(value & 0xffn); // store only 8 bits
+const storeImm =
+  (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
+  (state, [addr, val]) => {
 
-  return {
-    ...s,
-    memory,
-    pc: nextPc(s), 
-    gas: s.gas - GAS_PER_INSTRUCTION,
-    exit: { type: ExitReasonType.Continue }
+    // 1. build little-endian byte buffer
+    const data = toLE(BigInt(val), bytes);
+
+    // 2. attempt the write (page-fault safe)
+    const s1 = writeBytes(state, Number(addr), data);
+
+    // 3. early exit if writeBytes inserted a PageFault
+    if (s1.exit?.type === ExitReasonType.PageFault) return s1;
+
+    return {
+      ...s1,
+      pc : nextPc(s1),
+      gas: s1.gas - GAS_PER_INSTRUCTION,
+      exit: { type: ExitReasonType.Continue },
+    };
   };
-};
 
-export const storeImmU16Handler: ExecutionHandler = (s, [address, value]) => {
-  const memory = s.memory.slice();
-  
-  if (address >= memory.length) return panic(s);
+export const storeImmU8Handler  = storeImm(1);
+export const storeImmU16Handler = storeImm(2);
+export const storeImmU32Handler = storeImm(4);
+export const storeImmU64Handler = storeImm(8); 
 
-  // store 16 bits
-  const lower16 = Number(value & 0xffffn); // take 1111 1111 1111 1111
-  // put in memory in LE 
-  memory[Number(address)] = lower16 & 0xff; // lower byte
-  memory[Number(address) + 1] = (lower16 >> 8) & 0xff; // upper byte
 
-  return {
-    ...s,
-    memory,
-    pc: nextPc(s), 
-    gas: s.gas - GAS_PER_INSTRUCTION,
-    exit: { type: ExitReasonType.Continue }
-  };
-};
-
-// store_imm_u32Handler
-const storeImmU32Handler: ExecutionHandler = (s, [address, value]) => {
-  const memory = s.memory.slice();
-  if (address >= memory.length) return panic(s);
-  // store 32 bits
-  const bits32 = Number(value & 0xffffffffn); // take 1111 1111 1111 1111 1111 1111 1111 1111
-  // put in memory in LE  
-  memory[Number(address)] = bits32 & 0xff; // lower byte
-  memory[Number(address) + 1] = (bits32 >> 8) & 0xff; // second byte
-  memory[Number(address) + 2] = (bits32 >> 16) & 0xff; // third byte
-  memory[Number(address) + 3] = (bits32 >> 24) & 0xff; // upper byte
-
-  return {
-    ...s,
-    memory,
-    pc: nextPc(s),
-    gas: s.gas - GAS_PER_INSTRUCTION,
-    exit: { type: ExitReasonType.Continue }
-  };
-}
-
-const storeImmU64Handler: ExecutionHandler = (s, [address, value]) => {
-  const memory = s.memory.slice();
-  if (address >= memory.length) return panic(s);
-  // store 64 bits
-  const bits64 = BigInt(value & 0xffffffffffffffffn); // take 64 bits
-  // put in memory in LE
-  memory[Number(address)] = Number(bits64 & 0xffn); // lower byte
-  memory[Number(address) + 1] = Number((bits64 >> 8n) & 0xffn); // second byte
-  memory[Number(address) + 2] = Number((bits64 >> 16n) & 0xffn); // third byte
-  memory[Number(address) + 3] = Number((bits64 >> 24n) & 0xffn); // fourth byte
-  memory[Number(address) + 4] = Number((bits64 >> 32n) & 0xffn); // fifth byte
-  memory[Number(address) + 5] = Number((bits64 >> 40n) & 0xffn); // sixth byte
-  memory[Number(address) + 6] = Number((bits64 >> 48n) & 0xffn); // seventh byte
-  memory[Number(address) + 7] = Number((bits64 >> 56n) & 0xffn); // upper byte
-  
-  return {
-    ...s,
-    memory,
-    pc: nextPc(s),
-    gas: s.gas - GAS_PER_INSTRUCTION,
-    exit: { type: ExitReasonType.Continue }
-  };
-};
 
 const jumpHandler: ExecutionHandler = (state, [offset]) => {
   return branchHandler(() => true, GAS_COST_JUMP)(state, [0, 0, offset]);
@@ -205,186 +154,71 @@ const loadImmHandler: ExecutionHandler = (state, [rA, imm]) => {
   };
 };
 
-// 52
-const loadU8Handler: ExecutionHandler = (state, [rA, imm]) => {
-  const addr = Number(imm);
-  if (addr < 0 || addr >= state.memory.length) return panic(state);
 
-  const value = BigInt(state.memory[addr]);
-  const registers = state.registers.slice();
-  registers[rA] = value;
 
-  return {
-    ...state,
-    registers,
-    pc: nextPc(state),
-    gas: state.gas - 1,
-    exit: { type: ExitReasonType.Continue },
+const load =
+  (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
+  (s, [rA, imm]) => {
+    const addr = Number(imm);
+
+    // 1. read bytes from memory
+    const { bytes: data, state: s1 } = readBytes(s, addr, bytes);
+    if (!data) return s1;  
+
+    // 2. assemble the value from bytes
+    let v = 0n;
+    for (let i = 0; i < bytes; i++) v |= BigInt(data[i]) << (8n * BigInt(i));
+    if (signed) v = BigInt.asIntN(bytes * 8, v);
+
+    console.log("Load handler:", { rA, imm, addr, bytes, v, signed });
+
+    // 3. write back to rA
+    const regs = s1.registers.slice();
+    regs[rA] = v;
+
+    return {
+      ...s1,
+      registers: regs,
+      pc : nextPc(s1),
+      gas: s1.gas - GAS_PER_INSTRUCTION,
+      exit: { type: ExitReasonType.Continue },
+    };
   };
-};
 
-// 53
-const loadI8Handler: ExecutionHandler = (state, [rA, imm]) => {
-  const addr = Number(imm);
-  if (addr < 0 || addr >= state.memory.length) return panic(state);
-
-  
-  const value = BigInt.asIntN(8, 0x80n); // 0x80n is the sign bit for 8-bit signed integers
-  const registers = state.registers.slice();
-  registers[rA] = value;
-
-  return {
-    ...state,
-    registers,
-    pc: nextPc(state),
-    gas: state.gas - 1,
-    exit: { type: ExitReasonType.Continue },
-  };
-}
-
-
-// 54
-const loadU16Handler: ExecutionHandler = (state, [rA, imm]) => {
-  const addr = Number(imm);
-  if (addr < 0 || addr + 1 >= state.memory.length) return panic(state);
-  const lowerByte = state.memory[addr];
-  const upperByte = state.memory[addr + 1];
-  const value = BigInt(lowerByte) | (BigInt(upperByte) << 8n);
-  const registers = state.registers.slice();
-  registers[rA] = value;
-  return {
-    ...state,
-    registers,
-    pc: nextPc(state),
-    gas: state.gas - 1,
-    exit: { type: ExitReasonType.Continue },
-  };
-};
-
-//55
-const loadI16Handler: ExecutionHandler = (state, [rA, imm]) => {
-  const addr = Number(imm);
-  if (addr < 0 || addr + 1 >= state.memory.length) return panic(state);
-  
-  const lowerByte = state.memory[addr];
-  const upperByte = state.memory[addr + 1];
-
-  // asIntN(8, 0x80n) but for 16 bits. 
-  // Shift the value to the left by 48 bits
-  // 
-  const value = BigInt.asIntN(16, (BigInt(lowerByte) | (BigInt(upperByte) << 8n)) << 48n >> 48n); // sign extend to 64 bits
-  const registers = state.registers.slice();
-  registers[rA] = value;
-  return {
-    ...state,
-    registers,
-    pc: nextPc(state),
-    gas: state.gas - 1,
-    exit: { type: ExitReasonType.Continue },
-  };
-};
-
-// 56
-const loadU32Handler: ExecutionHandler = (state, [rA, imm]) => {
-  const addr = Number(imm);
-  if (addr < 0 || addr + 3 >= state.memory.length) return panic(state);
-  
-  const lowerByte = state.memory[addr];
-  const secondByte = state.memory[addr + 1];
-  const thirdByte = state.memory[addr + 2];
-  const upperByte = state.memory[addr + 3];
-  
-  // BigInts and shifts to create a little-endian 32-bit value
-  const value = BigInt(lowerByte) | // unshifted
-                (BigInt(secondByte) << 8n) | ( // shifted by 8 bits
-                BigInt(thirdByte) << 16n) | // shifted by 16 bits
-                (BigInt(upperByte) << 24n); //  shifted by 24 bits
-  
-  const registers = state.registers.slice();
-  registers[rA] = value;
-  
-  return {
-    ...state,
-    registers,
-    pc: nextPc(state),
-    gas: state.gas - 1,
-    exit: { type: ExitReasonType.Continue },
-  };
-}
-
-// 57
-const loadI32Handler: ExecutionHandler = (state, [rA, imm]) => {
-  const addr = Number(imm);
-  if (addr < 0 || addr + 3 >= state.memory.length) return panic(state);
-  
-  const lowerByte = state.memory[addr];
-  const secondByte = state.memory[addr + 1];
-  const thirdByte = state.memory[addr + 2];
-  const upperByte = state.memory[addr + 3];
-  
-  // BigInt.asIntN(32, val32)
-  const value = BigInt.asIntN( 32,
-                (BigInt(lowerByte) | 
-                (BigInt(secondByte) << 8n) | 
-                (BigInt(thirdByte) << 16n) | 
-                (BigInt(upperByte) << 24n)) << 32n >> 32n
-  ); // sign extend to 64 bits
-  
-  const registers = state.registers.slice();
-  registers[rA] = value;
-  
-  return {
-    ...state,
-    registers,
-    pc: nextPc(state),
-    gas: state.gas - 1,
-    exit: { type: ExitReasonType.Continue },
-  };
-};
-
-// 58
-const loadU64Handler: ExecutionHandler = (state, [rA, imm]) => {
-  const addr = Number(imm);
-  if (addr < 0 || addr + 7 >= state.memory.length) return panic(state);
-
-  // read 8 bytes from memory
-  const bytes = state.memory.slice(addr, addr + 8);
-  const value = BigInt(
-    bytes.reduce((acc, byte, index) => acc | (BigInt(byte) << BigInt(index * 8)), 0n)
-  );
-  const registers = state.registers.slice();
-  registers[rA] = value;
-  return {
-    ...state,
-    registers,
-    pc: nextPc(state),
-    gas: state.gas - 1,
-    exit: { type: ExitReasonType.Continue },
-  };
-};
+export const loadU8Handler  = load(1, false);   // 52
+export const loadI8Handler  = load(1, true );   // 53
+export const loadU16Handler = load(2, false);   // 54
+export const loadI16Handler = load(2, true );   // 55
+export const loadU32Handler = load(4, false);   // 56
+export const loadI32Handler = load(4, true );   // 57
+export const loadU64Handler = load(8, false);   // 58
 
 // factory function for store handlers
 const store = (bytes: 1 | 2 | 4 | 8 ): ExecutionHandler =>
   (s,[rA, imm]) => {
     const a = Number(imm);
-    if (a < 0 || a + (bytes - 1) >= s.memory.length) return panic(s);
+    // if (a < 0 || a + (bytes - 1) >= s.memory.length) return panic(s);
  
-    const mem = s.memory.slice();
+    // const mem = s.memory.slice();
     const val = s.registers[rA];
 
-    for (let i = 0; i < bytes; i++)
-      mem[a+i] = Number((val >> (8n * BigInt(i))) & 0xffn);
- 
+    const data = toLE(val, bytes);
+    const s1 = writeBytes(s, a, data);
+console.log("Store handler:", { rA, imm, a, bytes, val, data });
+    if (s1.exit?.type === ExitReasonType.PageFault) return s1;
+    console.log("Store handler after writeBytes:", s1);
+
     return { 
-      ...s, 
-      memory: mem, 
-      pc: nextPc(s),
-      gas: s.gas - GAS_PER_INSTRUCTION,
+      ...s1, 
+      pc: nextPc(s1),
+      gas: s1.gas - GAS_PER_INSTRUCTION,
       exit: { type: ExitReasonType.Continue },
     };
   };
 
 // 59 - 62
+
+// what store does is gets rA which is the register index at the 
 const storeU8Handler  = store(1);
 const storeU16Handler = store(2);
 const storeU32Handler = store(4);
@@ -393,23 +227,23 @@ const storeU64Handler = store(8);
 
 const storeImmInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
   (s,[rA, immX, immY]) => {
+    console.log("StoreImmInd operands:", { rA, immX, immY, bytes });
+
+    // console.log("StoreImmInd readBytes result:", reading);
     const base = Number(s.registers[rA]);
     const addr = base + Number(immX);
 
-    if (addr < 0 || addr + (bytes - 1) >= s.memory.length) return panic(s);
 
-    const mem = s.memory.slice();
-    const val = BigInt(immY);
+    const data  = toLE(BigInt(immY), bytes);
+console.log("StoreImmInd data to write:", {data, addr, base});
+    const s1 = writeBytes(s, addr, data);
+    if (s1.exit?.type === ExitReasonType.PageFault) return s1;   // propagate
 
-    for (let i = 0; i < bytes; i++) {
-      mem[addr + i] = Number((val >> (8n * BigInt(i))) & 0xffn);
-    }
     
     return {
-      ...s,
-      memory: mem,
-      pc: nextPc(s),
-      gas: s.gas - GAS_PER_INSTRUCTION,
+      ...s1,
+      pc: nextPc(s1),
+      gas: s1.gas - GAS_PER_INSTRUCTION,
       exit: { type: ExitReasonType.Continue },
     };
   };
@@ -587,25 +421,32 @@ const storeIndU16Handler = storeInd(2); // 121
 const storeIndU32Handler = storeInd(4); // 122
 const storeIndU64Handler = storeInd(8); // 123
 
-const loadInd = (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
+const loadInd =
+  (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
   (state, [rA, rB, imm]) => {
     const addr = Number(state.registers[rB]) + Number(imm);
-    if (addr < 0 || addr + bytes > state.memory.length) return panic(state);
+
+    // memory-access + protection
+    const { bytes: buf, state: s1 } = readBytes(state, addr, bytes);
+    if (!buf) return s1; // early-exit on PageFault
 
     let value = 0n;
-    for (let i = 0; i < bytes; i++) 
-      value |= BigInt(state.memory[addr + i]) << BigInt(8 * i);
+    for (let i = 0; i < bytes; i++)
+      value |= BigInt(buf[i]) << (8n * BigInt(i));
 
-    if (signed) 
-      value = BigInt.asIntN(bytes * 8, value);
+    if (signed) value = BigInt.asIntN(bytes * 8, value);
 
-    const registers = state.registers.slice();
-    registers[rA] = value;
+    const regs = s1.registers.slice();
+    regs[rA] = value;
 
-    return { ...state, registers, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
+    return {
+      ...s1,
+      registers : regs,
+      pc        : nextPc(s1),
+      gas       : s1.gas - GAS_PER_INSTRUCTION,
+      exit      : { type: ExitReasonType.Continue },
+    };
   };
-
-
 
 // Load indirect ops
 const loadIndU8Handler  = loadInd(1, false);  // 124

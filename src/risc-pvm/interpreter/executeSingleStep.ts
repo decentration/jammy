@@ -26,7 +26,7 @@ export function executeSingleStep(state: InterpreterState): InterpreterState {
     // const opcode = state.code[state.pc];
     // const skipLength = skip(state.pc, state.opcodeMaskBits);
     // const operands = Array.from(state.code.slice(state.pc + 1, state.pc + 1 + skipLength));
-    const instr = decodeInstruction(state.code, state.pc);
+    const instr = decodeInstruction(state.code, state.pc, state.opcodeMaskBits);
 
     const handler = instructionHandlers[instr.opcode];
   

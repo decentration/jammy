@@ -70,7 +70,8 @@ export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts 
       break};
     }
   
-    console.log("VM execution stopped due to:", ExitReasonType[state.exit!.type]);
+    console.log("VM execution stopped due to:", ExitReasonType[state.exit!.type], 
+                state.exit?.detail ? `(${state.exit.detail})` : "");
     return state;
   }
   

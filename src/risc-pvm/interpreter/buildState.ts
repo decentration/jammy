@@ -59,6 +59,8 @@ export function buildState(opts: {
       basicBlockStarts: new Set(basicBlockStarts), // convert to Set for fast lookup
       heapStart: opts.heapStart ?? 0,
       heapPointer: opts.heapPointer ?? opts.heapStart ?? 0,
+      heapEnd: 2 ** 18, // default to 256 KiB
+      pageTable: [], // will be initialized later
     },
   };
 
