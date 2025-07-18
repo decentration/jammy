@@ -4,12 +4,14 @@ import { executeSingleStep } from "./executeSingleStep";
 import { InterpreterState, ExitReasonType, PAGE_SIZE } from "./types";
 import { bitmaskToBoolean } from "./utils/bitmask";
 import { createPageTable, mapPages } from "./memory";
+import { dispatchHostCall, HostCallHandler } from "./host/hostCallHandler";
 
 
 export interface RunBlobOpts {
   memSize?:   number; // total RAM bytes (default 1 MiB)
   heapStart?: number; // heap lower bound (default 0x10000)
   heapEnd?:   number; // heap upper bound (default == memSize)
+  host?: HostCallHandler; 
 }
 
 export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts = {}) {
@@ -63,11 +65,11 @@ export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts 
       state = executeSingleStep(state);
 
       console.log("here is state after step");
-      // !TODO: If HostCall then stop, temporary. 
-      if (state.exit?.type === ExitReasonType.HostCall) {
-      
-      console.log("HostCall detected, stopping execution.");
-      break};
+
+      if (state.exit?.type === ExitReasonType.HostCall) 
+        console.log("Host call detected, dispatching:", state.exit.detail);
+        state = dispatchHostCall(state);
+      continue;
     }
   
     console.log("VM execution stopped due to:", ExitReasonType[state.exit!.type], 

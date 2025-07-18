@@ -2,7 +2,7 @@ import { skip } from "../utils/skip";
 import { ExecutionHandler, ExitReasonType, InterpreterState } from "../types";
 import { Opcodes } from "./opcodes";
 import { branch } from "../utils/branch";
-import { GAS_PER_INSTRUCTION, GAS_COST_JUMP, GAS_COST_JUMP_IND } from "../consts";
+import { GAS_PER_INSTRUCTION, GAS_COST_JUMP, GAS_COST_JUMP_IND, GAS_HOST_CALL } from "../consts";
 import { djump } from "../utils/djump";
 import { readBytes, toLE, writeBytes } from "./helpers";
 import { toBytes } from "../../../codecs";
@@ -73,7 +73,7 @@ export const fallthroughHandler: ExecutionHandler = (s) => ({
 export const ecalliHandler: ExecutionHandler = (s, [imm]) => ({
   ...s,
   pc   : nextPc(s),
-  gas  : s.gas - 10, // decrement gas by host-call rate
+  gas  : s.gas - GAS_HOST_CALL, // decrement gas by host-call rate
   exit : { type: ExitReasonType.HostCall, id: BigInt(imm) },  // immediate passed
 });
 

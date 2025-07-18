@@ -1,0 +1,10 @@
+export const OK    = 0n;
+export const NONE  = (1n << 64n) - 1n;
+export const WHAT  = (1n << 64n) - 2n;
+export const OOB   = (1n << 64n) - 3n;
+export const WHO   = (1n << 64n) - 4n;
+export const FULL  = (1n << 64n) - 5n;
+export const CORE  = (1n << 64n) - 6n;
+export const CASH  = (1n << 64n) - 7n;
+export const LOW   = (1n << 64n) - 8n;
+export const HUH   = (1n << 64n) - 9n;
