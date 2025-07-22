@@ -24,7 +24,7 @@ export function writeBytes(
   buf: Uint8Array): InterpreterState {
 
   if (addr < PAGE_SIZE) return panicLowMemory(s);
-console.log("writeBytes", { addr, buf, s });
+  console.log("writeBytes", { addr, buf, s });
 
   const badPage = checkAccess(s.context!.pageTable, addr, buf.length, true);
   if (badPage !== undefined)

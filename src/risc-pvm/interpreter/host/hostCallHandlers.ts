@@ -2,14 +2,12 @@ import { GAS_HOST_CALL } from "../consts";
 import { readBytes, toLE, writeBytes } from "../instructions/helpers";
 import { InterpreterState, ExitReasonType } from "../types";
 import { HUH, NONE, OK, OOB, WHAT } from "./consts";
-
-export type HostCallHandler = (
-  state: InterpreterState,
-  id: bigint
-) => { state: InterpreterState; ok: boolean };
+import { fetchHandler } from "./handlers/fetchHandler";
+import { HostEnvInterface } from "./hostEnvInterface";
+import { HostCallHandler } from "./types";
 
 // GAS (ΩG) - selector 0 
-const gasHandler: HostCallHandler = (state, id) => {
+const gasHandler: HostCallHandler = (state, id, env ) => {
 
   if (id !== OK) {
     return { state, ok: false };
@@ -28,15 +26,8 @@ const gasHandler: HostCallHandler = (state, id) => {
   return { state: { ...state, registers }, ok: true };
 };
 
-//  FETCH (ΩY) — selector 1
-const fetchHandler: HostCallHandler = (state, id) => {
-  const registers = state.registers.slice();
-  registers[7] = WHAT; 
-  return { state: { ...state, registers }, ok: true };
-};
-
 // READ (ΩR) — selector 2
-const readHandler: HostCallHandler = (s, _id) => {
+const readHandler: HostCallHandler = (s, _id, env) => {
   const addr  = Number(s.registers[8]);
   const len   = Number(s.registers[9]);
   const rd    = Number(s.registers[10]) & 0xF;    // clamp 0‑15, 
@@ -57,7 +48,7 @@ const readHandler: HostCallHandler = (s, _id) => {
 
 
 // WRITE (ΩW) — selector 3
-const writeHandler: HostCallHandler = (s, _id) => {
+const writeHandler: HostCallHandler = (s, _id, env) => {
   const addr  = Number(s.registers[8]);
   const len   = Number(s.registers[9]);
   const value = s.registers[10];
@@ -76,14 +67,12 @@ const writeHandler: HostCallHandler = (s, _id) => {
 };
 
 // LOOKUP (ΩL) — selector 1
-const lookupHandler: HostCallHandler = (state, id) => {
+const lookupHandler: HostCallHandler = (state, id, env) => {
   // until storage implemented, always return NONE
   const registers = state.registers.slice();
   registers[7] = NONE; // see spec for constant
   return { state: { ...state, registers }, ok: true };
 };
-
-
 
 // ZERO (ΩZ) and VOID (ΩV) — selectors 5 and 6
 const zeroOrVoid =
@@ -114,39 +103,45 @@ const zeroOrVoid =
 const zeroHandler = zeroOrVoid(false); // 23
 const voidHandler = zeroOrVoid(true ); // 24
 
-// POKE (ΩP) — selector 7
-const pokeHandler: HostCallHandler = (state, id) => {
-  const registers = state.registers.slice();
-  registers[7] = WHAT; // !TODO wait till we support inner PVMs
-  return { state: { ...state, registers }, ok: true };
-};
-
-
-// PEEK (ΩK) — selector 8
-const peekHandler: HostCallHandler = (state, id) => {
-  const registers = state.registers.slice();
-  registers[7] = WHAT; // !TODO No inner PVM yet
-  return { state: { ...state, registers }, ok: true };
-};
-
-// EXPORT (ΩE) – Export segment selector 9
-const exportHandler: HostCallHandler = (state) => {
-  const regs = state.registers.slice();
-  regs[7] = OK;
-  return { state: { ...state, registers: regs }, ok: true };
-};
 
 // FORGET PRE-IMAGE (ΩF) - selector 15
-const forgetHandler: HostCallHandler = (state) => {
+const forgetHandler: HostCallHandler = (state, id, env) => {
   const regs = state.registers.slice();
   regs[7] = HUH;                       // “already solicited / cannot forget”
   return { state: { ...state, registers: regs }, ok: true };
 };
 
+// //  FETCH (ΩY) — selector 18
+// const fetchHandler: HostCallHandler = (state, id, env) => {
+//   const registers = state.registers.slice();
+//   registers[7] = WHAT; 
+//   return { state: { ...state, registers }, ok: true };
+// };
 
+
+// EXPORT (ΩE) – Export segment selector 19
+const exportHandler: HostCallHandler = (state, id, env) => {
+  const regs = state.registers.slice();
+  regs[7] = OK;
+  return { state: { ...state, registers: regs }, ok: true };
+};
+
+// PEEK (ΩK) — selector 21
+const peekHandler: HostCallHandler = (state, id, env) => {
+  const registers = state.registers.slice();
+  registers[7] = WHAT; // !TODO No inner PVM yet
+  return { state: { ...state, registers }, ok: true };
+};
+
+// POKE (ΩP) — selector 22
+const pokeHandler: HostCallHandler = (state, id, env) => {
+  const registers = state.registers.slice();
+  registers[7] = WHAT; // !TODO wait till we support inner PVMs
+  return { state: { ...state, registers }, ok: true };
+};
 
 // Defualt "uknown selector" 
-const unknownHandler: HostCallHandler = (state, id) => {
+const unknownHandler: HostCallHandler = (state, id, env) => {
   const registers = state.registers.slice();
   registers[7] = WHAT; // B.17 / B.18
   return { 
@@ -157,7 +152,7 @@ const unknownHandler: HostCallHandler = (state, id) => {
       }, ok: false };
 }
 
-const stubHandler: HostCallHandler = (state) => {
+const stubHandler: HostCallHandler = (state, id, env) => {
   // charge the call
   if (state.gas < GAS_HOST_CALL) {
     // honour out‑of‑gas just like the real handlers
@@ -192,7 +187,7 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   2: readHandler, // general  ΩR
   3: writeHandler, // general ΩW
   // 4: infoHandler // general ΩI
-  
+
   // 5: blessHandler, // ΩB - bless (Accumulator)
   // 6: assignHandler: // ΩA - assign (Accumulator)
   // 7: designateHandler, // ΩD - designate (Accumulator)
@@ -226,7 +221,6 @@ for (const sel of STUB_SELECTORS) {
   if (!(sel in HostCallHandlers)) HostCallHandlers[sel] = stubHandler;
 }
 
-
 const pageFault = (s: InterpreterState, bad: number) => ({
   state: {
     ...s,
@@ -235,15 +229,15 @@ const pageFault = (s: InterpreterState, bad: number) => ({
   ok: false
 });
 
-export function dispatchHostCall(state: InterpreterState): InterpreterState {
+export function dispatchHostCall(state: InterpreterState, env: HostEnvInterface): InterpreterState {
 if (state.exit?.type !== ExitReasonType.HostCall || state.exit.id === undefined) 
   return state; 
     
 const selector = Number(state.exit.id);
+console.log("dispatchHostCall", selector);
 const handler = HostCallHandlers[selector] ?? unknownHandler; // when handler undefined use unknown handler. 
 
-
-const { state: s1, ok } = handler(state, BigInt(selector));
+const { state: s1, ok } = handler(state, BigInt(selector), env);
 
 
 if (ok && (!s1.exit || s1.exit.type === ExitReasonType.HostCall)) {

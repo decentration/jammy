@@ -1,5 +1,6 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
 import { HUH, NONE, OK, OOB, WHAT } from "../../../risc-pvm/interpreter/host/consts";
+import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
@@ -34,7 +35,12 @@ describe("ΩG GAs Host‑call (selector 0)", () => {
 
     const bitmask  = Uint8Array.of(0b000_0101);          // byte 0 opcode
     const blob  = makeBlob(code, bitmask )
-    const state = runBlob(blob, INITIAL_GAS);   // default mem/heap opts
+
+    const testEnv = makeHostEnv({
+      codeBlob: Uint8Array.of(1,2,3,4)
+    });
+    
+    const state = runBlob(blob, INITIAL_GAS, { env: testEnv }); // 
 
     expect(state.registers[7]).toBe(BigInt(INITIAL_GAS - 10)); // value beforetrap
     expect(state.gas).toBe(INITIAL_GAS - 11);                  // final gas counter
