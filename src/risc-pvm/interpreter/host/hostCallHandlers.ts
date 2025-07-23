@@ -3,6 +3,7 @@ import { readBytes, toLE, writeBytes } from "../instructions/helpers";
 import { InterpreterState, ExitReasonType } from "../types";
 import { HUH, NONE, OK, OOB, WHAT } from "./consts";
 import { fetchHandler } from "./handlers/fetchHandler";
+import { readHandler } from "./handlers/readHandler";
 import { HostEnvInterface } from "./hostEnvInterface";
 import { HostCallHandler } from "./types";
 
@@ -26,25 +27,25 @@ const gasHandler: HostCallHandler = (state, id, env ) => {
   return { state: { ...state, registers }, ok: true };
 };
 
-// READ (ΩR) — selector 2
-const readHandler: HostCallHandler = (s, _id, env) => {
-  const addr  = Number(s.registers[8]);
-  const len   = Number(s.registers[9]);
-  const rd    = Number(s.registers[10]) & 0xF;    // clamp 0‑15, 
-  if (len < 1 || len > 8) return pageFault(s, addr);   // only small reads for now
+// // READ (ΩR) — selector 2
+// const readHandler: HostCallHandler = (s, _id, env) => {
+//   const addr  = Number(s.registers[8]);
+//   const len   = Number(s.registers[9]);
+//   const rd    = Number(s.registers[10]) & 0xF;    // clamp 0‑15, 
+//   if (len < 1 || len > 8) return pageFault(s, addr);   // only small reads for now
 
-  const { bytes, state: s1 } = readBytes(s, addr, len);
-  if (!bytes) return { state: s1, ok: false };     // Page‑fault propagated
+//   const { bytes, state: s1 } = readBytes(s, addr, len);
+//   if (!bytes) return { state: s1, ok: false };     // Page‑fault propagated
 
-  let v = 0n;
-  for (let i = 0; i < len; i++) v |= BigInt(bytes[i]) << (8n * BigInt(i));
+//   let v = 0n;
+//   for (let i = 0; i < len; i++) v |= BigInt(bytes[i]) << (8n * BigInt(i));
 
-  const r = s1.registers.slice();
-  r[rd] = v;
-  r[7]  = OK;
+//   const r = s1.registers.slice();
+//   r[rd] = v;
+//   r[7]  = OK;
 
-  return { state: { ...s1, registers: r, exit: { type: ExitReasonType.Continue } }, ok: true };
-};
+//   return { state: { ...s1, registers: r, exit: { type: ExitReasonType.Continue } }, ok: true };
+// };
 
 
 // WRITE (ΩW) — selector 3

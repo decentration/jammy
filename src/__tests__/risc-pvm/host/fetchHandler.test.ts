@@ -65,7 +65,7 @@ describe("ΩY fetch handler", () => {
     expect(st.registers[7]).toBe(WHAT);
   });
 
-  it("write into read‑only page -> PageFault", () => {
+  it("write into read‑only page -> Panic", () => {
     const vec  = Uint8Array.of(9, 9, 9);
     const env  = makeHostEnv({ codeBlob: vec });
     const UNMAPPED = 0x20000;

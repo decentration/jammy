@@ -14,8 +14,9 @@ export interface RunBlobOpts {
   memSize?:   number; // total RAM bytes (default 1 MiB)
   heapStart?: number; // heap lower bound (default 0x10000)
   heapEnd?:   number; // heap upper bound (default == memSize)
-  overrideHost?: HostDispatcher;
-  env?: HostEnvInterface;
+  overrideHost?: HostDispatcher; // custom host dispatcher
+  env?: HostEnvInterface; // host environment interface
+  memInit?: Uint8Array;  // initial memory state 
 }
 
 export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts = {}) {
@@ -51,7 +52,7 @@ export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts 
     pc: 0,
     gas: initialGas,
     registers: Array(13).fill(0n),
-    memory: new Uint8Array(MEM_SIZE), // 1mb memory
+    memory: opts.memInit ? Uint8Array.from(opts.memInit) : new Uint8Array(MEM_SIZE),
     exit: { type: ExitReasonType.Continue },
     context: {
       jumpTable: Array.from(jumpTable),
