@@ -52,3 +52,7 @@ export const toLE = (value: bigint, bytes: 1 | 2 | 4 | 8): Uint8Array => {
     out[i] = Number((value >> BigInt(8 * i)) & 0xFFn);
   return out;
 };
+
+export function panic(state: InterpreterState) {
+  return { ...state, exit: { type: ExitReasonType.Panic } };
+}

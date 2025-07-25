@@ -4,7 +4,7 @@ import { Opcodes } from "./opcodes";
 import { branch } from "../utils/branch";
 import { GAS_PER_INSTRUCTION, GAS_COST_JUMP, GAS_COST_JUMP_IND, GAS_HOST_CALL } from "../consts";
 import { djump } from "../utils/djump";
-import { readBytes, toLE, writeBytes } from "./helpers";
+import { panic, readBytes, toLE, writeBytes } from "./helpers";
 import { toBytes } from "../../../codecs";
 
 export function nextPc(state: InterpreterState): number {
@@ -17,10 +17,6 @@ export function nextPc(state: InterpreterState): number {
   });
 
   return state.pc + 1 + opBytes;
-}
-
-function panic(state: InterpreterState) {
-  return { ...state, exit: { type: ExitReasonType.Panic } };
 }
 
 
