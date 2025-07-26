@@ -4,6 +4,7 @@ import { InterpreterState, ExitReasonType } from "../types";
 import { HUH, NONE, OK, OOB, WHAT } from "./consts";
 import { fetchHandler } from "./handlers/fetchHandler";
 import { readHandler } from "./handlers/readHandler";
+import { writeHandler } from "./handlers/writeHandler";
 import { HostEnvInterface } from "./hostEnvInterface";
 import { HostCallHandler } from "./types";
 
@@ -48,24 +49,24 @@ const gasHandler: HostCallHandler = (state, id, env ) => {
 // };
 
 
-// WRITE (ΩW) — selector 3
-const writeHandler: HostCallHandler = (s, _id, env) => {
-  const addr  = Number(s.registers[8]);
-  const len   = Number(s.registers[9]);
-  const value = s.registers[10];
+// // WRITE (ΩW) — selector 3
+// const writeHandler: HostCallHandler = (s, _id, env) => {
+//   const addr  = Number(s.registers[8]);
+//   const len   = Number(s.registers[9]);
+//   const value = s.registers[10];
 
-  if (len < 1 || len > 8) return pageFault(s, addr);
+//   if (len < 1 || len > 8) return pageFault(s, addr);
 
-  const data = toLE(value, len as | 1 | 2 | 4 | 8);
-  const s1   = writeBytes(s, addr, data);
+//   const data = toLE(value, len as | 1 | 2 | 4 | 8);
+//   const s1   = writeBytes(s, addr, data);
 
-  if (s1.exit?.type === ExitReasonType.PageFault) return { state: s1, ok: false };
+//   if (s1.exit?.type === ExitReasonType.PageFault) return { state: s1, ok: false };
 
-  const r = s1.registers.slice();
-  r[7] = OK;
+//   const r = s1.registers.slice();
+//   r[7] = OK;
 
-  return { state: { ...s1, registers: r, exit: { type: ExitReasonType.Continue } }, ok: true };
-};
+//   return { state: { ...s1, registers: r, exit: { type: ExitReasonType.Continue } }, ok: true };
+// };
 
 // LOOKUP (ΩL) — selector 1
 const lookupHandler: HostCallHandler = (state, id, env) => {

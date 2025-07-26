@@ -1,5 +1,5 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
-import { FULL, NONE, OOB, WHO } from "../../../risc-pvm/interpreter/host/consts";
+import { NONE, WHO } from "../../../risc-pvm/interpreter/host/consts";
 import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
 import { toLE } from "../../../risc-pvm/interpreter/instructions/helpers";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";

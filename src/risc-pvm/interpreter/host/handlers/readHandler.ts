@@ -1,7 +1,7 @@
 import { hash } from "../../../../utils/crypto";
 import { readBytes, toLE, writeBytes } from "../../instructions/helpers";
 import { ExitReasonType } from "../../types";
-import { FULL, NONE, OOB, WHO } from "../consts";
+import { NONE, WHO } from "../consts";
 import { HostCallHandler } from "../types";
 
 export const readHandler: HostCallHandler = (s, _id, env) => {
@@ -44,31 +44,30 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
     
     if (!key) return { state: { ...s, exit: { type: ExitReasonType.Panic } }, ok: true };
 
-
     const pref = toLE(srvIdx & 0xffff_ffffn, 4);
     const prefixedKey = new Uint8Array(pref.length + key.length);
     prefixedKey.set(pref, 0);
     prefixedKey.set(key, pref.length);
+    
     // 3. hash the key
-
     const hKey = hash(prefixedKey);
-    // 3. Lookup in external storage
+    // 4. Lookup in external storage
     const value = env.getStorage?.(hKey);
     console.log("readHandler 3", { hKey, value, key, prefixedKey });
   
     if (!value) return done(s1, NONE);  // key missing
 
-    // 4. slice blob
+    // 5. slice blob
     const Sv = value.length;
     const f = Math.min(fOff, Sv);
     if (len === 0) len = Sv - f;
     const slice = value.subarray(f, f + Math.min(len, Sv - f));
 
-    // //5. TODO! storage full placeholder. (After Refine/Accumulate is complete we update this)
+    // //6. TODO! storage full placeholder. (After Refine/Accumulate is complete we update this)
     // const isStoreFull = env.isFull?.() ?? false;
     // if (isStoreFull) return done(s1, FULL);
 
-    // 6. write bytes to destination
+    // 7. write bytes to destination
     const s2 = writeBytes(s1, dest, slice);
     if (s2.exit?.type === ExitReasonType.PageFault) return { state: { ...s1, exit:{type: ExitReasonType.Panic} }, ok: true };
     // 7. success!!
