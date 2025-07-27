@@ -60,7 +60,7 @@ describe("ΩR read handler", () => {
     const VALUE = Uint8Array.from([1,2,3,4,5,6]);
 
     const store  = new Map<string, Uint8Array>().set(Array.from(digestFoo).join(","), VALUE);
-    const env = makeHostEnv({}, 0n, store);  // vectors={}, now=0, storage=store
+    const env   = makeHostEnv({ now: 0n, storage: store });  // vectors={}, now=0, storage=store
     const st = runBlob(blob, 100, { env, memInit: mem });
 
     console.log("Registers after run:", st.registers);
@@ -148,7 +148,7 @@ describe("ΩR read handler", () => {
     // storage has the value, so we hit the write step
     const VAL  = Uint8Array.from([7,7,7]);
     const store = new Map<string, Uint8Array>().set("102,111,111", VAL); // "foo" key in storage
-    const env   = makeHostEnv({}, 0n, store);
+    const env   = makeHostEnv({ now: 0n, storage: store }); // vectors={}, now=0, storage=store
   
     const st = runBlob(blob, 100, { env, memInit: mem });
   

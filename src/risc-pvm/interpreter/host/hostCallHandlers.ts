@@ -3,10 +3,14 @@ import { readBytes, toLE, writeBytes } from "../instructions/helpers";
 import { InterpreterState, ExitReasonType } from "../types";
 import { HUH, NONE, OK, OOB, WHAT } from "./consts";
 import { fetchHandler } from "./handlers/fetchHandler";
+import { lookupHandler } from "./handlers/lookupHandler";
 import { readHandler } from "./handlers/readHandler";
 import { writeHandler } from "./handlers/writeHandler";
+import { infoHandler } from "./handlers/infoHandler";
 import { HostEnvInterface } from "./hostEnvInterface";
 import { HostCallHandler } from "./types";
+import { historicalLookupHandler } from "./handlers/historicalLookupHandler";
+import { exportHandler } from "./handlers/exportHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -68,13 +72,13 @@ const gasHandler: HostCallHandler = (state, id, env ) => {
 //   return { state: { ...s1, registers: r, exit: { type: ExitReasonType.Continue } }, ok: true };
 // };
 
-// LOOKUP (ΩL) — selector 1
-const lookupHandler: HostCallHandler = (state, id, env) => {
-  // until storage implemented, always return NONE
-  const registers = state.registers.slice();
-  registers[7] = NONE; // see spec for constant
-  return { state: { ...state, registers }, ok: true };
-};
+// // LOOKUP (ΩL) — selector 1
+// const lookupHandler: HostCallHandler = (state, id, env) => {
+//   // until storage implemented, always return NONE
+//   const registers = state.registers.slice();
+//   registers[7] = NONE; // see spec for constant
+//   return { state: { ...state, registers }, ok: true };
+// };
 
 // ZERO (ΩZ) and VOID (ΩV) — selectors 5 and 6
 const zeroOrVoid =
@@ -121,12 +125,12 @@ const forgetHandler: HostCallHandler = (state, id, env) => {
 // };
 
 
-// EXPORT (ΩE) – Export segment selector 19
-const exportHandler: HostCallHandler = (state, id, env) => {
-  const regs = state.registers.slice();
-  regs[7] = OK;
-  return { state: { ...state, registers: regs }, ok: true };
-};
+// // EXPORT (ΩE) – Export segment selector 19
+// const exportHandler: HostCallHandler = (state, id, env) => {
+//   const regs = state.registers.slice();
+//   regs[7] = OK;
+//   return { state: { ...state, registers: regs }, ok: true };
+// };
 
 // PEEK (ΩK) — selector 21
 const peekHandler: HostCallHandler = (state, id, env) => {
@@ -174,9 +178,9 @@ const stubHandler: HostCallHandler = (state, id, env) => {
 };
 
 const STUB_SELECTORS = [
-  4, 5, 6,        
+   5, 6,        
   7, 8, 9, 10, 11, 12, 13, 14,
-  16, 17,              
+  16,              
   20,  
   25, 26,                    
   27 
@@ -188,7 +192,7 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   1: lookupHandler, // general ΩL
   2: readHandler, // general  ΩR
   3: writeHandler, // general ΩW
-  // 4: infoHandler // general ΩI
+  4: infoHandler, // general ΩI
 
   // 5: blessHandler, // ΩB - bless (Accumulator)
   // 6: assignHandler: // ΩA - assign (Accumulator)
@@ -202,8 +206,7 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   // 14: solicitHandler, // ΩS - solicit (Accumulator)//
   15: forgetHandler,    // ΩF - forget pre-image (Accumulator)
   // 16: yieldHandler, // Ω♉︎ - yield (Accumulator)
-
-  // 17: historicalLookup // REfine - ΩH - historical lookup ()
+  17: historicalLookupHandler, // REfine - ΩH - historical lookup ()
   18: fetchHandler,
   19: exportHandler,    // ΩE - export segment (Refine)
   // 20: machineHandler // ΩM - machine info (Refine)

@@ -35,7 +35,7 @@ const digestFoo = hash(prefixed);
 
 
 const store = new Map<string, Uint8Array>();
-const env = makeHostEnv({}, 0n, store);
+const env   = makeHostEnv({ now: 0n, storage: store });
 
 describe("ΩW write handler", () => {
   it("insert new key -> r7=NONE, value stored", () => {
@@ -44,8 +44,8 @@ describe("ΩW write handler", () => {
     mem.set([1,2,3,4,5,6], VAL_ADDR);
 
     const store = new Map<string, Uint8Array>();
-    const env   = makeHostEnv({}, 0n, store);
-
+    const env   = makeHostEnv({ now: 0n, storage: store });
+    
     const st = runBlob(blob, 100, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(NONE);
@@ -87,8 +87,7 @@ describe("ΩW write handler", () => {
     mem.set([1,2,3,4,5,6], VAL_ADDR);
 
     const store = new Map<string, Uint8Array>();
-    const env   = makeHostEnv({}, 0n, store, /*capBytes*/ 4); // 4 < 6 triggers FULL
-    const st    = runBlob(blob, 100, { env, memInit: mem });
+    const env   = makeHostEnv({ now: 0n, storage: store });    const st    = runBlob(blob, 100, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(FULL);
     expect(env.getStorage!(Uint8Array.from([0x66,0x6f,0x6f]))).toBeUndefined();
@@ -102,8 +101,7 @@ describe("ΩW write handler", () => {
   
 
     const store = new Map<string, Uint8Array>();
-    const env   = makeHostEnv({}, 0n, store, /*capBytes*/ 512);
-
+    const env   = makeHostEnv({ now: 0n, storage: store, capBytes: 512 });
     const bigBlob = buildBlob( { meta: Uint8Array.of(0), jumpTbl: Uint8Array.of(0), z: 1,
           instr: makeCode(1024), // make length big
           jumpEntries:[Uint8Array.of(0)],bitmaskBits: bitmask }
