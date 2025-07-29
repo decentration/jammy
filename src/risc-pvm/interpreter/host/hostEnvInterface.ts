@@ -1,4 +1,4 @@
-import { FetchVector } from "./types";
+import { FetchVector, MachineEntry } from "./types";
 
 // output option parameters
 export interface HostEnvInterface {
@@ -7,6 +7,8 @@ export interface HostEnvInterface {
 
   // Return byte‑blob for the requested ΩY fetch vector or null if absent.
   fetchVector(name: FetchVector): Uint8Array | null; // Sv in ΩY 
+
+  machineTable: Map<number, MachineEntry>; // ΩM, table of inner-machines (Refine)
 
   getStorage?: (key: Uint8Array) => Uint8Array | undefined;  // as[k] / ss[k] in ΩR and ΩW 
   putStorage?: (key: Uint8Array, value: Uint8Array) => void; // mutate ΩW
@@ -32,6 +34,8 @@ export interface HostEnvOptions {
   infoMap?: Map<string, Uint8Array>;
   expOff?: number;
   expSegs?: Uint8Array[];
+  machines?: Map<number, { p: Uint8Array; u: any; i: number }>;
+
 }
 
   
@@ -45,6 +49,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     infoMap,
     expOff,
     expSegs,
+    machines
   } = opts;
 
   // Convert the vectors object into a Map for fast lookup
@@ -53,7 +58,6 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const images  = preImage ?? new Map<string, Uint8Array>();
   const infos   = infoMap  ?? new Map<string, Uint8Array>();
   const keyStr = (u8: Uint8Array) => Array.from(u8).join(",");
-
 
   let used = 0;
   store.forEach(v => { used += v.length; });
@@ -77,6 +81,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   // !TODO update function with multi service support.
   const hasService = (id: bigint) => id === (2n ** 64n - 1n);  
 
+  const mTable = machines ?? new Map<number, { p: Uint8Array; u: any; i: number }>();
 
   return {
     now: () => now,
@@ -98,6 +103,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
 
     exportOffset : expOff,
     exportSegments: expSegs ?? [],
+    machineTable: mTable,
 
   };
 }

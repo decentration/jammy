@@ -11,6 +11,7 @@ import { HostEnvInterface } from "./hostEnvInterface";
 import { HostCallHandler } from "./types";
 import { historicalLookupHandler } from "./handlers/historicalLookupHandler";
 import { exportHandler } from "./handlers/exportHandler";
+import { machineHandler } from "./handlers/machineHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -180,8 +181,7 @@ const stubHandler: HostCallHandler = (state, id, env) => {
 const STUB_SELECTORS = [
    5, 6,        
   7, 8, 9, 10, 11, 12, 13, 14,
-  16,              
-  20,  
+  16,  
   25, 26,                    
   27 
 ] as const;
@@ -209,7 +209,7 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   17: historicalLookupHandler, // REfine - ΩH - historical lookup ()
   18: fetchHandler,
   19: exportHandler,    // ΩE - export segment (Refine)
-  // 20: machineHandler // ΩM - machine info (Refine)
+  20: machineHandler, // ΩM - machine info (Refine)
   21: peekHandler,      // ΩK - peek (Refine)
   22: pokeHandler,      // ΩP - poke (Refine)
   23: zeroHandler, // ΩZ - zero memory (refine)

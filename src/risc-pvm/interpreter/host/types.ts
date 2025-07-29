@@ -1,6 +1,9 @@
 import { InterpreterState } from "../types";
 import { HostEnvInterface } from "./hostEnvInterface";
 
+export type MachineEntry = { p: Uint8Array; u: any; i: number };
+
+
 // Fetch‑vector identifiers for ΩY.
 export type FetchVector =
     | "codeBlob"        // c - compiled code of the inner program
