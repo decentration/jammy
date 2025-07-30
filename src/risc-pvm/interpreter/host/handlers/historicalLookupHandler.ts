@@ -1,6 +1,7 @@
 import { readBytes, writeBytes }      from "../../instructions/helpers";
 import { ExitReasonType }             from "../../types";
 import { NONE, WHO }                  from "../consts";
+import { finish }                     from "../helpers";
 import { HostCallHandler }            from "../types";
 
 export const historicalLookupHandler: HostCallHandler = (s, _id, env) => {
@@ -10,19 +11,15 @@ export const historicalLookupHandler: HostCallHandler = (s, _id, env) => {
   const fOff   = Number(s.registers[10]);   // slice offset inside the value (f)
   let   len    = Number(s.registers[11]);   // slice length (0 -> to end)
 
-  const done = (st: typeof s, c: bigint) => ({
-    state: { ...st, registers: Object.assign([], st.registers, { 7: c }) },
-    ok   : true,
-  });
 
-  if (srvIdx !== NONE && !env.hasService?.(srvIdx)) return done(s, WHO); // (a) account records
+  if (srvIdx !== NONE && !env.hasService?.(srvIdx)) return finish(s, WHO); // (a) account records
 
   const { bytes: hashBytes, state: s1 } = readBytes(s, hOff, 32);
   if (!hashBytes)
     return { state:{ ...s, exit:{ type: ExitReasonType.Panic } }, ok:true };
 
   const value = env.historicalLookup?.(hashBytes) ?? undefined; // (v) 
-  if (!value) return done(s1, NONE);
+  if (!value) return finish(s1, NONE);
 
   const Sv = value.length;
   const f  = Math.min(fOff, Sv);

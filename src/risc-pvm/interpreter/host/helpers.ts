@@ -1,3 +1,4 @@
+import { InterpreterState } from "../types";
 import { FetchVector } from "./types";
 
 
@@ -17,3 +18,11 @@ export const fetchVecSelectorMap: Record<number, FetchVector | undefined> = {
     // 16‑17: transfer list (t)
     16: "transferList", 17: "transferList"
 };
+
+
+export function finish(s: InterpreterState, c: bigint) { 
+    return { 
+        state: { ...s, registers: Object.assign([], s.registers, { 7: c }) }, 
+        ok: true 
+    };
+}

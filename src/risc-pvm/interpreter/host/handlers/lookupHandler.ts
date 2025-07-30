@@ -1,7 +1,7 @@
-import { hash }                       from "../../../../utils/crypto";
 import { readBytes, writeBytes }      from "../../instructions/helpers";
 import { ExitReasonType }             from "../../types";
 import { NONE, WHO }                  from "../consts";
+import { finish }                     from "../helpers";
 import { HostCallHandler }            from "../types";
 
 // LOOKUP (ΩL) — selector 1
@@ -12,18 +12,13 @@ export const lookupHandler: HostCallHandler = (s, _id, env) => {
   const fOff   = Number(s.registers[10]); // offset into found preimage
   let len      = Number(s.registers[11]); // number of  bytes to copy from the preimage
 
-  const done = (state: typeof s, c: bigint) => ({
-    state: { ...state, registers: Object.assign([], state.registers, { 7: c }) },
-    ok   : true,
-  });
-
-  if (srvIdx !== NONE) return done(s, WHO);
+  if (srvIdx !== NONE) return finish(s, WHO);
 
   const { bytes: hashBytes, state: s1 } = readBytes(s, hOff, 32);
   if (!hashBytes) return { state: { ...s, exit:{ type: ExitReasonType.Panic } }, ok: true };
 
   const value = env.lookupPreimage?.(hashBytes);
-  if (!value) return done(s1, NONE);
+  if (!value) return finish(s1, NONE);
 
   const Sv = value.length; // Service size
   const f  = Math.min(fOff, Sv); // Offset into the found preimage blob

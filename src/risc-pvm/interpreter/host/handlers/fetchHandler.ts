@@ -4,7 +4,6 @@ import { WHAT, NONE } from "../consts";
 import { fetchVecSelectorMap } from "../helpers";
 import { HostCallHandler } from "../types";
 
-
 // ΩY  – selector 18  --
 export const fetchHandler: HostCallHandler = (s, _id, env) => {
 

@@ -35,7 +35,6 @@ const makeBlob = (code: Uint8Array) =>
   );
 
 // inner machine 
-
 function makeMachine(memContents: Uint8Array): MachineEntry {
   return { p: new Uint8Array(), u: { mem: memContents }, i: 0 };
 }
@@ -46,7 +45,6 @@ const machine0 = { p:new Uint8Array(), u:{ mem: innerMem }, i:0 };
 describe("ΩO poke handler", () => {
 
     it("happy‑path -> r7=OK & inner mem updated", () => {
-      const innerMem = new Uint8Array(16).map((_,i)=>i+1); // [1..16]
       const innerMachine = makeMachine(innerMem)
       const env = makeHostEnv({ machines: new Map([[0, innerMachine ]])});
       const mem = new Uint8Array(1<<20);

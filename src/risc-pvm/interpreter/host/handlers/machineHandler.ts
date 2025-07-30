@@ -3,25 +3,20 @@ import { ExitReasonType } from "../../types";
 import { HUH } from "../consts";
 import { HostCallHandler, MachineEntry } from "../types";
 import { deblob } from "../../deblob";
+import { finish } from "../helpers";
 
 // ΩM  – machine (selector 20)
 export const machineHandler: HostCallHandler = (s, _id, env) => {
   const pOff = Number(s.registers[7]);   // (po) program blob offset
   const pz   = Number(s.registers[8]);   // (pz) program blob length
   const opts = Number(s.registers[9]);   // (i) flag bits / options
-
-  // helper to finish the call
-  const done = (st: typeof s, r7: bigint) => ({
-    state : { ...st, registers: Object.assign([], st.registers, { 7: r7 }) },
-    ok: true,
-  });
-
+  
   // p  – fetch candidate blob
   const { bytes: p, state: s1 } = readBytes(s, pOff, pz);
   if (!p) return { state:{ ...s, exit:{ type: ExitReasonType.Panic } }, ok:true };
 
 
-  try { deblob(p) } catch { return done(s1, HUH); } 
+  try { deblob(p) } catch { return finish(s1, HUH); } 
 
   // m  – machine table (create lazily)
   const tbl: Map<number, MachineEntry> = (env.machineTable ||= new Map<number, MachineEntry>());
@@ -37,5 +32,5 @@ export const machineHandler: HostCallHandler = (s, _id, env) => {
   tbl.set(fstUnsdMachine, { p, u: newMachineObject, i: opts });
 
   // (success path) reg 7 will contain ID of the newly created machine
-  return done(s1, BigInt(fstUnsdMachine));
+  return finish(s1, BigInt(fstUnsdMachine));
 };

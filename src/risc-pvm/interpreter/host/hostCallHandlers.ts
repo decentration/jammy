@@ -14,6 +14,8 @@ import { exportHandler } from "./handlers/exportHandler";
 import { machineHandler } from "./handlers/machineHandler";
 import { peekHandler } from "./handlers/peekHandler";
 import { pokeHandler } from "./handlers/pokeHandler";
+import { voidHandler } from "./handlers/voidHandler";
+import { zeroHandler } from "./handlers/zeroHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -83,34 +85,34 @@ const gasHandler: HostCallHandler = (state, id, env ) => {
 //   return { state: { ...state, registers }, ok: true };
 // };
 
-// ZERO (ΩZ) and VOID (ΩV) — selectors 5 and 6
-const zeroOrVoid =
-  (isVoid: boolean): HostCallHandler =>
-  (state, id) => {
+// // ZERO (ΩZ) and VOID (ΩV) — selectors 5 and 6
+// const zeroOrVoid =
+//   (isVoid: boolean): HostCallHandler =>
+//   (state, id) => {
 
-    if ((isVoid ? id !== 24n : id !== 23n)) return { state, ok: false };
+//     if ((isVoid ? id !== 24n : id !== 23n)) return { state, ok: false };
 
-    const addr = Number(state.registers[8]);   // r8 = start
-    const len  = Number(state.registers[9]);   // r9 = length
+//     const addr = Number(state.registers[8]);   // r8 = start
+//     const len  = Number(state.registers[9]);   // r9 = length
 
-    // bounds & page permissions
-    const s1 = writeBytes(state, addr, new Uint8Array(len).fill(0));
-    const regs = s1.registers.slice();
+//     // bounds & page permissions
+//     const s1 = writeBytes(state, addr, new Uint8Array(len).fill(0));
+//     const regs = s1.registers.slice();
 
-    if (s1.exit?.type === ExitReasonType.PageFault) {
-      regs[7] = OOB;
-      return { state: { ...s1, registers: regs }, ok: false };
-    }
+//     if (s1.exit?.type === ExitReasonType.PageFault) {
+//       regs[7] = OOB;
+//       return { state: { ...s1, registers: regs }, ok: false };
+//     }
 
-    regs[7] = OK;
-    return {
-      state: { ...s1, registers: regs, gas: s1.gas - 10 },
-      ok: true,
-    }; 
-  };
+//     regs[7] = OK;
+//     return {
+//       state: { ...s1, registers: regs, gas: s1.gas - 10 },
+//       ok: true,
+//     }; 
+//   };
 
-const zeroHandler = zeroOrVoid(false); // 23
-const voidHandler = zeroOrVoid(true ); // 24
+// const zeroHandler = zeroOrVoid(false); // 23
+// const voidHandler = zeroOrVoid(true ); // 24
 
 
 // FORGET PRE-IMAGE (ΩF) - selector 15

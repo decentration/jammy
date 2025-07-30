@@ -2,6 +2,7 @@ import { hash } from "../../../../utils/crypto";
 import { readBytes, toLE, writeBytes } from "../../instructions/helpers";
 import { ExitReasonType } from "../../types";
 import { NONE, WHO } from "../consts";
+import { finish } from "../helpers";
 import { HostCallHandler } from "../types";
 
 export const readHandler: HostCallHandler = (s, _id, env) => {
@@ -12,12 +13,6 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
     const fOff = Number(s.registers[11]);  // value‑offset
     let   len  = Number(s.registers[12]);  // length‑requested
   
-    // helper for ‘early‑return with constant’
-    const done = (state: typeof s, constant: bigint) => ({
-        state : { ...state, registers: Object.assign([], state.registers, { 7: constant }) },
-        ok    : true,
-        exit  : { type: ExitReasonType.Continue },
-    });
 
     const setR7 = (state: typeof s, v: bigint) => ({
         state: { ...state, registers: Object.assign([], state.registers, { 7: v }) },
@@ -48,14 +43,14 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
     const prefixedKey = new Uint8Array(pref.length + key.length);
     prefixedKey.set(pref, 0);
     prefixedKey.set(key, pref.length);
-    
+
     // 3. hash the key
     const hKey = hash(prefixedKey);
     // 4. Lookup in external storage
     const value = env.getStorage?.(hKey);
     console.log("readHandler 3", { hKey, value, key, prefixedKey });
   
-    if (!value) return done(s1, NONE);  // key missing
+    if (!value) return finish(s1, NONE);  // key missing
 
     // 5. slice blob
     const Sv = value.length;
@@ -65,7 +60,7 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
 
     // //6. TODO! storage full placeholder. (After Refine/Accumulate is complete we update this)
     // const isStoreFull = env.isFull?.() ?? false;
-    // if (isStoreFull) return done(s1, FULL);
+    // if (isStoreFull) return finish(s1, FULL);
 
     // 7. write bytes to destination
     const s2 = writeBytes(s1, dest, slice);

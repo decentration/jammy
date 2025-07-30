@@ -2,6 +2,7 @@ import { hash } from "../../../../utils/crypto";
 import { readBytes }               from "../../instructions/helpers";
 import { ExitReasonType }          from "../../types";
 import { NONE, OOB, WHO, FULL }    from "../consts";
+import { finish }                  from "../helpers";
 import { HostCallHandler }         from "../types";
 
 // ΩW – selector 3
@@ -11,11 +12,6 @@ export const writeHandler: HostCallHandler = (s, _id, env) => {
     const kz = Number(s.registers[9]);      // key length
     const fOff = Number(s.registers[10]);   // value offset
     const vz = Number(s.registers[11]);     // value length (0 -> delete)
-
-    const done = (state: typeof s, constant: bigint) => ({
-        state : { ...state, registers: Object.assign([], state.registers, { 7: constant }) },
-        ok: true,
-    });
 
     const setR7 = (state: typeof s, v: bigint) => ({
         state: { ...state, registers: Object.assign([], state.registers, { 7: v }) },
@@ -73,10 +69,10 @@ export const writeHandler: HostCallHandler = (s, _id, env) => {
             // roll back
             if (prev) env.putStorage?.(kHash, prev);
             else env.deleteStorage?.(kHash);
-            return done(s2, FULL);
+            return finish(s2, FULL);
         }
     }
 
     //6. return the length of the previous value
-    return done(s2, prevLen);
+    return finish(s2, prevLen);
 };

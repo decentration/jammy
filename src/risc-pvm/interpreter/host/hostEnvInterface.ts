@@ -38,7 +38,6 @@ export interface HostEnvOptions {
 
 }
 
-  
 export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const {
     vectors = {},
