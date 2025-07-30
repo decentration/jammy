@@ -16,6 +16,8 @@ import { peekHandler } from "./handlers/peekHandler";
 import { pokeHandler } from "./handlers/pokeHandler";
 import { voidHandler } from "./handlers/voidHandler";
 import { zeroHandler } from "./handlers/zeroHandler";
+import { invokeHandler } from "./handlers/invokeHandler";
+import { expungeHandler } from "./handlers/expungeHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -218,8 +220,8 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   22: pokeHandler,      // ΩP - poke (Refine)
   23: zeroHandler, // ΩZ - zero memory (refine)
   24: voidHandler, // ΩV - void memory (refine)
-  // 25: invokeHandler, // ΩI - invoke (Refine)
-  // 26: expungeHandler, // ΩX - expunge (Refine)
+  25: invokeHandler, // ΩI - invoke (Refine)
+  26: expungeHandler, // ΩX - expunge (Refine)
 
   // 27: provideHandler, // Ω♈ - provide (Accumulate)
 
