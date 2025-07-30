@@ -12,6 +12,8 @@ import { HostCallHandler } from "./types";
 import { historicalLookupHandler } from "./handlers/historicalLookupHandler";
 import { exportHandler } from "./handlers/exportHandler";
 import { machineHandler } from "./handlers/machineHandler";
+import { peekHandler } from "./handlers/peekHandler";
+import { pokeHandler } from "./handlers/pokeHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -133,19 +135,19 @@ const forgetHandler: HostCallHandler = (state, id, env) => {
 //   return { state: { ...state, registers: regs }, ok: true };
 // };
 
-// PEEK (ΩK) — selector 21
-const peekHandler: HostCallHandler = (state, id, env) => {
-  const registers = state.registers.slice();
-  registers[7] = WHAT; // !TODO No inner PVM yet
-  return { state: { ...state, registers }, ok: true };
-};
+// // PEEK (ΩK) — selector 21
+// const peekHandler: HostCallHandler = (state, id, env) => {
+//   const registers = state.registers.slice();
+//   registers[7] = WHAT; // !TODO No inner PVM yet
+//   return { state: { ...state, registers }, ok: true };
+// };
 
-// POKE (ΩP) — selector 22
-const pokeHandler: HostCallHandler = (state, id, env) => {
-  const registers = state.registers.slice();
-  registers[7] = WHAT; // !TODO wait till we support inner PVMs
-  return { state: { ...state, registers }, ok: true };
-};
+// // POKE (ΩP) — selector 22
+// const pokeHandler: HostCallHandler = (state, id, env) => {
+//   const registers = state.registers.slice();
+//   registers[7] = WHAT; // !TODO wait till we support inner PVMs
+//   return { state: { ...state, registers }, ok: true };
+// };
 
 // Defualt "uknown selector" 
 const unknownHandler: HostCallHandler = (state, id, env) => {
