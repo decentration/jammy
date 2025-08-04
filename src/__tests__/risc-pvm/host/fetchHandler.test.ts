@@ -37,7 +37,7 @@ describe("ΩY fetch handler", () => {
 
   it("happy‑path: copies bytes & sets r7=size", () => {
     const V = Uint8Array.from([1,2,3,4,5]);
-    const env   = makeHostEnv({ codeBlob: V });
+    const env   = makeHostEnv({ vectors: {codeBlob: V }});
     const code = makeCode(0); 
 
     const blob  = makeBlob(code, bitmask);
@@ -67,7 +67,7 @@ describe("ΩY fetch handler", () => {
 
   it("write into read‑only page -> Panic", () => {
     const vec  = Uint8Array.of(9, 9, 9);
-    const env  = makeHostEnv({ codeBlob: vec });
+    const env  = makeHostEnv({ vectors: {codeBlob: vec }});
     const UNMAPPED = 0x20000;
     const blob = makeBlob(makeCode( 0, UNMAPPED), bitmask);
     const st   = runBlob(blob, 100, { env });

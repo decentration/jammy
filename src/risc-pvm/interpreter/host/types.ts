@@ -27,3 +27,23 @@ export type HostDispatcher = (
     state: InterpreterState,
     env:   HostEnvInterface
 ) => InterpreterState;
+
+// (9.3) in spec
+export interface ServiceAccount {
+    storage: Map<string, Uint8Array>; // s
+    preimages: Map<string, Uint8Array>; // p
+    lookupStorage: Map<string, Uint8Array>;   // (l) for historical flags
+    rootCodeHash: bigint; // c
+    balance: bigint; // b
+    gasAccumulate: bigint;  // g
+    gasOnTransfer: bigint; // m
+    cores: Uint8Array; // (q) Qx32 bytes
+    selectorMap  : Map<number, { authSlot:number; versionSlot:number; extCodeHash64:Uint8Array }>; // from bless // a: auth_id, v: version_id, g: code_hash
+}
+
+export interface EncodableAccount extends ServiceAccount {
+    ticketNext: bigint;   // tt – running ticket number
+    coresOffset: number;  // to – where cores live inside δ-blob (stub = 0)
+    ticketIndex: number;  // ti – current queue head (stub = 0)
+  }
+  

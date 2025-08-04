@@ -1,4 +1,5 @@
-import { FetchVector, MachineEntry } from "./types";
+import { EncodableAccount, FetchVector, MachineEntry, ServiceAccount } from "./types";
+import { encodeInfoHelper } from "./helpers"
 
 // output option parameters
 export interface HostEnvInterface {
@@ -22,6 +23,9 @@ export interface HostEnvInterface {
   historicalLookup?: (hash: Uint8Array) => Uint8Array | undefined; // ΩH
   exportOffset?: number;  // ΩE offset to export data
   exportSegments?: Uint8Array[]; // ΩE mutable array that gathers x segments to export
+
+  getService: (id: bigint) => ServiceAccount | undefined;
+  putService: (id: bigint, ac: ServiceAccount) => void;
 }
 
 // input option parameters
@@ -35,7 +39,7 @@ export interface HostEnvOptions {
   expOff?: number;
   expSegs?: Uint8Array[];
   machines?: Map<number, { p: Uint8Array; u: any; i: number }>;
-
+  accounts?: Map<bigint, ServiceAccount>;
 }
 
 export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
@@ -48,22 +52,27 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     infoMap,
     expOff,
     expSegs,
-    machines
+    machines,
+    accounts
   } = opts;
 
   // Convert the vectors object into a Map for fast lookup
+  
+  const keyStr = (u8: Uint8Array) => Buffer.from(u8).toString("hex");
   const map = new Map(Object.entries(vectors) as [FetchVector, Uint8Array][]);
   const store  = storage ?? new Map<string, Uint8Array>();
   const images  = preImage ?? new Map<string, Uint8Array>();
   const infos   = infoMap  ?? new Map<string, Uint8Array>();
-  const keyStr = (u8: Uint8Array) => Array.from(u8).join(",");
+  const mTable = machines ?? new Map<number, { p: Uint8Array; u: any; i: number }>();
+
+  const svcTab  = accounts ?? new Map<bigint, ServiceAccount>();
 
   let used = 0;
   store.forEach(v => { used += v.length; });
 
   // get, put, del functions for storage
   const get  = (k: Uint8Array) => store.get(keyStr(k));
-  const put  = (k: Uint8Array, v: Uint8Array) => {
+  const put  = (k: Uint8Array, v: Uint8Array) => { 
     const s = keyStr(k);
     const old = store.get(s);
     if (old) used -= old.length;
@@ -77,10 +86,11 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   };
 
 
-  // !TODO update function with multi service support.
-  const hasService = (id: bigint) => id === (2n ** 64n - 1n);  
+  const getService = (id: bigint) => svcTab.get(id);
+  const putService = (id: bigint, acct: ServiceAccount) => svcTab.set(id, acct);
+  const hasService = (id: bigint) => svcTab.has(id);
 
-  const mTable = machines ?? new Map<number, { p: Uint8Array; u: any; i: number }>();
+
 
   return {
     now: () => now,
@@ -93,17 +103,20 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     deleteStorage : del,
     lookupPreimage: h => images.get(keyStr(h)), 
     historicalLookup: h => images.get(keyStr(h)), // refine
-    getInfo: id => infos.get(id.toString()),
-    encodeInfo: i => i,
+    getInfo     : (id: bigint) => svcTab.get(id),
+    encodeInfo: encodeInfoHelper,
   
 
     isFull     : () => used > capBytes,
+
+    getService, 
+    putService,
     hasService,
 
     exportOffset : expOff,
     exportSegments: expSegs ?? [],
     machineTable: mTable,
-
+  
   };
 }
 

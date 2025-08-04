@@ -7,7 +7,6 @@ import { createPageTable, mapPages } from "./memory";
 import { dispatchHostCall } from "./host/hostCallHandlers";
 import { HostEnvInterface, makeHostEnv } from "./host/hostEnvInterface";
 import { HostCallHandler, HostDispatcher } from "./host/types";
-import { prettyState } from "./utils/debug";
 
 
 export interface RunBlobOpts {
@@ -20,6 +19,7 @@ export interface RunBlobOpts {
 }
 
 export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts = {}) {
+  console.log("runBlob", { blob, initialGas, opts });
   const { jumpTable, jumpEntryLength, jumpEntries, instructionData, opcodeBitmask } = deblob(blob);
   console.log("runBlob bitmask bits, bitmask" ,{ opcodeBitmask});
 

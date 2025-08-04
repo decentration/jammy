@@ -3,7 +3,9 @@ import { makeHostEnv }     from "../../../risc-pvm/interpreter/host/hostEnvInter
 import { Opcodes }         from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob }         from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType }  from "../../../risc-pvm/interpreter/types";
-import { NONE, OK, WHO }   from "../../../risc-pvm/interpreter/host/consts";
+import { NONE, OK, SVC_ID, WHO }   from "../../../risc-pvm/interpreter/host/consts";
+import { encodeInfoHelper } from "../../../risc-pvm/interpreter/host/helpers";
+import { EncodableAccount } from "../../../risc-pvm/interpreter/host/types";
 
 const DEST = 0x18000;
 
@@ -16,23 +18,45 @@ function prog(): Uint8Array {
   );
 }
 
+
+const sa: EncodableAccount = {
+  storage: new Map(),
+  preimages: new Map(),
+  lookupStorage: new Map(),
+  rootCodeHash   : 0x1234n,
+  balance        : 7n,
+  gasAccumulate  : 0n,
+  gasOnTransfer  : 0n,
+  cores          : new Uint8Array(0),
+  selectorMap    : new Map(),
+  ticketNext     : 0n,
+  coresOffset    : 0,
+  ticketIndex    : 0
+};
+
+const SERVICE_ID = 0xFFFF_FFFF_FFFF_FFFFn;   // BigInt
+
+
 const bitmask = Uint8Array.of(0b0100_0001,0b0101_0000);
 
 const blob = buildBlob({ meta:Uint8Array.of(0), jumpTbl:Uint8Array.of(0), z:1,
   instr:prog(), jumpEntries:[Uint8Array.of(0)], bitmaskBits:bitmask });
 
+  const EXPECT = encodeInfoHelper(sa);
+
+
+
 describe("ΩI info handler", () => {
   it("writes info blob, r7=OK", () => {
-    const INFO = Uint8Array.from([1,2,3,4]);
-    const env  = makeHostEnv({now: 0n, capBytes: Infinity, infoMap: new Map([
-        ["18446744073709551615", // is the string key 0xffff_ffff_ffff_ffffn
-            INFO]])}); 
-
-    (env as any).encodeInfo = (x: Uint8Array)=>x;
+    const env = makeHostEnv({
+      accounts : new Map([[NONE, sa]]),
+    });
+    env.encodeInfo = encodeInfoHelper;
     const st = runBlob(blob,100,{ env, memInit:new Uint8Array(1<<20) });
 
     expect(st.registers[7]).toBe(OK);
-    expect(st.memory.slice(DEST,DEST+4)).toEqual(INFO);
+    expect(st.memory.slice(DEST,DEST+ EXPECT.length)).toEqual(EXPECT
+    );
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
@@ -56,4 +80,33 @@ describe("ΩI info handler", () => {
     const st = runBlob(badBlob,100,{ env:makeHostEnv(), memInit:new Uint8Array(1<<20) });
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
+
+  
+  
 });
+
+describe("ΩI info handler with newer encodeInfoHelper", () => {
+// This test uses the newer encodeInfoHelper that returns a typed Uint8Array
+
+
+const ENV = makeHostEnv({
+  accounts: new Map([[SERVICE_ID, sa]]), 
+});
+
+ENV.getInfo = (id: bigint) => ENV.getService(id);
+
+
+ENV.encodeInfo = encodeInfoHelper;   // already typed correctly
+
+const EXPECT = encodeInfoHelper(sa); 
+
+it("newer encodeInfoHelper: writes info blob, r7 = OK", () => {
+  const mem = new Uint8Array(1 << 20);
+  const st  = runBlob(blob, 100, { env: ENV, memInit: mem });
+
+  expect(st.registers[7]).toBe(OK);
+  expect(st.memory.slice(DEST, DEST + EXPECT.length)).toEqual(EXPECT);
+  expect(st.exit?.type).toBe(ExitReasonType.Panic);
+});
+
+}); 

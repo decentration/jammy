@@ -9,3 +9,14 @@ export const CASH  = (1n << 64n) - 7n; // 18446744073709551609n
 export const LOW   = (1n << 64n) - 8n; // 18446744073709551608n
 export const HUH   = (1n << 64n) - 9n; // 18446744073709551607n
 
+
+// Accumulate consts for host calls
+export const SVC_ID = 0n // !TODO change when outer invocation is supported (bless and assign)
+export const CORES_PER_SERVICE = 8; // !TODO stub for Q (assign handler)
+export const CORE_BYTES = 32;          // 32-byte hash each (assign handler)
+export const MAX_BLESS_SELECTOR_SLOTS = 2**16;;  // NS !TODO what is max? (bless handler)
+export const BYTES_PER_BLESS_HASH = 12; // 12 bytes for each bless hash (bless handler)
+
+
+// info handler:
+export const INFO_BYTES = 32 + 16 + 8 + 8 + 8 + 4 + 4;
