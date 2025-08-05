@@ -39,6 +39,7 @@ export interface ServiceAccount {
     gasOnTransfer: bigint; // m
     cores: Uint8Array; // (q) Qx32 bytes
     selectorMap  : Map<number, { authSlot:number; versionSlot:number; extCodeHash64:Uint8Array }>; // from bless // a: auth_id, v: version_id, g: code_hash
+    designations?: Uint8Array; // v - designations for the service
 }
 
 export interface EncodableAccount extends ServiceAccount {

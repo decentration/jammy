@@ -20,3 +20,8 @@ export const BYTES_PER_BLESS_HASH = 12; // 12 bytes for each bless hash (bless h
 
 // info handler:
 export const INFO_BYTES = 32 + 16 + 8 + 8 + 8 + 4 + 4;
+
+//designate hander:
+export const V_SLOTS        = 8;   // NV !TODO (correct?)
+export const BYTES_PER_SLOT = 336; // 336-byte records
+export const PAYLOAD_BYTES  = V_SLOTS * BYTES_PER_SLOT;
