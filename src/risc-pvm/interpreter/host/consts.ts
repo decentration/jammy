@@ -14,10 +14,10 @@ export const HUH   = (1n << 64n) - 9n; // 18446744073709551607n
 export const SVC_ID = 0n // !TODO change when outer invocation is supported (bless and assign)
 export const CORES_PER_SERVICE = 8; // !TODO stub for Q (assign handler)
 export const CORE_BYTES = 32;          // 32-byte hash each (assign handler)
+export const CORES_SIZE = CORE_BYTES * CORES_PER_SERVICE; // 256 bytes for 8 cores (assign handler)
 export const MAX_BLESS_SELECTOR_SLOTS = 2**16;;  // NS !TODO what is max? (bless handler)
 export const BYTES_PER_BLESS_HASH = 12; // 12 bytes for each bless hash (bless handler)
-
-
+ 
 // info handler:
 export const INFO_BYTES = 32 + 16 + 8 + 8 + 8 + 4 + 4;
 
@@ -25,3 +25,8 @@ export const INFO_BYTES = 32 + 16 + 8 + 8 + 8 + 4 + 4;
 export const V_SLOTS        = 8;   // NV !TODO (correct?)
 export const BYTES_PER_SLOT = 336; // 336-byte records
 export const PAYLOAD_BYTES  = V_SLOTS * BYTES_PER_SLOT;
+
+// NEW HANDLER:
+export const ACTIVATION_FEE = 10n;             // !TODO - stub - at  – activation-fee
+export const HASH_BYTES     = 32;             // each code-hash is 32 B
+export const MAX_LABEL      = 0xffff_ffffn;   // 2^32 -1 , label domain N2^32

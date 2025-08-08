@@ -1,4 +1,4 @@
-import { EncodableAccount, FetchVector, MachineEntry, ServiceAccount } from "./types";
+import { FetchVector, MachineEntry, ServiceAccount } from "./types";
 import { encodeInfoHelper } from "./helpers"
 
 // output option parameters

@@ -40,11 +40,14 @@ export interface ServiceAccount {
     cores: Uint8Array; // (q) Qx32 bytes
     selectorMap  : Map<number, { authSlot:number; versionSlot:number; extCodeHash64:Uint8Array }>; // from bless // a: auth_id, v: version_id, g: code_hash
     designations?: Uint8Array; // v - designations for the service
+    ticketNext?: bigint;   // tt – running ticket number
+    coresOffset?: number;  // to – where cores live inside δ-blob (stub = 0)
+    ticketIndex?: number;  // ti – current queue head (stub = 0)
 }
 
-export interface EncodableAccount extends ServiceAccount {
-    ticketNext: bigint;   // tt – running ticket number
-    coresOffset: number;  // to – where cores live inside δ-blob (stub = 0)
-    ticketIndex: number;  // ti – current queue head (stub = 0)
-  }
+// export interface EncodableAccount extends ServiceAccount {
+//     ticketNext: bigint;   // tt – running ticket number
+//     coresOffset: number;  // to – where cores live inside δ-blob (stub = 0)
+//     ticketIndex: number;  // ti – current queue head (stub = 0)
+//   }
   

@@ -3,7 +3,7 @@ import { INFO_BYTES } from "../../../risc-pvm/interpreter/host/consts";
 import { encodeInfoHelper } from "../../../risc-pvm/interpreter/host/helpers";
 import { EncodableAccount, ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
 
-const zeroServiceAcc: EncodableAccount = {
+const zeroServiceAcc: ServiceAccount = {
   rootCodeHash : 0n,
   balance      : 0n,
   ticketNext   : 0n,

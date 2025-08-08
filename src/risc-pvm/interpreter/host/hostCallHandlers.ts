@@ -22,6 +22,7 @@ import { blessHandler } from "./handlers/blessHandler";
 import { assignHandler } from "./handlers/assignHandler";
 import { designateHandler } from "./handlers/designateHandler";
 import { checkpointHandler } from "./handlers/checkpointHandler";
+import { newHandler } from "./handlers/newHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -208,7 +209,7 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   6: assignHandler, // ΩA - assign (Accumulator)
   7: designateHandler, // ΩD - designate (Accumulator)
   8: checkpointHandler, // ΩC - checkpoint (Accumulator)
-  // 9: newHandler, // ΩN - new (Accumulator)
+  9: newHandler, // ΩN - new (Accumulator)
   // 10: upgradeHandler, // ΩU - upgrade (Accumulator)
   // 11: transferHandler: // ΩT - transfer (Accumulator)
   // 12: ejectHandler, // ΩJ - eject (Accumulator)
