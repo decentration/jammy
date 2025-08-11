@@ -2,7 +2,7 @@ import { u32, u64 } from "scale-ts";
 import { toLE } from "../instructions/helpers";
 import { InterpreterState } from "../types";
 import { INFO_BYTES } from "./consts";
-import { EncodableAccount, FetchVector, ServiceAccount } from "./types";
+import { AccumulateContext, FetchVector, ServiceAccount } from "./types";
 
 
 // ΩY fetch vector selector map 
@@ -31,7 +31,7 @@ export function finish(s: InterpreterState, c: bigint) {
 
 
 // B.6 (info general function) -->  (m) --> E(tc,tb,tt,tg,tm,to,ti) encoder
-export function encodeInfoHelper(sa: EncodableAccount): Uint8Array {
+export function encodeInfoHelper(sa: ServiceAccount): Uint8Array {
   const out = new Uint8Array(INFO_BYTES);
   let p = 0;
 
@@ -48,12 +48,30 @@ export function encodeInfoHelper(sa: EncodableAccount): Uint8Array {
   out.set(tc, p); p += 32;
   out.set(toLE(sa.balance & 0xFFFF_FFFF_FFFF_FFFFn, 8), p); p += 8;  // tb — 128-bit balance (hi | lo limbs) -- lo 64
   out.set(toLE(sa.balance >> 64n, 8), p); p += 8;     // hi 64
-  out.set(toLE(sa.ticketNext, 8), p); p += 8;  // tt — ticketNext (64)
+  out.set(toLE(sa.ticketNext ?? 0n, 8), p); p += 8;  // tt — ticketNext (64)
   out.set(toLE(sa.gasAccumulate, 8), p); p += 8;     // tg — gasAccumulate (64)
   out.set(toLE(sa.gasOnTransfer, 8), p); p += 8;     // tm — gasOnTransfer (64)
-  out.set(toLE(BigInt(sa.coresOffset), 4) , p); p += 4;     // to — coresOffset (32)
-  out.set(toLE(BigInt(sa.ticketIndex), 4), p);     // ti — ticketIndex (32)
+  out.set(toLE(BigInt(sa.coresOffset ?? 0), 4) , p); p += 4;     // to — coresOffset (32)
+  out.set(toLE(BigInt(sa.ticketIndex ?? 0), 4), p);     // ti — ticketIndex (32)
 
   return out;
-  }
+}
   
+
+// checkpoint helper
+export function checkpointAcc(env: { acc: AccumulateContext }) {
+  env.acc.session.scratch = structuredClone(env.acc.allocator);
+}
+
+export function nextIdInRing(current: bigint): bigint {
+  const FIRST = 1n << 8n;
+  const STEP  = 1n << 9n;
+  const RING_SPAN = (1n << 32n) - (1n << 9n);
+  const off   = (current - FIRST + RING_SPAN) % RING_SPAN;
+  return FIRST + ((off + STEP) % RING_SPAN);
+}
+
+export function checkAlloc(i: bigint): bigint {
+  return i; // !TODO stub for now
+}
+

@@ -1,7 +1,7 @@
 import { toLE } from "../../../risc-pvm/interpreter/instructions/helpers";
 import { INFO_BYTES } from "../../../risc-pvm/interpreter/host/consts";
 import { encodeInfoHelper } from "../../../risc-pvm/interpreter/host/helpers";
-import { EncodableAccount, ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
+import { ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
 
 const zeroServiceAcc: ServiceAccount = {
   rootCodeHash : 0n,
