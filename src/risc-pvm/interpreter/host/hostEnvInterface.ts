@@ -1,4 +1,4 @@
-import { FetchVector, MachineEntry, ServiceAccount } from "./types";
+import { AccumulateContext, FetchVector, MachineEntry, ServiceAccount } from "./types";
 import { encodeInfoHelper } from "./helpers"
 
 // output option parameters
@@ -26,6 +26,8 @@ export interface HostEnvInterface {
 
   getService: (id: bigint) => ServiceAccount | undefined;
   putService: (id: bigint, ac: ServiceAccount) => void;
+
+  acc: AccumulateContext; // (x,y)
 }
 
 // input option parameters
@@ -40,6 +42,7 @@ export interface HostEnvOptions {
   expSegs?: Uint8Array[];
   machines?: Map<number, { p: Uint8Array; u: any; i: number }>;
   accounts?: Map<bigint, ServiceAccount>;
+  initAcc?: Partial<AccumulateContext>;
 }
 
 export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
@@ -53,7 +56,8 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     expOff,
     expSegs,
     machines,
-    accounts
+    accounts,
+    initAcc
   } = opts;
 
   // Convert the vectors object into a Map for fast lookup
@@ -90,7 +94,10 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const putService = (id: bigint, acct: ServiceAccount) => svcTab.set(id, acct);
   const hasService = (id: bigint) => svcTab.has(id);
 
-
+  const acc: AccumulateContext = {
+    allocator: { index: initAcc?.allocator?.index ?? 0n, updates: initAcc?.allocator?.updates ?? {} },
+    session: { scratch: initAcc?.session?.scratch ?? {} },
+  };
 
   return {
     now: () => now,
@@ -116,6 +123,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     exportOffset : expOff,
     exportSegments: expSegs ?? [],
     machineTable: mTable,
+    acc,
   
   };
 }

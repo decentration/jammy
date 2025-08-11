@@ -50,4 +50,17 @@ export interface ServiceAccount {
 //     coresOffset: number;  // to – where cores live inside δ-blob (stub = 0)
 //     ticketIndex: number;  // ti – current queue head (stub = 0)
 //   }
+
+export interface AccumulateX {
+    index: bigint;              // xi — allocator index (ring)
+    updates: Record<string, any>; // xu — mutable staging (service mutations this block)
+  }
   
+  export interface AccumulateY {
+    scratch: Record<string, any>; // ys — checkpoint mirror (snapshot of x at last ΩC)
+  }
+  
+  export interface AccumulateContext {
+    allocator: AccumulateX; // x
+    session: AccumulateY; // y
+  }
