@@ -6,7 +6,7 @@ export type MachineEntry = { p: Uint8Array; u: any; i: number };
 
 // Fetch‑vector identifiers for ΩY.
 export type FetchVector =
-    | "codeBlob"        // c - compiled code of the inner program
+    | "config"          // c - configuration vector
     | "paramBlob"       // n - parameters for the inner invocation
     | "returnBlob"      // r - result blob from previous call 
     | "imports"         // i - array of blobs for imports
@@ -14,6 +14,53 @@ export type FetchVector =
     | "workItems"       // x - list of work item records
     | "authoriserTrace" // o - validator authorisation trace 
     | "transferList";   // t - list of transfers
+
+export enum FetchSel {
+  Config = 0,          // c
+  Params = 1,          // n
+  Returns = 2,         // r
+  ImportsElem = 3,     // x[w11][w12]
+  ImportsList = 4,     // x[i][w11]
+  WorkItemsElem = 5,   // i[w11][w12]
+  WorkItemsList = 6,   // i[i][w11]
+  ProgSerialized = 7,  // E(p)
+  ProgMeta = 8,        // E(pu, <pointer to>pp)
+  ProgJ = 9,           // pj
+  ProgX = 10,          // px
+  ProgWords = 11,      // E([...])
+  ProgWordLen = 12,    // S(pw[w11])
+  ProgWordField = 13,  // pw[w11]y
+  AuthTraceSer = 14,   // E(<pointer to>o)
+  AuthTraceElem = 15,  // E(o[w11])
+  TransfersSer = 16,   // E(<pointer to>t)
+  TransfersElem = 17,  // E(t[w11])
+}
+
+export const fetchVecSelectorMap: Record<number, FetchVector | undefined> = {
+    // [FetchSel.Config] : "config",        // c
+
+  [FetchSel.Params]: "paramBlob",
+  [FetchSel.Returns]: "returnBlob",
+
+  [FetchSel.ImportsElem]: "imports",
+  [FetchSel.ImportsList]: "workItems",
+  [FetchSel.WorkItemsElem]: "imports",
+  [FetchSel.WorkItemsList]: "imports",
+
+  [FetchSel.ProgSerialized]: "programBlob",
+  [FetchSel.ProgMeta]: "paramBlob",
+  [FetchSel.ProgJ]: "paramBlob",
+  [FetchSel.ProgX]: "paramBlob",
+  [FetchSel.ProgWords]: "paramBlob",
+  [FetchSel.ProgWordLen]: "paramBlob",
+  [FetchSel.ProgWordField]: "paramBlob",
+
+  [FetchSel.AuthTraceSer]: "authoriserTrace",
+  [FetchSel.AuthTraceElem]: "authoriserTrace",
+
+  [FetchSel.TransfersSer]: "transferList",
+  [FetchSel.TransfersElem]: "transferList",
+};
 
 // Host environment interface for the interpreter.
 export type HostCallHandler = (
@@ -57,6 +104,7 @@ export interface AccumulateX {
   }
   
   export interface AccumulateY {
+    currentServiceId?: bigint;  // xs – the payer / current service
     scratch: Record<string, any>; // ys — checkpoint mirror (snapshot of x at last ΩC)
   }
   

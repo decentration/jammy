@@ -1,6 +1,8 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
 import { NONE, WHAT } from "../../../risc-pvm/interpreter/host/consts";
+import { buildFetchConfigVector } from "../../../risc-pvm/interpreter/host/helpers";
 import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
+import { FetchSel, fetchVecSelectorMap } from "../../../risc-pvm/interpreter/host/types";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
@@ -35,22 +37,64 @@ const bitmask = Uint8Array.of(0b0100_0001, 0b0101_0000);   // imm, ecalli, trap
 
 describe("ΩY fetch handler", () => {
 
-  it("happy‑path: copies bytes & sets r7=size", () => {
-    const V = Uint8Array.from([1,2,3,4,5]);
-    const env   = makeHostEnv({ vectors: {codeBlob: V }});
-    const code = makeCode(0); 
-
+  it("selector 0 (config): writes config vector & sets r7=size", () => {
+    const env   = makeHostEnv();
+    const code = makeCode(FetchSel.Config);
     const blob  = makeBlob(code, bitmask);
-    const st = runBlob(blob, 100, { env }, );
+    const st    = runBlob(blob, 100, { env, memInit: new Uint8Array(1<<20) });
+    const cfg   = buildFetchConfigVector();
 
-    expect(st.registers[7]).toBe(BigInt(V.length));  // Sv
-    expect(st.memory.slice(HEAP_START, HEAP_START + V.length)).toEqual(V);   
-    expect(st.exit?.type).toBe(ExitReasonType.Panic); 
+    expect(st.registers[7]).toBe(BigInt(cfg.length));
+    expect(st.memory.slice(HEAP_START, HEAP_START + cfg.length)).toEqual(cfg);
+    expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
+
+  it("happy‑path: copies bytes & sets r7=size", () => {
+    const env = makeHostEnv();
+    const code = makeCode(FetchSel.Config);
+    const blob = makeBlob(code, bitmask);
+    const st = runBlob(blob, 100, { env });
+  
+    const cfg = buildFetchConfigVector();
+    expect(st.registers[7]).toBe(BigInt(cfg.length));
+    expect(st.memory.slice(HEAP_START, HEAP_START + cfg.length)).toEqual(cfg);
+    expect(st.exit?.type).toBe(ExitReasonType.Panic);
+  });
+
+  it("config vector: copies bytes & sets r7=size", () => {
+    const env = makeHostEnv();
+    const code = makeCode(FetchSel.Config);
+    const blob = makeBlob(code, bitmask);
+    const st = runBlob(blob, 100, { env });
+
+    const cfg = buildFetchConfigVector();
+    expect(st.registers[7]).toBe(BigInt(cfg.length));
+    expect(st.memory.slice(HEAP_START, HEAP_START + cfg.length)).toEqual(cfg);
+    expect(st.exit?.type).toBe(ExitReasonType.Panic);
+  });
+
+
+  it("code-blob vector: copies bytes & sets r7=Sv", () => {
+    const V = Uint8Array.from([1,2,3,4,5]);
+    const env = makeHostEnv({ vectors: { programBlob: V }});
+    const code = makeCode(FetchSel.ProgSerialized);
+    const blob = makeBlob(code, bitmask);
+
+    console.log("selector=", 7, "mapsTo=", fetchVecSelectorMap[7]);
+    console.log("env vectors keys=", Object.keys((env as any).vectors ?? {}));
+    const st = runBlob(blob, 100, { env });
+
+    console.log("st", st);
+
+    expect(st.registers[7]).toBe(BigInt(V.length));
+    expect(st.memory.slice(HEAP_START, HEAP_START + V.length)).toEqual(V);
+    expect(st.exit?.type).toBe(ExitReasonType.Panic);
+  });
+
 
   it("vector missing -> r7=NONE", () => {
     const env   = makeHostEnv();  // empty
-    const blob  = makeBlob(makeCode(0), bitmask);
+    const blob  = makeBlob(makeCode(FetchSel.ProgSerialized), bitmask);
     const st = runBlob(blob, 50, {env});
 
     console.log("st", st);
@@ -67,11 +111,14 @@ describe("ΩY fetch handler", () => {
 
   it("write into read‑only page -> Panic", () => {
     const vec  = Uint8Array.of(9, 9, 9);
-    const env  = makeHostEnv({ vectors: {codeBlob: vec }});
-    const UNMAPPED = 0x20000;
-    const blob = makeBlob(makeCode( 0, UNMAPPED), bitmask);
+    const env  = makeHostEnv({ vectors: {programBlob: vec }});
+    const UNMAPPED = 0x00000;
+    const blob = makeBlob(makeCode(FetchSel.ProgSerialized, UNMAPPED), bitmask);
     const st   = runBlob(blob, 100, { env });
 
+
+    // loop through and check that the memory is still zero
+    expect(Array.from(st.memory.slice(UNMAPPED, UNMAPPED + vec.length)).every(b => b === 0)).toBe(true);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
     expect(st.gas).toBe(100 - 10 -1 -1 -1 );   
   });
