@@ -77,12 +77,14 @@ export function checkpointAcc(env: { acc: AccumulateContext }) {
   env.acc.session.scratch = structuredClone(env.acc.allocator);
 }
 
+export const RING_START = 1n << 8n;
+export const STEP  = 1n << 9n;
+export const RING_SPAN = (1n << 32n) - RING_START;
+
 export function nextIdInRing(current: bigint): bigint {
-  const FIRST = 1n << 8n;
-  const STEP  = 1n << 9n;
-  const RING_SPAN = (1n << 32n) - (1n << 9n);
-  const off   = (current - FIRST + RING_SPAN) % RING_SPAN;
-  return FIRST + ((off + STEP) % RING_SPAN);
+  
+  const off   = (current - RING_START + RING_SPAN) % RING_SPAN;
+  return RING_START + ((off + STEP) % RING_SPAN);
 }
 
 export function checkAlloc(i: bigint): bigint {

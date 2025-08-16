@@ -1,10 +1,8 @@
 import { readBytes }                 from "../../instructions/helpers";
 import { ExitReasonType }            from "../../types";
-import { FULL, OK }                  from "../consts";
+import { FULL, OK, WG, WX }                  from "../consts";
 import { HostCallHandler }           from "../types";
 
-const WG = 65536;      // segment byte‑width 2^16 Refine defined
-const WX = 1024;       // max segments hard upper bound on total segments
 
 export const exportHandler: HostCallHandler = (s, _id, env) => {
   const ptr   = Number(s.registers[7]); //(p)

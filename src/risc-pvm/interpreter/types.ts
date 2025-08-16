@@ -26,7 +26,6 @@ export type InterpreterState = {
   memory: Uint8Array;          // RAM (μ), typically an ArrayBuffer-backed typed array
   exit?: ExitReason;     // reason why the interpreter stopped
   context?: InterpreterContext;
-
 };
 
 // Exit reasons

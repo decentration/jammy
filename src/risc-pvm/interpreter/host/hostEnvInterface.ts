@@ -94,11 +94,18 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const putService = (id: bigint, acct: ServiceAccount) => svcTab.set(id, acct);
   const hasService = (id: bigint) => svcTab.has(id);
 
-  const acc: AccumulateContext = {
-    allocator: { index: initAcc?.allocator?.index ?? 0n, updates: initAcc?.allocator?.updates ?? {} },
+  const acc: AccumulateContext = { // acc(umulator) context
+    allocator: {
+      index: initAcc?.allocator?.index ?? 0n,
+      env: {
+        updates: initAcc?.allocator?.env?.updates ?? new Map<bigint, any>(),
+        currentServiceId: initAcc?.allocator?.env?.currentServiceId,
+        root: initAcc?.allocator?.env?.root,
+      },
+    },
     session: { scratch: initAcc?.session?.scratch ?? {} },
   };
-
+  
   return {
     now: () => now,
 

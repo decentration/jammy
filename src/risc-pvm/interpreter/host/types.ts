@@ -98,17 +98,23 @@ export interface ServiceAccount {
 //     ticketIndex: number;  // ti – current queue head (stub = 0)
 //   }
 
+// the difference between Record and Map is 
+export interface AccEnv {           // xe
+  updates: Map<bigint, any>; // (xe.d) — mutable staging (service mutations this block), shouldnt be 
+  currentServiceId?: bigint;  // (xe.m) – the payer / current service
+  root?: bigint; // (xe.r) – root code-hash for the current service
+}
+
 export interface AccumulateX {
-    index: bigint;              // xi — allocator index (ring)
-    updates: Record<string, any>; // xu — mutable staging (service mutations this block)
-  }
+  index: bigint;        // xi — allocator index (ring)
+  env: AccEnv;          // xe — environment for the accumulatorn (deltas and meta)
+}
   
-  export interface AccumulateY {
-    currentServiceId?: bigint;  // xs – the payer / current service
-    scratch: Record<string, any>; // ys — checkpoint mirror (snapshot of x at last ΩC)
-  }
+export interface AccumulateY {
+  scratch?: Record<string, any>; // ys — checkpoint mirror (snapshot of x at last ΩC)
+}
   
-  export interface AccumulateContext {
-    allocator: AccumulateX; // x
-    session: AccumulateY; // y
-  }
+export interface AccumulateContext {
+  allocator: AccumulateX; // x the mutable accumulation state for this service during the block.
+  session: AccumulateY; // y
+}
