@@ -20,15 +20,15 @@ export const lookupHandler: HostCallHandler = (s, _id, env) => {
   const value = env.lookupPreimage?.(hashBytes);
   if (!value) return finish(s1, NONE);
 
-  const Sv = value.length; // Service size
-  const f  = Math.min(fOff, Sv); // Offset into the found preimage blob
-  if (len === 0) len = Sv - f;
-  const slice = value.subarray(f, f + Math.min(len, Sv - f));
+  const vLength = value.length; // Service size
+  const f  = Math.min(fOff, vLength); // Offset into the found preimage blob
+  if (len === 0) len = vLength - f;
+  const slice = value.subarray(f, f + Math.min(len, vLength - f));
 
   const s2 = writeBytes(s1, dest, slice);
   if (s2.exit?.type === ExitReasonType.PageFault) return { state: { ...s1, exit:{ type: ExitReasonType.Panic } }, ok: true };
 
   const regs = s2.registers.slice();
-  regs[7] = BigInt(Sv);
+  regs[7] = BigInt(vLength);
   return { state: { ...s2, registers: regs }, ok: true };
 };

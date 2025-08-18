@@ -7,7 +7,7 @@ export interface HostEnvInterface {
   now(): bigint; // ΩG
 
   // Return byte‑blob for the requested ΩY fetch vector or null if absent.
-  fetchVector(name: FetchVector): Uint8Array | null; // Sv in ΩY 
+  fetchVector(name: FetchVector): Uint8Array | null; // vLength in ΩY 
 
   machineTable: Map<number, MachineEntry>; // ΩM, table of inner-machines (Refine)
 
@@ -98,7 +98,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     allocator: {
       index: initAcc?.allocator?.index ?? 0n,
       env: {
-        updates: initAcc?.allocator?.env?.updates ?? new Map<bigint, any>(),
+        deltas: initAcc?.allocator?.env?.deltas ?? new Map<bigint, any>(),
         currentServiceId: initAcc?.allocator?.env?.currentServiceId,
         root: initAcc?.allocator?.env?.root,
       },

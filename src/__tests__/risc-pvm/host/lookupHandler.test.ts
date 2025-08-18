@@ -27,7 +27,7 @@ const blob = (code: Uint8Array = makeCode()) =>
   buildBlob({ meta:Uint8Array.of(0), jumpTbl:Uint8Array.of(0), z:1, instr:code, jumpEntries:[Uint8Array.of(0)], bitmaskBits:bitmask });
 
 describe("ΩL lookup handler", () => {
-  it("happy‑path copies pre‑image, r7 = Sv", () => {
+  it("happy‑path copies pre‑image, r7 = vLength", () => {
     const HASH  = new Uint8Array(32).fill(7); // dummy hash
     const VALUE = Uint8Array.from([9,8,7,6,5]);
 

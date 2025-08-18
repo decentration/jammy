@@ -1,7 +1,7 @@
 import { u32, u64 } from "scale-ts";
 import { toLE } from "../instructions/helpers";
 import { InterpreterState } from "../types";
-import { BI, BL, BS, C, D, E, GA, GI, GR, GT, H, I, INFO_BYTES, J, L, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
+import { BI, BL, BS, C, D, E, GA, GI, GR, GT, H, I, INFO_BYTES, J, K, L, N, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
 import { AccumulateContext, FetchVector, ServiceAccount } from "./types";
 
 
@@ -23,13 +23,16 @@ import { AccumulateContext, FetchVector, ServiceAccount } from "./types";
 // };
 
 export const buildFetchConfigVector = (): Uint8Array => {
-  const u8 = (x: number, bytes: 2 | 4 | 8) => toLE(BigInt(x >>> 0), bytes); // return to converted unsigned integer
+  const u8 = (x: number, bytes: 2 | 4 | 8) => toLE(typeof x === "bigint" ? x : BigInt(x), bytes);  // return to converted unsigned integer
   const parts: Uint8Array[] = [
-    u8(BI,8), u8(BL,8), u8(BS,8), u8(C,2), u8(D,4), u8(E,4),
-    u8(GA,8), u8(GI,8), u8(GR,8), u8(GT,8), u8(H,2), u8(I,2), u8(J,2),
-    u8(L,4), u8(O,2), u8(P,2), u8(Q,2), u8(R,2), u8(S,2), u8(T,2), u8(U,2), u8(V,2),
-    u8(WA,4), u8(WB,4), u8(WC,4), u8(WE,4), u8(WG,4), u8(WM,4), u8(WP,4),
-    u8(WR,4), u8(WT,4), u8(WX,4), u8(Y,4),
+    u8(BI,8), u8(BL,8), u8(BS,8), 
+    u8(C,2),  u8(D,4),  u8(E,4),
+    u8(GA,8), u8(GI,8), u8(GR,8), u8(GT,8),
+    u8(H,2),  u8(I,2),  u8(J,2),  u8(K,2),
+    u8(L,4),  u8(N, 2), u8(O,2),  u8(P,2),  u8(Q,2), 
+    u8(R,2),  u8(T,2),  u8(U,2),  u8(V,2),
+    u8(WA,4), u8(WB,4), u8(WC,4), u8(WE,4), u8(WG,4), u8(WM,4), 
+    u8(WP,4), u8(WR,4), u8(WT,4), u8(WX,4), u8(Y,4),
   ];
   const out = new Uint8Array(parts.reduce((n,p)=>n+p.length,0));
   let p = 0; for (const part of parts) { out.set(part, p); p += part.length; }

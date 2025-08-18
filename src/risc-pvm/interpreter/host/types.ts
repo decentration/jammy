@@ -30,10 +30,11 @@ export enum FetchSel {
   ProgWords = 11,      // E([...])
   ProgWordLen = 12,    // S(pw[w11])
   ProgWordField = 13,  // pw[w11]y
+
   AuthTraceSer = 14,   // E(<pointer to>o)
   AuthTraceElem = 15,  // E(o[w11])
-  TransfersSer = 16,   // E(<pointer to>t)
-  TransfersElem = 17,  // E(t[w11])
+  // TransfersSer = 16,   // E(<pointer to>t)
+  // TransfersElem = 17,  // E(t[w11])
 }
 
 export const fetchVecSelectorMap: Record<number, FetchVector | undefined> = {
@@ -58,8 +59,8 @@ export const fetchVecSelectorMap: Record<number, FetchVector | undefined> = {
   [FetchSel.AuthTraceSer]: "authoriserTrace",
   [FetchSel.AuthTraceElem]: "authoriserTrace",
 
-  [FetchSel.TransfersSer]: "transferList",
-  [FetchSel.TransfersElem]: "transferList",
+  // [FetchSel.TransfersSer]: "transferList",
+  // [FetchSel.TransfersElem]: "transferList",
 };
 
 // Host environment interface for the interpreter.
@@ -100,7 +101,7 @@ export interface ServiceAccount {
 
 // the difference between Record and Map is 
 export interface AccEnv {           // xe
-  updates: Map<bigint, any>; // (xe.d) — mutable staging (service mutations this block), shouldnt be 
+  deltas: Map<bigint, any>; // (xe.d) — mutable staging (service mutations this block)
   currentServiceId?: bigint;  // (xe.m) – the payer / current service
   root?: bigint; // (xe.r) – root code-hash for the current service
 }

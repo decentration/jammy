@@ -23,7 +23,7 @@ function mkCode(
     Opcodes.load_imm,10,  m&255, m>>8&255, m>>16&255, m>>24&255,     // r10=m
     Opcodes.load_imm,11,  f&255, f>>8&255, f>>16&255, f>>24&255,     // r11=f
     Opcodes.load_imm,12,  i&255, i>>8&255, i>>16&255, i>>24&255,     // r12=i
-    Opcodes.ecalli, 9,                                              // ΩN
+    Opcodes.ecalli, 18,                                              // ΩN
     Opcodes.trap
   );
 }
@@ -56,7 +56,7 @@ function mkEnvWithPayer(payerId: bigint, payerBalance: bigint, opts: any = {}) {
       env: {
         currentServiceId: payerId, // xs
         root: opts.root ?? undefined,
-        updates: new Map<bigint, any>(),
+        deltas: new Map<bigint, any>(),
       }
     },
     session: {}, 
@@ -147,7 +147,7 @@ it("explicit id already staged -> FULL", () => {
   const env = mkEnvWithPayer(xs, 50n, { root: xs });
 
   const explicit = 7;
-  env.acc.allocator.env.updates.set(BigInt(explicit), { mock: true });
+  env.acc.allocator.env.deltas.set(BigInt(explicit), { mock: true });
 
   const blob = makeBlob(mkCode(HEAP, 3, 1, 1, 0, explicit));
   const st   = runBlob(blob, GAS, { env, memInit: mem });

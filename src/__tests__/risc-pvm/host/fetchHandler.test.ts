@@ -16,8 +16,8 @@ function makeCode(sel: number, dest= HEAP_START): Uint8Array {
     (dest >> 8)  & 0xFF,
     (dest >> 16) & 0xFF,
     (dest >> 24) & 0xFF,
-   Opcodes.load_imm, 10, sel, 0,0,0, // ω10 = selector
-    Opcodes.ecalli,   18,
+    Opcodes.load_imm, 10, sel, 0,0,0, // ω10 = selector
+    Opcodes.ecalli,   1,
     Opcodes.trap
   );
 }
@@ -74,7 +74,7 @@ describe("ΩY fetch handler", () => {
   });
 
 
-  it("code-blob vector: copies bytes & sets r7=Sv", () => {
+  it("code-blob vector: copies bytes & sets r7=vLength", () => {
     const V = Uint8Array.from([1,2,3,4,5]);
     const env = makeHostEnv({ vectors: { programBlob: V }});
     const code = makeCode(FetchSel.ProgSerialized);
@@ -101,12 +101,12 @@ describe("ΩY fetch handler", () => {
     expect(st.registers[7]).toBe(NONE);
   });
 
-  it("unknown selector → r7=WHAT", () => {
+  it("unknown selector → r7=NONE", () => {
     const env  = makeHostEnv();
     const blob = makeBlob(makeCode(99), bitmask); // 99 is not a valid selector
     const st = runBlob(blob, 50, {env});
 
-    expect(st.registers[7]).toBe(WHAT);
+    expect(st.registers[7]).toBe(NONE);
   });
 
   it("write into read‑only page -> Panic", () => {

@@ -53,11 +53,11 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   const isRoot = (env.acc.allocator.env.root !== undefined) && (payerId === env.acc.allocator.env.root);
   if (isRoot && iInRing < RING_START) {
     // if already staged at iInRing => FULL
-    if (env.acc.allocator.env.updates.has(iInRing)) return finish(s1, FULL);
+    if (env.acc.allocator.env.deltas.has(iInRing)) return finish(s1, FULL);
 
     // stage deltas
-    env.acc.allocator.env.updates.set(iInRing, account);
-    env.acc.allocator.env.updates.set(payerId, sDebited);
+    env.acc.allocator.env.deltas.set(iInRing, account);
+    env.acc.allocator.env.deltas.set(payerId, sDebited);
 
     // !TODO apply immediately to env for now but will be applied later stage of the pipeline.
     env.putService(payerId, sDebited);
@@ -73,14 +73,14 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   env.acc.allocator.index = candidate;
 
   // advance until free id (staged or committed)
-  while (env.acc.allocator.env.updates.has(candidate) || env.hasService?.(candidate)) {
+  while (env.acc.allocator.env.deltas.has(candidate) || env.hasService?.(candidate)) {
   candidate = checkAlloc(nextIdInRing(candidate));
   env.acc.allocator.index = candidate;
 }
 
   // stage deltas
-  env.acc.allocator.env.updates.set(candidate, account);
-  env.acc.allocator.env.updates.set(payerId, sDebited);
+  env.acc.allocator.env.deltas.set(candidate, account);
+  env.acc.allocator.env.deltas.set(payerId, sDebited);
 
 
   const clKey = (() => {  //(c, l) key for lookup storage

@@ -53,10 +53,10 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
     if (!value) return finish(s1, NONE);  // key missing
 
     // 5. slice blob
-    const Sv = value.length;
-    const f = Math.min(fOff, Sv);
-    if (len === 0) len = Sv - f;
-    const slice = value.subarray(f, f + Math.min(len, Sv - f));
+    const vLength = value.length;
+    const f = Math.min(fOff, vLength);
+    if (len === 0) len = vLength - f;
+    const slice = value.subarray(f, f + Math.min(len, vLength - f));
 
     // //6. TODO! storage full placeholder. (After Refine/Accumulate is complete we update this)
     // const isStoreFull = env.isFull?.() ?? false;
@@ -67,6 +67,6 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
     if (s2.exit?.type === ExitReasonType.PageFault) return { state: { ...s1, exit:{type: ExitReasonType.Panic} }, ok: true };
     // 7. success!!
     const regs = s2.registers.slice();
-    regs[7] = BigInt(Sv);
+    regs[7] = BigInt(vLength);
     return { state: { ...s2, registers: regs }, ok: true };
   };

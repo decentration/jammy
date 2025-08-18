@@ -24,6 +24,7 @@ import { designateHandler } from "./handlers/designateHandler";
 import { checkpointHandler } from "./handlers/checkpointHandler";
 import { newHandler } from "./handlers/newHandler";
 import { upgradeHandler } from "./handlers/upgradeHandler";
+import { transferHandler } from "./handlers/transferHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -201,35 +202,38 @@ const STUB_SELECTORS = [
 
 const HostCallHandlers: Record<number, HostCallHandler> = {
   0: gasHandler, // general ΩG
-  1: lookupHandler, // general ΩL
-  2: readHandler, // general  ΩR
-  3: writeHandler, // general ΩW
-  4: infoHandler, // general ΩI
+  1: fetchHandler, // general ΩY
+  2: lookupHandler, // general ΩL
+  3: readHandler, // general  ΩR
+  4: writeHandler, // general ΩW
+  5: infoHandler, // general ΩI
+  6: historicalLookupHandler, // REfine - ΩH - historical lookup ()
+  7: exportHandler,    // ΩE - export segment (Refine)
+  8: machineHandler, // ΩM - machine info (Refine)
+  9: peekHandler,      // ΩK - peek (Refine)
+  10: pokeHandler,      // ΩP - poke (Refine)
+  // 11: pagesHandler
+  12: invokeHandler, // ΩI - invoke (Refine)
+  13: expungeHandler, // ΩX - expunge (Refine)
 
-  5: blessHandler, // ΩB - bless (Accumulator)
-  6: assignHandler, // ΩA - assign (Accumulator)
-  7: designateHandler, // ΩD - designate (Accumulator)
-  8: checkpointHandler, // ΩC - checkpoint (Accumulator)
-  9: newHandler, // ΩN - new (Accumulator)
-  10: upgradeHandler, // ΩU - upgrade (Accumulator)
-  // 11: transferHandler: // ΩT - transfer (Accumulator)
-  // 12: ejectHandler, // ΩJ - eject (Accumulator)
-  // 13: queryHandler, // ΩQ - query (Accumulator)
-  // 14: solicitHandler, // ΩS - solicit (Accumulator)//
-  15: forgetHandler,    // ΩF - forget pre-image (Accumulator)
-  // 16: yieldHandler, // Ω♉︎ - yield (Accumulator)
-  17: historicalLookupHandler, // REfine - ΩH - historical lookup ()
-  18: fetchHandler,
-  19: exportHandler,    // ΩE - export segment (Refine)
-  20: machineHandler, // ΩM - machine info (Refine)
-  21: peekHandler,      // ΩK - peek (Refine)
-  22: pokeHandler,      // ΩP - poke (Refine)
-  23: zeroHandler, // ΩZ - zero memory (refine)
-  24: voidHandler, // ΩV - void memory (refine)
-  25: invokeHandler, // ΩI - invoke (Refine)
-  26: expungeHandler, // ΩX - expunge (Refine)
+  14: blessHandler, // ΩB - bless (Accumulator)
+  15: assignHandler, // ΩA - assign (Accumulator)
+  16: designateHandler, // ΩD - designate (Accumulator)
+  17: checkpointHandler, // ΩC - checkpoint (Accumulator)
+  18: newHandler, // ΩN - new (Accumulator)
+  19: upgradeHandler, // ΩU - upgrade (Accumulator)
+  20: transferHandler, // ΩT - transfer (Accumulator)
+  // 21: ejectHandler, // ΩJ - eject (Accumulator)
+  // 22: queryHandler, // ΩQ - query (Accumulator)
+  // 23: solicitHandler, // ΩS - solicit (Accumulator)//
+  24: forgetHandler,    // ΩF - forget pre-image (Accumulator)
+  // 25: yieldHandler, // Ω♉︎ - yield (Accumulator)
+  // 18: fetchHandler,
+  
+  // 23: zeroHandler, // ΩZ - zero memory (refine)
+  // 24: voidHandler, // ΩV - void memory (refine)
 
-  // 27: provideHandler, // Ω♈ - provide (Accumulate)
+  // 26: provideHandler, // Ω♈ - provide (Accumulate)
 
 
 };

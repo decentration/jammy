@@ -28,7 +28,7 @@ const bitmask = Uint8Array.of(0b0100_0001,0b0001_0000,0b0000_0100, 0b0100_0001,0
 const blob = (c: Uint8Array = makeCode()) => buildBlob({ meta:Uint8Array.of(0), jumpTbl:Uint8Array.of(0), z:1, instr:c, jumpEntries:[Uint8Array.of(0)], bitmaskBits:bitmask });
 
 describe("ΩH historical_lookup handler", () => {
-  it("happy‑path: copies pre‑image, r7 = Sv", () => {
+  it("happy‑path: copies pre‑image, r7 = vLength", () => {
     const HASH  = new Uint8Array(32).fill(7);
     const VALUE = Uint8Array.from([9,8,7,6,5]);
     const mem   = new Uint8Array(1<<20);
