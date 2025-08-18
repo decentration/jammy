@@ -3,30 +3,44 @@ import { makeHostEnv }     from "../../../risc-pvm/interpreter/host/hostEnvInter
 import { Opcodes }         from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob }         from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType }  from "../../../risc-pvm/interpreter/types";
-import { NONE, OK, SVC_ID, WHO }   from "../../../risc-pvm/interpreter/host/consts";
+import { INFO_BYTES, NONE, OK, SVC_ID, WHO }   from "../../../risc-pvm/interpreter/host/consts";
 import { encodeInfoHelper } from "../../../risc-pvm/interpreter/host/helpers";
-import { EncodableAccount } from "../../../risc-pvm/interpreter/host/types";
+import { ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
+import { makeOpcodeBitmask } from "./helpers";
+import { toLE } from "../../../risc-pvm/interpreter/instructions/helpers";
 
 const DEST = 0x18000;
+const WILDCARD = (1n << 64n) - 1n; // which is 0xFFFF_FFFF_FFFF_FFFFn
 
-function prog(): Uint8Array {
+const prog = Uint8Array.of(
+    Opcodes.load_imm_64, 7, ...toLE(WILDCARD, 8),
+       Opcodes.load_imm,    8, DEST & 0xFF, (DEST >> 8) & 0xFF, (DEST >> 16) & 0xFF, (DEST >> 24) & 0xFF,
+    Opcodes.load_imm,    11, 0, 0, 0, 0, // r11, 0  (f = 0)
+    Opcodes.load_imm,    12, INFO_BYTES & 0xFF, (INFO_BYTES >> 8) & 0xFF, 0, 0, // r12 INFO_BYTES (l = vLength)
+    Opcodes.ecalli, 5,
+    Opcodes.trap
+  );
+
+
+function progExplicit(id: bigint): Uint8Array {
   return Uint8Array.of(
-    Opcodes.load_imm, 7, 0xff,0xff,0xff,0xff,
-    Opcodes.load_imm, 8, DEST&255, DEST>>8&255, DEST>>16&255, DEST>>24&255,
-    Opcodes.ecalli, 4,
+    Opcodes.load_imm_64, 7, ...toLE(id, 8),
+    Opcodes.load_imm,    8, DEST & 0xFF, (DEST >> 8) & 0xFF, (DEST >> 16) & 0xFF, (DEST >> 24) & 0xFF,
+    Opcodes.load_imm,   11, 0, 0, 0, 0,
+    Opcodes.load_imm,   12, INFO_BYTES & 0xFF, (INFO_BYTES >> 8) & 0xFF, 0, 0,
+    Opcodes.ecalli, 5,
     Opcodes.trap
   );
 }
 
-
-const sa: EncodableAccount = {
+const sa: ServiceAccount = {
   storage: new Map(),
   preimages: new Map(),
   lookupStorage: new Map(),
   rootCodeHash   : 0x1234n,
   balance        : 7n,
-  gasAccumulate  : 0n,
-  gasOnTransfer  : 0n,
+  gasAccumulate  : 777n,
+  gasOnTransfer  : 888n,
   cores          : new Uint8Array(0),
   selectorMap    : new Map(),
   ticketNext     : 0n,
@@ -35,28 +49,24 @@ const sa: EncodableAccount = {
 };
 
 const SERVICE_ID = 0xFFFF_FFFF_FFFF_FFFFn;   // BigInt
-
-
-const bitmask = Uint8Array.of(0b0100_0001,0b0101_0000);
-
+const bitmask = makeOpcodeBitmask(prog, [0, 10, 16, 22, 28, 30]);
 const blob = buildBlob({ meta:Uint8Array.of(0), jumpTbl:Uint8Array.of(0), z:1,
-  instr:prog(), jumpEntries:[Uint8Array.of(0)], bitmaskBits:bitmask });
-
-  const EXPECT = encodeInfoHelper(sa);
-
-
+  instr:prog, jumpEntries:[Uint8Array.of(0)], bitmaskBits:bitmask });
 
 describe("ΩI info handler", () => {
   it("writes info blob, r7=OK", () => {
+
+    const cur = 0xdead_beefn;
     const env = makeHostEnv({
-      accounts : new Map([[NONE, sa]]),
+      accounts : new Map([[cur, sa]]),
+      initAcc: { allocator: { index: cur, env: { deltas: new Map(), currentServiceId: cur, root: 0n } }, session: { scratch: {} } }
+
     });
     env.encodeInfo = encodeInfoHelper;
-    const st = runBlob(blob,100,{ env, memInit:new Uint8Array(1<<20) });
+    const st = runBlob(blob, 100,{ env, memInit:new Uint8Array(1<<20) });
 
-    expect(st.registers[7]).toBe(OK);
-    expect(st.memory.slice(DEST,DEST+ EXPECT.length)).toEqual(EXPECT
-    );
+    expect(st.registers[7]).toBe(BigInt(INFO_BYTES));
+    expect(st.memory.slice(DEST, DEST + INFO_BYTES)).toEqual(encodeInfoHelper(sa));
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
@@ -66,47 +76,62 @@ describe("ΩI info handler", () => {
   });
 
   it("unknown service -> r7=WHO", () => {
-    const bad = Uint8Array.from(prog()); bad[2]=1;
-    const badBlob = buildBlob({meta:Uint8Array.of(0),jumpTbl:Uint8Array.of(0),z:1,
-      instr:bad,jumpEntries:[Uint8Array.of(0)],bitmaskBits:bitmask});
-    const st = runBlob(badBlob,100,{ env:makeHostEnv(), memInit:new Uint8Array(1<<20) });
-    expect(st.registers[7]).toBe(WHO);
+    const env = makeHostEnv();    
+    env.encodeInfo = encodeInfoHelper;
+    const st = runBlob(blob, 100, { env, memInit: new Uint8Array(1<<20) });
+    expect(st.registers[7]).toBe(NONE); 
+    // nothing written check
+    expect(st.memory.slice(DEST, DEST + INFO_BYTES)).toEqual(new Uint8Array(INFO_BYTES));
+
+  });
+
+  it("explicit id: writes info blob; r7 = Sv", () => {
+    const id = 0x9999_9999_9999n;
+    const code = progExplicit(id);
+    const blob = buildBlob({
+      meta: Uint8Array.of(0),
+      jumpTbl: Uint8Array.of(0),
+      z: 1,
+      instr: code,
+      jumpEntries: [Uint8Array.of(0)],
+      bitmaskBits: bitmask,
+    });
+
+    const env = makeHostEnv({ accounts: new Map([[id, sa]]) });
+    env.encodeInfo = encodeInfoHelper;
+
+    const st = runBlob(blob, 100, { env, memInit: new Uint8Array(1 << 20) });
+
+    expect(st.registers[7]).toBe(BigInt(INFO_BYTES));
+    expect(st.memory.slice(DEST, DEST + INFO_BYTES)).toEqual(encodeInfoHelper(sa));
   });
 
   it("dest unmapped -> Panic", () => {
-    const bad = Uint8Array.from(prog()); bad[8]=0; bad[9]=0; // dest inside code
+    const bad = Uint8Array.from(prog); bad[8]=0; bad[9]=0; // dest inside code
     const badBlob = buildBlob({meta:Uint8Array.of(0),jumpTbl:Uint8Array.of(0),z:1,
       instr:bad,jumpEntries:[Uint8Array.of(0)],bitmaskBits:bitmask});
     const st = runBlob(badBlob,100,{ env:makeHostEnv(), memInit:new Uint8Array(1<<20) });
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
-
-  
-  
 });
 
 describe("ΩI info handler with newer encodeInfoHelper", () => {
-// This test uses the newer encodeInfoHelper that returns a typed Uint8Array
 
+  it("writes info blob, r7 = Sv (INFO_BYTES)", () => {
+    const env = makeHostEnv({
+      accounts : new Map([[WILDCARD, sa]]),
+      initAcc: { allocator: { index: WILDCARD, env: { deltas: new Map(), currentServiceId: WILDCARD, root: 0n } }, session: { scratch: {} } }
 
-const ENV = makeHostEnv({
-  accounts: new Map([[SERVICE_ID, sa]]), 
-});
+    });
+    env.encodeInfo = encodeInfoHelper;
 
-ENV.getInfo = (id: bigint) => ENV.getService(id);
+    const mem = new Uint8Array(1 << 20);
+    const st  = runBlob(blob, 100, { env, memInit: mem });
 
-
-ENV.encodeInfo = encodeInfoHelper;   // already typed correctly
-
-const EXPECT = encodeInfoHelper(sa); 
-
-it("newer encodeInfoHelper: writes info blob, r7 = OK", () => {
-  const mem = new Uint8Array(1 << 20);
-  const st  = runBlob(blob, 100, { env: ENV, memInit: mem });
-
-  expect(st.registers[7]).toBe(OK);
-  expect(st.memory.slice(DEST, DEST + EXPECT.length)).toEqual(EXPECT);
-  expect(st.exit?.type).toBe(ExitReasonType.Panic);
-});
+    expect(st.registers[7]).toBe(BigInt(INFO_BYTES));                 // <-- Sv
+    expect(st.memory.slice(DEST, DEST + INFO_BYTES))
+      .toEqual(encodeInfoHelper(sa));                                  // bytes written
+    expect(st.exit?.type).toBe(ExitReasonType.Panic);                  // due to trap
+  });
 
 }); 

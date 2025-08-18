@@ -38,7 +38,7 @@ const makeBlob = (code: Uint8Array, bitmask: Uint8Array) => {
 const bitmask = Uint8Array.of(0b0100_0001, 0b0001_0000, 0b0000_0100, 0b0100_0001, 0b0000_0001); // 0x41, 0x10, 0x08, 0x00); 
 
 describe("ΩR read handler", () => {
-  it("happy‑path copies value & sets r7=Sv", () => {
+  it("happy‑path copies value & sets r7=vLength", () => {
     const code = makeCode();
     let  updatedCode = Uint8Array.from(code);
     updatedCode = Uint8Array.of(
@@ -64,7 +64,7 @@ describe("ΩR read handler", () => {
     const st = runBlob(blob, 100, { env, memInit: mem });
 
     console.log("Registers after run:", st.registers);
-    expect(st.registers[7]).toBe(BigInt(VALUE.length));  // Sv
+    expect(st.registers[7]).toBe(BigInt(VALUE.length));  // vLength
     expect(st.memory.slice(DST_ADDR, DST_ADDR + VALUE.length)).toEqual(VALUE);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
