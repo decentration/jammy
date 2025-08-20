@@ -106,12 +106,12 @@ export interface AccEnv {           // xe
   deltas: Map<bigint, any>; // (xe.d) — mutable staging (service mutations this block)
   currentServiceId?: bigint;  // (xe.m) – the payer / current service
   root?: bigint; // (xe.r) – root code-hash for the current service
-
   
-   assignServiceAccount?: Map<CoreIndex, ServiceId>;  // (xe).a[c] — assigned owner service for core c
+  assignServiceAccount?: Map<CoreIndex, ServiceId>;  // (xe).a[c] — assigned owner service for core c
+  assignCore?: Map<CoreIndex, CoreAssignmentVector>;  // (xe).q[c] — the 32*Q bytes core c’s assignment vector
 
-  
-   assignCore?: Map<CoreIndex, CoreAssignmentVector>;  // (xe).q[c] — the 32*Q bytes core c’s assignment vector
+  designations?: Map<number, ServiceId>; // (parsed) (xe).i — designations (ΩD)
+  designationsRaw?: Uint8Array;          // (raw version)
 }
 
 export interface AccumulateX {

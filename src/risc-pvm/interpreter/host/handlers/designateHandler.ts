@@ -1,7 +1,7 @@
 import { readBytes } from "../../instructions/helpers";
 import { ExitReasonType } from "../../types";
 import { SVC_ID, OK, PAYLOAD_BYTES } from "../consts";
-import { finish } from "../helpers";
+import { decodeDesignationsVector, finish } from "../helpers";
 import { HostCallHandler, ServiceAccount } from "../types";
 
 
@@ -13,21 +13,12 @@ export const designateHandler: HostCallHandler = (s, _id, env) => {
   if (!bytes)
     return { state: { ...s, exit: { type: ExitReasonType.Panic } }, ok: true };
 
-  // fetch or create the service account
-  const service: ServiceAccount = env.getService(SVC_ID) ?? {
-    storage       : new Map(),
-    preimages     : new Map(),
-    lookupStorage : new Map(),
-    rootCodeHash  : 0n,
-    balance       : 0n,
-    gasAccumulate : 0n,
-    gasOnTransfer : 0n,
-    cores         : new Uint8Array(32 * 8),
-    selectorMap   : new Map(),
-  };
+  const xe = env.acc?.allocator?.env!;
+  xe.designationsRaw = bytes.slice();
 
-  service.designations = bytes.slice(); // store “v”
-  env.putService(SVC_ID, service);
+  // Populate a lookup table (index -> destId). 
+  // !TODO  - refine decoder
+  xe.designations = decodeDesignationsVector(bytes);
 
   return finish(s1, OK);
 };

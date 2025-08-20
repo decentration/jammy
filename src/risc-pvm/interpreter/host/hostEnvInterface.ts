@@ -1,4 +1,4 @@
-import { AccumulateContext, FetchVector, MachineEntry, ServiceAccount } from "./types";
+import { AccEnv, AccumulateContext, FetchVector, MachineEntry, ServiceAccount } from "./types";
 import { encodeInfoHelper } from "./helpers"
 
 // output option parameters
@@ -70,6 +70,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const mTable = machines ?? new Map<number, { p: Uint8Array; u: any; i: number }>();
 
   const svcTab  = accounts ?? new Map<bigint, ServiceAccount>();
+  const initEnv = initAcc?.allocator?.env;
 
   let used = 0;
   store.forEach(v => { used += v.length; });
@@ -94,17 +95,24 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const putService = (id: bigint, acct: ServiceAccount) => svcTab.set(id, acct);
   const hasService = (id: bigint) => svcTab.has(id);
 
+  const xe: AccEnv = {
+    deltas: initEnv?.deltas ?? new Map<bigint, any>(),
+    currentServiceId: initEnv?.currentServiceId,
+    root: initEnv?.root ?? 0n,
+    designations: initEnv?.designations ?? new Map<number, bigint>(),
+    designationsRaw: initEnv?.designationsRaw,
+    assignServiceAccount: initEnv?.assignServiceAccount ?? new Map(),
+    assignCore: initEnv?.assignCore ?? new Map(),
+  };
+  
   const acc: AccumulateContext = { // acc(umulator) context
     allocator: {
       index: initAcc?.allocator?.index ?? 0n,
-      env: {
-        deltas: initAcc?.allocator?.env?.deltas ?? new Map<bigint, any>(),
-        currentServiceId: initAcc?.allocator?.env?.currentServiceId,
-        root: initAcc?.allocator?.env?.root,
-      },
+      env: xe,
     },
     session: { scratch: initAcc?.session?.scratch ?? {} },
   };
+
   
   return {
     now: () => now,

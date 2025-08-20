@@ -1,7 +1,7 @@
 import { u32, u64 } from "scale-ts";
 import { toLE } from "../instructions/helpers";
 import { InterpreterState } from "../types";
-import { BI, BL, BS, C, D, E, GA, GI, GR, GT, H, I, INFO_BYTES, J, K, L, N, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
+import { BI, BL, BS, BYTES_PER_SLOT, C, D, E, GA, GI, GR, GT, H, I, INFO_BYTES, J, K, L, N, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
 import { AccumulateContext, FetchVector, ServiceAccount } from "./types";
 
 
@@ -94,3 +94,13 @@ export function checkAlloc(i: bigint): bigint {
   return i; // !TODO stub for now
 }
 
+// for designateHandler - !TODO  - refine decoder
+export const decodeDesignationsVector = (v: Uint8Array): Map<number, bigint> => { //v is the memory slice
+  const out = new Map<number, bigint>();
+  for (let i = 0; i + 8 <= v.length; i += BYTES_PER_SLOT) {
+    let id = 0n;
+    for (let b = 0; b < 8; b++) id |= BigInt(v[i + b]) << BigInt(8 * b);
+    out.set(i / BYTES_PER_SLOT, id);
+  }
+  return out;
+};

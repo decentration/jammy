@@ -1,5 +1,6 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
 import { SVC_ID, OK, PAYLOAD_BYTES } from "../../../risc-pvm/interpreter/host/consts";
+import { decodeDesignationsVector } from "../../../risc-pvm/interpreter/host/helpers";
 import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
@@ -10,7 +11,7 @@ const HEAP = 0x18000;
 function code(ptr = HEAP) {
   return Uint8Array.of(
     Opcodes.load_imm, 7, ptr&255, ptr>>8&255, ptr>>16&255, ptr>>24&255,
-    Opcodes.ecalli, 7,
+    Opcodes.ecalli, 16,
     Opcodes.trap
   );
 }
@@ -26,12 +27,15 @@ describe("ΩD designate handler", () => {
     const payload = new Uint8Array(PAYLOAD_BYTES).map((_,i)=>i&0xff);
     mem.set(payload, HEAP);
 
-    const env = makeHostEnv();
+    const env = makeHostEnv({
+      initAcc: { allocator: { index: 0n, env: { deltas: new Map<bigint, any>(), currentServiceId: SVC_ID } }, session: { scratch: {},   } }
+    });    
     const st  = runBlob(mkBlob(code()), 100, { env, memInit: mem });
 
-    const acct = env.getService(SVC_ID)!;
+    const expected = decodeDesignationsVector(payload)
+
     expect(st.registers[7]).toBe(OK);
-    expect(acct.designations).toEqual(payload);
+    expect(env.acc.allocator.env.designations).toEqual(expected);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 });
