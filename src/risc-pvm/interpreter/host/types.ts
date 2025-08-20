@@ -99,11 +99,19 @@ export interface ServiceAccount {
 //     ticketIndex: number;  // ti – current queue head (stub = 0)
 //   }
 
-// the difference between Record and Map is 
+export type ServiceId = bigint;   // NS
+export type CoreIndex = number;   // 0..C-1
+export type CoreAssignmentVector = Uint8Array; // length = 32 * Q (spec)
 export interface AccEnv {           // xe
   deltas: Map<bigint, any>; // (xe.d) — mutable staging (service mutations this block)
   currentServiceId?: bigint;  // (xe.m) – the payer / current service
   root?: bigint; // (xe.r) – root code-hash for the current service
+
+  
+   assignServiceAccount?: Map<CoreIndex, ServiceId>;  // (xe).a[c] — assigned owner service for core c
+
+  
+   assignCore?: Map<CoreIndex, CoreAssignmentVector>;  // (xe).q[c] — the 32*Q bytes core c’s assignment vector
 }
 
 export interface AccumulateX {
