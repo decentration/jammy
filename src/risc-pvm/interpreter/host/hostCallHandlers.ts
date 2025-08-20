@@ -25,6 +25,7 @@ import { checkpointHandler } from "./handlers/checkpointHandler";
 import { newHandler } from "./handlers/newHandler";
 import { upgradeHandler } from "./handlers/upgradeHandler";
 import { transferHandler } from "./handlers/transferHandler";
+import { pagesHandler } from "./handlers/pagesHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -212,7 +213,7 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   8: machineHandler, // ΩM - machine info (Refine)
   9: peekHandler,      // ΩK - peek (Refine)
   10: pokeHandler,      // ΩP - poke (Refine)
-  // 11: pagesHandler
+  11: pagesHandler,
   12: invokeHandler, // ΩI - invoke (Refine)
   13: expungeHandler, // ΩX - expunge (Refine)
 

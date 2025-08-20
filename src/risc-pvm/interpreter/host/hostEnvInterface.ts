@@ -9,7 +9,7 @@ export interface HostEnvInterface {
   // Return byte‑blob for the requested ΩY fetch vector or null if absent.
   fetchVector(name: FetchVector): Uint8Array | null; // vLength in ΩY 
 
-  machineTable: Map<number, MachineEntry>; // ΩM, table of inner-machines (Refine)
+  machineTable: Map<number, MachineEntry>; // ΩM, table of inner-machines (Refine)... m of (m, e) 
 
   getStorage?: (key: Uint8Array) => Uint8Array | undefined;  // as[k] / ss[k] in ΩR and ΩW 
   putStorage?: (key: Uint8Array, value: Uint8Array) => void; // mutate ΩW
@@ -22,7 +22,7 @@ export interface HostEnvInterface {
 
   historicalLookup?: (hash: Uint8Array) => Uint8Array | undefined; // ΩH
   exportOffset?: number;  // ΩE offset to export data
-  exportSegments?: Uint8Array[]; // ΩE mutable array that gathers x segments to export
+  exportSegments?: Uint8Array[]; // ΩE mutable array that gathers x segments to export e of (m, e)
 
   getService: (id: bigint) => ServiceAccount | undefined;
   putService: (id: bigint, ac: ServiceAccount) => void;
