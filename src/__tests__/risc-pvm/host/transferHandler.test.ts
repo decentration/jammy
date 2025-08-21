@@ -1,9 +1,9 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
-import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
+import { HostEnvInterface, HostEnvOptions, makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
-import { OK, WHO, LOW, CASH, WT, SVC_ID, ACTIVATION_FEE } from "../../../risc-pvm/interpreter/host/consts";
+import { OK, WHO, LOW, CASH, WT, ACTIVATION_FEE, SVC_ID } from "../../../risc-pvm/interpreter/host/consts";
 import { ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
 
 // tiny program: set r7..r10 then ecalli 20; trap
@@ -40,46 +40,50 @@ function makeBlob(code: Uint8Array) {
   });
 }
 
-const mkService = (
-    id: bigint, rootCodeHash: bigint, balance: bigint
-  ) => ({
-    storage:new Map(), preimages:new Map(), lookupStorage:new Map(),
-    rootCodeHash, balance, gasAccumulate:0n, gasOnTransfer:0n,
-    cores:new Uint8Array(0), selectorMap:new Map(),
-    ticketNext: 0n, coresOffset: 0, ticketIndex: 0,
-  });
-
 describe("ΩT transfer handler", () => {
   it("happy path: debits sender, appends transfer, r7=OK", () => {
 
-    
     const sender: ServiceAccount  = {
       storage: new Map(), preimages: new Map(), lookupStorage: new Map(),
       rootCodeHash: 0n, balance: 1_000n, gasAccumulate: 0n, gasOnTransfer: 5n,
-      cores: new Uint8Array(), selectorMap: new Map(), 
+      cores: new Uint8Array(), selectorMap: new Map(), threshold: 0n
     };
     const dest = { ...sender, balance: 0n, gasOnTransfer: 5n } as any;
 
+    
     const env = makeHostEnv({
       accounts: new Map([[SVC_ID, sender], [1n, dest]]),
     }) as any;
-    env.activationFee = ACTIVATION_FEE; // threshold fallback
+
     env.acc.allocator.env.currentServiceId = SVC_ID;
+    env.acc.allocator.env.designations = new Map([[0, 1n]]); // index 0 -> destId 1n
+
+    // env.activationFee = ACTIVATION_FEE; // threshold fallback
+    const accEnv = env?.initAcc?.allocator?.env;
+    // if (accEnv) {
+    //     accEnv.currentServiceId = SVC_ID;
+    // }
+    // setDesignations(env, [[0, 1n]]);
 
     // write memo into heap
     const memo = new Uint8Array(WT).fill(7);
-    const code = makeCode({ d: 1n, a: 100n, l: 10n, o: HEAP });
+    const code = makeCode({ d: 0n, a: 100n, l: 10n, o: HEAP });
     const blob = makeBlob(code);
-    const st = runBlob(blob, 1_000_000, { env, memInit: (() => { const m = new Uint8Array(1<<20); m.set(memo, HEAP); return m; })() });
+
+    const mem = new Uint8Array(1<<20);
+    mem.set(memo, HEAP);
+
+    const st = runBlob(blob, 1_000_000, { env, memInit: mem });
 
     expect(st.exit?.type).toBe(ExitReasonType.Panic); // trap
     expect(st.registers[7]).toBe(OK);
     expect(env.getService(SVC_ID)?.balance).toBe(900n);
-    expect((env.acc.allocator.env.deltas as any).transfers?.length).toBe(1);
-    expect((env.acc.allocator.env.deltas as any).transfers[0].memo).toEqual(memo);
+    expect(env.acc.allocator.transfers?.length).toBe(1);
+    expect(env.acc.allocator.transfers![0].memo).toEqual(memo);
+    expect(env.acc.allocator.transfers![0].to).toBe(1n);;
   });
 
-  it("WHO when dest unknown", () => {
+  it("WHO when dest service unknown", () => {
     const env = makeHostEnv({ accounts: new Map([[SVC_ID, { balance: 1000n, gasOnTransfer: 0n } as any]]) }) as any;
     env.activationFee = 10n;
     const memo = new Uint8Array(WT).fill(1);
@@ -91,31 +95,47 @@ describe("ΩT transfer handler", () => {
   it("LOW when gas limit < dest.gasOnTransfer", () => {
     const sender = { balance: 1000n, gasOnTransfer: 0n };
     const dest   = { balance: 0n,    gasOnTransfer: 50n } as any;
-    const env = makeHostEnv({ accounts: new Map([[SVC_ID, sender], [1n, dest]]) }) as any;
-    env.activationFee = 10n;
+    const env = makeHostEnv({ accounts: new Map([[SVC_ID, sender], [1n, dest]]),
+        activationFee: 10n,
+     }) as any;
+     env.acc.allocator.env.currentServiceId = SVC_ID;
+     env.acc.allocator.env.designations = new Map([[0, 1n]]);
+ 
     const memo = new Uint8Array(WT).fill(2);
-    const code = makeCode({ d: 1n, a: 100n, l: 5n, o: HEAP });
-    const st = runBlob(makeBlob(code), 100_000, { env, memInit: (() => { const m = new Uint8Array(1<<20); m.set(memo, HEAP); return m; })() });
+    const mem = new Uint8Array(1<<20); mem.set(memo, HEAP);
+
+    const code = makeCode({ d: 0n, a: 100n, l: 5n, o: HEAP });
+    const st = runBlob(makeBlob(code), 100_000, { env, memInit: mem });
     expect(st.registers[7]).toBe(LOW);
   });
 
   it("CASH when amount < threshold", () => {
-    const sender = { balance: 1000n, gasOnTransfer: 0n } as any;
+    const sender: ServiceAccount = { balance: 1000n, gasOnTransfer: 0n, threshold: 50n } as any;
     const dest   = { balance: 0n,    gasOnTransfer: 0n } as any;
-    const env = makeHostEnv({ accounts: new Map([[SVC_ID, sender], [1n, dest]]) }) as any;
-    (env as any).activationFee = 50n; // threshold
+    const env = makeHostEnv({ accounts: new Map([[SVC_ID, sender], [1n, dest]]),
+        activationFee: 1n,
+     }) as any;
+
+     env.acc.allocator.env.currentServiceId = SVC_ID;
+     env.acc.allocator.env.designations = new Map([[0, 1n]]);
+
     const memo = new Uint8Array(WT).fill(3);
-    const code = makeCode({ d: 1n, a: 10n, l: 10n, o: HEAP }); // 10 < 50 ⇒ CASH
-    const st = runBlob(makeBlob(code), 100_000, { env, memInit: (() => { const m = new Uint8Array(1<<20); m.set(memo, HEAP); return m; })() });
+    const mem = new Uint8Array(1<<20); mem.set(memo, HEAP);
+
+    const code = makeCode({ d: 0n, a: 10n, l: 10n, o: HEAP }); // 10 < 50 ⇒ CASH
+    const st = runBlob(makeBlob(code), 100_000, { env, memInit: mem });
     expect(st.registers[7]).toBe(CASH);
   });
 
   it("panic on unreadable memo page", () => {
     const sender = { balance: 1000n, gasOnTransfer: 0n } as any;
     const dest   = { balance: 0n,    gasOnTransfer: 0n } as any;
-    const env = makeHostEnv({ accounts: new Map([[SVC_ID, sender], [1n, dest]]) }) as any;
-    (env as any).activationFee = 0n;
-    const code = makeCode({ d: 1n, a: 10n, l: 10n, o: 0x0000 }); // likely unmapped
+    const env = makeHostEnv({ accounts: new Map([[SVC_ID, sender], [1n, dest]]),
+        activationFee: 0n,
+     }) as any;
+     env.acc.allocator.env.currentServiceId = SVC_ID;
+     env.acc.allocator.env.designations = new Map([[0, 1n]]);
+    const code = makeCode({ d: 0n, a: 10n, l: 10n, o: 0x0000 }); // likely unmapped
     const st = runBlob(makeBlob(code), 100_000, { env, memInit: new Uint8Array(1<<20) });
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });

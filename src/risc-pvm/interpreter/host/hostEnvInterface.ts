@@ -28,6 +28,8 @@ export interface HostEnvInterface {
   putService: (id: bigint, ac: ServiceAccount) => void;
 
   acc: AccumulateContext; // (x,y)
+
+  activationFee?: bigint; // global existential deposit / minimum balance
 }
 
 // input option parameters
@@ -42,7 +44,9 @@ export interface HostEnvOptions {
   expSegs?: Uint8Array[];
   machines?: Map<number, { p: Uint8Array; u: any; i: number }>;
   accounts?: Map<bigint, ServiceAccount>;
+  activationFee?: bigint; // global existential deposit / minimum balance
   initAcc?: Partial<AccumulateContext>;
+  
 }
 
 export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
@@ -57,7 +61,9 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     expSegs,
     machines,
     accounts,
-    initAcc
+    activationFee = 0n,
+    initAcc,
+    
   } = opts;
 
   // Convert the vectors object into a Map for fast lookup
@@ -109,6 +115,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     allocator: {
       index: initAcc?.allocator?.index ?? 0n,
       env: xe,
+      transfers: initAcc?.allocator?.transfers ?? [], 
     },
     session: { scratch: initAcc?.session?.scratch ?? {} },
   };
@@ -138,6 +145,9 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     exportOffset : expOff,
     exportSegments: expSegs ?? [],
     machineTable: mTable,
+
+    activationFee,
+
     acc,
   
   };

@@ -3,7 +3,7 @@ import { makeHostEnv }     from "../../../risc-pvm/interpreter/host/hostEnvInter
 import { Opcodes }         from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob }         from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType }  from "../../../risc-pvm/interpreter/types";
-import { INFO_BYTES, NONE, OK, SVC_ID, WHO }   from "../../../risc-pvm/interpreter/host/consts";
+import { INFO_BYTES, NONE }   from "../../../risc-pvm/interpreter/host/consts";
 import { encodeInfoHelper } from "../../../risc-pvm/interpreter/host/helpers";
 import { ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
 import { makeOpcodeBitmask } from "./helpers";
@@ -34,8 +34,8 @@ function progExplicit(id: bigint): Uint8Array {
 }
 
 const sa: ServiceAccount = {
-  storage: new Map(),
-  preimages: new Map(),
+  storage:       new Map(),
+  preimages:     new Map(),
   lookupStorage: new Map(),
   rootCodeHash   : 0x1234n,
   balance        : 7n,
@@ -45,7 +45,7 @@ const sa: ServiceAccount = {
   selectorMap    : new Map(),
   ticketNext     : 0n,
   coresOffset    : 0,
-  ticketIndex    : 0
+  ticketIndex    : 0,
 };
 
 const SERVICE_ID = 0xFFFF_FFFF_FFFF_FFFFn;   // BigInt

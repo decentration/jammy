@@ -78,19 +78,21 @@ export type HostDispatcher = (
 
 // (9.3) in spec
 export interface ServiceAccount {
-    storage: Map<string, Uint8Array>; // s
-    preimages: Map<string, Uint8Array>; // p
-    lookupStorage: Map<string, Uint8Array>;   // (l) for historical flags
-    rootCodeHash: bigint; // c
-    balance: bigint; // b
-    gasAccumulate: bigint;  // g
-    gasOnTransfer: bigint; // m
-    cores: Uint8Array; // (q) Qx32 bytes
-    selectorMap  : Map<number, { authSlot:number; versionSlot:number; extCodeHash64:Uint8Array }>; // from bless // a: auth_id, v: version_id, g: code_hash
-    designations?: Uint8Array; // v - designations for the service
-    ticketNext?: bigint;   // tt – running ticket number
-    coresOffset?: number;  // to – where cores live inside δ-blob (stub = 0)
-    ticketIndex?: number;  // ti – current queue head (stub = 0)
+  storage: Map<string, Uint8Array>; // s
+  preimages: Map<string, Uint8Array>; // p
+  lookupStorage: Map<string, Uint8Array>;   // (l) for historical flags
+  rootCodeHash: bigint; // c
+  balance: bigint; // b
+  gasAccumulate: bigint;  // g
+  gasOnTransfer: bigint; // m
+  cores: Uint8Array; // (q) Qx32 bytes
+  selectorMap  : Map<number, { authSlot:number; versionSlot:number; extCodeHash64:Uint8Array }>; // from bless // a: auth_id, v: version_id, g: code_hash
+  designations?: Uint8Array; // v - designations for the service
+  ticketNext?: bigint;   // tt – running ticket number
+  coresOffset?: number;  // to – where cores live inside δ-blob (stub = 0)
+  ticketIndex?: number;  // ti – current queue head (stub = 0)
+
+  threshold?: bigint; // (xs).t
 }
 
 // export interface EncodableAccount extends ServiceAccount {
@@ -102,6 +104,16 @@ export interface ServiceAccount {
 export type ServiceId = bigint;   // NS
 export type CoreIndex = number;   // 0..C-1
 export type CoreAssignmentVector = Uint8Array; // length = 32 * Q (spec)
+
+export type DeferredTransfer = Array<{
+  from: bigint; // s s ∈ N_S
+  to: bigint;  // d ∈ N_S
+  amount: bigint; // a ∈ N_B
+  gasLimit: bigint; // m ∈ B^WT
+  memo: Uint8Array; // g ∈ N_G
+}>; // transfers for the accumulator
+
+
 export interface AccEnv {           // xe
   deltas: Map<bigint, any>; // (xe.d) — mutable staging (service mutations this block)
   currentServiceId?: bigint;  // (xe.m) – the payer / current service
@@ -112,11 +124,14 @@ export interface AccEnv {           // xe
 
   designations?: Map<number, ServiceId>; // (parsed) (xe).i — designations (ΩD)
   designationsRaw?: Uint8Array;          // (raw version)
+
+  
 }
 
 export interface AccumulateX {
   index: bigint;        // xi — allocator index (ring)
   env: AccEnv;          // xe — environment for the accumulatorn (deltas and meta)
+  transfers?: DeferredTransfer; // (xe).t — transfers for the accumulator
 }
   
 export interface AccumulateY {
