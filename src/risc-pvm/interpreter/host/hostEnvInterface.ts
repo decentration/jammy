@@ -1,4 +1,4 @@
-import { AccEnv, AccumulateContext, FetchVector, MachineEntry, ServiceAccount } from "./types";
+import { AccEnv, AccumulateContext, DesignationEntry, FetchVector, MachineEntry, ServiceAccount, ServiceId } from "./types";
 import { encodeInfoHelper } from "./helpers"
 
 // output option parameters
@@ -105,10 +105,13 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     deltas: initEnv?.deltas ?? new Map<bigint, any>(),
     currentServiceId: initEnv?.currentServiceId,
     root: initEnv?.root ?? 0n,
+    deleted: initEnv?.deleted ?? new Set<ServiceId>(),
     designations: initEnv?.designations ?? new Map<number, bigint>(),
     designationsRaw: initEnv?.designationsRaw,
     assignServiceAccount: initEnv?.assignServiceAccount ?? new Map(),
     assignCore: initEnv?.assignCore ?? new Map(),
+    designationEntries: initEnv?.designationEntries ?? new Map<bigint, DesignationEntry>(),
+
   };
   
   const acc: AccumulateContext = { // acc(umulator) context

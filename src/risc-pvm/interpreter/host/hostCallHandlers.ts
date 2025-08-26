@@ -18,14 +18,15 @@ import { voidHandler } from "./handlers/voidHandler";
 import { zeroHandler } from "./handlers/zeroHandler";
 import { invokeHandler } from "./handlers/invokeHandler";
 import { expungeHandler } from "./handlers/expungeHandler";
-import { blessHandler } from "./handlers/blessHandler";
-import { assignHandler } from "./handlers/assignHandler";
-import { designateHandler } from "./handlers/designateHandler";
-import { checkpointHandler } from "./handlers/checkpointHandler";
-import { newHandler } from "./handlers/newHandler";
-import { upgradeHandler } from "./handlers/upgradeHandler";
-import { transferHandler } from "./handlers/transferHandler";
+import { blessHandler } from "./handlers/accumulate/blessHandler";
+import { assignHandler } from "./handlers/accumulate/assignHandler";
+import { designateHandler } from "./handlers/accumulate/designateHandler";
+import { checkpointHandler } from "./handlers/accumulate/checkpointHandler";
+import { newHandler } from "./handlers/accumulate/newHandler";
+import { upgradeHandler } from "./handlers/accumulate/upgradeHandler";
+import { transferHandler } from "./handlers/accumulate/transferHandler";
 import { pagesHandler } from "./handlers/pagesHandler";
+import { ejectHandler } from "./handlers/accumulate/ejectHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -224,7 +225,7 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   18: newHandler, // ΩN - new (Accumulator)
   19: upgradeHandler, // ΩU - upgrade (Accumulator)
   20: transferHandler, // ΩT - transfer (Accumulator)
-  // 21: ejectHandler, // ΩJ - eject (Accumulator)
+  21: ejectHandler, // ΩJ - eject (Accumulator)
   // 22: queryHandler, // ΩQ - query (Accumulator)
   // 23: solicitHandler, // ΩS - solicit (Accumulator)//
   24: forgetHandler,    // ΩF - forget pre-image (Accumulator)

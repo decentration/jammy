@@ -53,6 +53,16 @@ export const toLE = (value: bigint, bytes: 1 | 2 | 4 | 8): Uint8Array => {
   return out;
 };
 
+// decode little-endian bytes -> bigint
+export const fromLE = (u8: ArrayLike<number>, offset = 0, bytes: 1 | 2 | 4 | 8): bigint => {
+  let v = 0n;
+  for (let i = 0; i < bytes; i++) {
+    v |= BigInt(u8[offset + i]) << BigInt(8 * i);
+  }
+  return BigInt.asUintN(bytes * 8, v);
+};
+
+
 export function panic(state: InterpreterState) {
   return { ...state, exit: { type: ExitReasonType.Panic } };
 }

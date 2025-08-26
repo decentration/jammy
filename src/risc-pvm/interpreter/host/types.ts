@@ -76,6 +76,8 @@ export type HostDispatcher = (
     env:   HostEnvInterface
 ) => InterpreterState;
 
+export type Hex32 = string;
+
 // (9.3) in spec
 export interface ServiceAccount {
   storage: Map<string, Uint8Array>; // s
@@ -93,6 +95,8 @@ export interface ServiceAccount {
   ticketIndex?: number;  // ti – current queue head (stub = 0)
 
   threshold?: bigint; // (xs).t
+  ejectLedger?: Map<Hex32, Map<number, Uint8Array>>;
+
 }
 
 // export interface EncodableAccount extends ServiceAccount {
@@ -114,18 +118,38 @@ export type DeferredTransfer = Array<{
 }>; // transfers for the accumulator
 
 
+// --- Designation entry fields for ΩJ (eject) ---
+// di does not equal 2 from sepc. 
+export const DESIGNATION_ROLE_EJECT = 2 as const;
+
+export interface EjectWitnessTuple {
+  x: bigint; // producer id (or service id), spec: [x, y]
+  y: bigint; // timestamp/check value
+}
+
+export type EjectWitnessKey = string;
+
+// One designation entry (what the spec calls “d” with fields d_c, d_i, d_o, d_ℓ)
+export interface DesignationEntry {
+  boundCodeHash32: Uint8Array;           // d_c — must equal E32(xs)
+  role: number;                          // d_i — 2 for eject
+  witnessBaseOffset: number;             // d_o — used to compute l = max(81, d_o) - 81
+  witnessIndex?: Map<EjectWitnessKey, EjectWitnessTuple>; // d_l: (h,l) -> [x,y]
+}
+
 export interface AccEnv {           // xe
-  deltas: Map<bigint, any>; // (xe.d) — mutable staging (service mutations this block)
-  currentServiceId?: bigint;  // (xe.m) – the payer / current service
-  root?: bigint; // (xe.r) – root code-hash for the current service
+  deltas: Map<bigint, any>;         // (xe.d) — mutable staging (service mutations this block)
+  currentServiceId?: bigint;        // (xe.m) – the payer / current service
+  root?: bigint;                    // (xe.r) – root code-hash for the current service
+
+  deleted?: Set<ServiceId> ;        // services deleted during this block
   
   assignServiceAccount?: Map<CoreIndex, ServiceId>;  // (xe).a[c] — assigned owner service for core c
   assignCore?: Map<CoreIndex, CoreAssignmentVector>;  // (xe).q[c] — the 32*Q bytes core c’s assignment vector
 
   designations?: Map<number, ServiceId>; // (parsed) (xe).i — designations (ΩD)
   designationsRaw?: Uint8Array;          // (raw version)
-
-  
+  designationEntries?: Map<ServiceId, DesignationEntry>;
 }
 
 export interface AccumulateX {
