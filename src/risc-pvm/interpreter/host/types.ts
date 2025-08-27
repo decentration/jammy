@@ -1,6 +1,9 @@
 import { InterpreterState } from "../types";
 import { HostEnvInterface } from "./hostEnvInterface";
 
+
+export type HostMode = "accumulate" | "refine" | "isAuth" | "general";
+
 export type MachineEntry = { p: Uint8Array; u: any; i: number };
 
 

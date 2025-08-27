@@ -48,7 +48,6 @@ const sa: ServiceAccount = {
   ticketIndex    : 0,
 };
 
-const SERVICE_ID = 0xFFFF_FFFF_FFFF_FFFFn;   // BigInt
 const bitmask = makeOpcodeBitmask(prog, [0, 10, 16, 22, 28, 30]);
 const blob = buildBlob({ meta:Uint8Array.of(0), jumpTbl:Uint8Array.of(0), z:1,
   instr:prog, jumpEntries:[Uint8Array.of(0)], bitmaskBits:bitmask });
@@ -99,6 +98,8 @@ describe("ΩI info handler", () => {
 
     const env = makeHostEnv({ accounts: new Map([[id, sa]]) });
     env.encodeInfo = encodeInfoHelper;
+
+    env.acc.allocator.env.deltas.set(id, sa);
 
     const st = runBlob(blob, 100, { env, memInit: new Uint8Array(1 << 20) });
 
