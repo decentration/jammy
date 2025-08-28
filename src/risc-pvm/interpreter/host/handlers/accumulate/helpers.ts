@@ -45,3 +45,10 @@ export function stageTombstone(env: HostEnvInterface, id: ServiceId): void {
   xe.deleted.add(id);
   xe.deltas.delete(id);
 }
+
+
+export function serviceExistsInAccumulate(env: HostEnvInterface, id: bigint): boolean {
+  const xe = env.acc.allocator.env;
+  if (xe.deleted?.has(id)) return false;
+  return xe.deltas.has(id) || (env.hasService?.(id) ?? false);
+}

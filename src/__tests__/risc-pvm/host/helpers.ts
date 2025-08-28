@@ -1,5 +1,5 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
-import { ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
+import { AccumulateContext, ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
 
 export function makeOpcodeBitmask(code: Uint8Array, opcodeOffsets: number[]): Uint8Array {
   const bits = new Uint8Array(Math.ceil(code.length / 8));
@@ -79,3 +79,11 @@ export function makePayer (
     ticketIndex: 0,
   };
 }
+
+export const makeAcc = (currentServiceId: bigint): AccumulateContext => ({
+  allocator: { index: 0n, env: { deltas: new Map(), 
+  currentServiceId: currentServiceId, root: 0n } },
+  session: { 
+    scratch: {} 
+  },
+});

@@ -1,8 +1,9 @@
 import { readBytes, writeBytes }      from "../../instructions/helpers";
 import { ExitReasonType }             from "../../types";
-import { NONE, WHO }                  from "../consts";
+import { NONE, WHO, WILDCARD }                  from "../consts";
 import { finish }                     from "../helpers";
 import { HostCallHandler }            from "../types";
+import { getMergedXs, getStagedOnly } from "./accumulate/helpers";
 
 // LOOKUP (ΩL) — selector 1
 export const lookupHandler: HostCallHandler = (s, _id, env) => {
@@ -17,6 +18,16 @@ export const lookupHandler: HostCallHandler = (s, _id, env) => {
   const { bytes: hashBytes, state: s1 } = readBytes(s, hOff, 32);
   if (!hashBytes) return { state: { ...s, exit:{ type: ExitReasonType.Panic } }, ok: true };
 
+  let accountExists = false;
+
+  if (srvIdx === WILDCARD) {
+    // wildcard => xs
+    accountExists = !!getMergedXs(env);   // merged (staged over committed)
+  } else {
+    // explicit id => staged-only during accumulate
+    accountExists = !!getStagedOnly(env, srvIdx);
+  }
+  
   const value = env.lookupPreimage?.(hashBytes);
   if (!value) return finish(s1, NONE);
 

@@ -24,6 +24,7 @@ export const ACTIVATION_FEE = 10n;             // !TODO - stub - at  – activat
 export const HASH_BYTES     = 32;             // each code-hash is 32 B
 export const MAX_LABEL      = 0xffff_ffffn;   // 2^32 -1 , label domain N2^32
 
+export const WILDCARD = (1n << 64n) - 1n;
 
 
 export const BI = 10

@@ -1,9 +1,10 @@
 import { hash } from "../../../../utils/crypto";
-import { readBytes }               from "../../instructions/helpers";
+import { readBytes, toLE }               from "../../instructions/helpers";
 import { ExitReasonType }          from "../../types";
 import { NONE, OOB, WHO, FULL }    from "../consts";
 import { finish }                  from "../helpers";
-import { HostCallHandler }         from "../types";
+import { HostCallHandler, ServiceAccount }         from "../types";
+import { getMergedXs, stageAccount } from "./accumulate/helpers";
 
 // ΩW – selector 3
 export const writeHandler: HostCallHandler = (s, _id, env) => {
@@ -11,7 +12,7 @@ export const writeHandler: HostCallHandler = (s, _id, env) => {
     const ko = Number(s.registers[8]);      // key offset
     const kz = Number(s.registers[9]);      // key length
     const fOff = Number(s.registers[10]);   // value offset
-    const vz = Number(s.registers[11]);     // value length (0 -> delete)
+    const vLength = Number(s.registers[11]);     // value length (0 -> delete)
 
     const setR7 = (state: typeof s, v: bigint) => ({
         state: { ...state, registers: Object.assign([], state.registers, { 7: v }) },
@@ -19,60 +20,68 @@ export const writeHandler: HostCallHandler = (s, _id, env) => {
       });
 
 
-    const srvIdx    = BigInt.asUintN(64, srvIdxRaw);
+    const sel = BigInt.asUintN(64, srvIdxRaw);
 
-    console.log("writeHandler 1", {srvIdx, ko, kz, fOff, vz,registers: s.registers.slice(),});
+    console.log("writeHandler 1", {sel, ko, kz, fOff, vLength,registers: s.registers.slice(),});
 
     //1. Service index check (WHO) !TODO, when support more than one service - change this. 
-    if (srvIdx !== NONE) return setR7(s, WHO);
+    if (sel !== NONE) return setR7(s, WHO);
 
-    console.log("writeHandler 2", {srvIdx, ko, kz, fOff, vz,registers: s.registers.slice(),});
+    console.log("writeHandler 2", {sel, ko, kz, fOff, vLength,registers: s.registers.slice(),});
 
     // 2. read key bytes from memory - OOB if unmapped
     const { bytes: keyBytes, state: s1 } = readBytes(s, ko, kz);
     if (!keyBytes) return { state: { ...s, exit: { type: ExitReasonType.Panic } }, ok: true };
 
-    //3. derive hashed key with prefix
-    const prefix   = new Uint8Array(4);
-    new DataView(prefix.buffer).setUint32(0, Number(srvIdx & 0xffff_ffffn), true);
-    const prefixed = new Uint8Array(prefix.length + keyBytes.length);
-    prefixed.set(prefix);
-    prefixed.set(keyBytes, prefix.length);
-    const kHash = hash(prefixed);                     
+    // 3. xs
+    const xsId = env.acc?.allocator?.env?.currentServiceId;
+    if (xsId === undefined) return finish(s1, WHO);
 
+    const xs: ServiceAccount | undefined = getMergedXs(env);
+    if (!xs) return finish(s1, WHO);
+
+    // -- SPEC THRESHOLD GATE CHECK --
+    const threshold = xs.threshold ?? (env as any).activationFee ?? 0n; // a_t
+    if (threshold > xs.balance) return finish(s1, FULL);
+  
+    // 4. derive hashed key with prefix
+    const svc32 = BigInt.asUintN(32, xsId);
+    const prefix = toLE(svc32, 4);
+    const prefixed = new Uint8Array(prefix.length + keyBytes.length);
+    prefixed.set(prefix, 0);
+    prefixed.set(keyBytes, prefix.length);
+
+
+    // 5. Hash -> hex key into xs.storage
+    const kHash = hash(prefixed);     
+    const kHashHex = Buffer.from(kHash).toString("hex");
+                
+    const prev = xs.storage.get(kHashHex);
+    const prevLen = prev ? BigInt(prev.length) : NONE;
     
-    // 4. read value bytes or delete
-    let newValue: Uint8Array | undefined;
+    // 6. read value bytes or delete
     let s2 = s1;
+    let newValue: Uint8Array | undefined;
 
     // 
-    if (vz !== 0) {
-        const r = readBytes(s1, fOff, vz);
+    if (vLength !== 0) {
+        const r = readBytes(s1, fOff, vLength);
         if (!r.bytes) return {         
-            state: { ...r.state, exit:{ type: ExitReasonType.Panic } },
-            ok   : true,
+          state: { ...r.state, exit:{ type: ExitReasonType.Panic } },
+          ok   : true,
         };
         newValue = r.bytes;
         s2 = r.state;
     }
 
-    const prev = env.getStorage?.(kHash);
-    const prevLen = prev ? BigInt(prev.length) : NONE;
+    const newStorage = new Map(xs.storage);
+    // 7. write to storage or delete
+    if (vLength === 0) newStorage.delete(kHashHex); // delete
+    else newStorage.set(kHashHex, newValue!); //stage put
+  
 
-    // 5. write to storage or delete
-    if (vz === 0) { 
-         // delete request
-         env.deleteStorage?.(kHash);
-    } else {
-        env.putStorage?.(kHash, newValue!);
-        if (env.isFull?.()) {
-            // roll back
-            if (prev) env.putStorage?.(kHash, prev);
-            else env.deleteStorage?.(kHash);
-            return finish(s2, FULL);
-        }
-    }
+    stageAccount(env, xsId, { ...xs, storage: newStorage });
 
-    //6. return the length of the previous value
+    //8. return the length of the previous value
     return finish(s2, prevLen);
 };

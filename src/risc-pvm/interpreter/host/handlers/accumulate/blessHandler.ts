@@ -3,7 +3,7 @@ import { ExitReasonType } from "../../../types";
 import { WHO, OK, SVC_ID, BYTES_PER_BLESS_HASH, MAX_BLESS_SELECTOR_SLOTS } from "../../consts";
 import { finish } from "../../helpers";
 import { HostCallHandler, ServiceAccount } from "../../types";
-import { getOverlayChangeSet, stageAccount } from "./helpers";
+import { getMergedXs, getOverlayChangeSet, stageAccount } from "./helpers";
 
 // ΩB – bless  (selector 5)
 // bless handler is used to register a service with a set of selector-hash pairs.
@@ -23,8 +23,11 @@ export const blessHandler: HostCallHandler = (state, _id, env) => {
   const { bytes, state: s1 } = readBytes(state, off, need); // g, derive
   if (!bytes) return { state:{ ...state, exit:{ type: ExitReasonType.Panic } }, ok:true };
 
-  const xsId = env.acc?.allocator?.env?.currentServiceId ?? SVC_ID;
-  const cur  = getOverlayChangeSet(env, xsId) ?? {
+    // xs required in accumulate context
+    const xsId = env.acc?.allocator?.env?.currentServiceId;
+    if (xsId === undefined) return finish(s1, WHO);
+
+    const cur  = getMergedXs(env) ?? {
     storage: new Map(), preimages: new Map(), lookupStorage: new Map(),
     rootCodeHash: 0n, balance: 0n, gasAccumulate: 0n, gasOnTransfer: 0n,
     cores: new Uint8Array(32 * 8), selectorMap: new Map(),
