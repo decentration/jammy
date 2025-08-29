@@ -1,8 +1,8 @@
-import { readBytes } from "../../instructions/helpers";
-import { ExitReasonType } from "../../types";
-import { SVC_ID, OK, PAYLOAD_BYTES } from "../consts";
-import { decodeDesignationsVector, finish } from "../helpers";
-import { HostCallHandler, ServiceAccount } from "../types";
+import { readBytes } from "../../../instructions/helpers";
+import { ExitReasonType } from "../../../types";
+import { SVC_ID, OK, PAYLOAD_BYTES } from "../../consts";
+import { decodeDesignationsVector, finish } from "../../helpers";
+import { HostCallHandler, ServiceAccount } from "../../types";
 
 
 // ΩD – designate (selector 7)

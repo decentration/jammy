@@ -1,7 +1,7 @@
 import { u32, u64 } from "scale-ts";
 import { fromLE, toLE } from "../instructions/helpers";
 import { InterpreterState } from "../types";
-import { BI, BL, BS, BYTES_PER_SLOT, C, D, E, GA, GI, GR, GT, H, I, INFO_BYTES, J, K, L, N, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
+import { BI, BL, BS, BYTES_PER_SLOT, C, CORES_SIZE, D, E, GA, GI, GR, GT, H, I, INFO_BYTES, J, K, L, N, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
 import { AccumulateContext, FetchVector, ServiceAccount } from "./types";
 
 
@@ -109,3 +109,11 @@ export const readU64LE = (u: Uint8Array, o: number) =>
   (BigInt(u[o+0])      )  | (BigInt(u[o+1]) <<  8n) | (BigInt(u[o+2]) << 16n) | // bitwise OR combining bits
   (BigInt(u[o+3]) << 24n) | (BigInt(u[o+4]) << 32n) | (BigInt(u[o+5]) << 40n) |
   (BigInt(u[o+6]) << 48n) | (BigInt(u[o+7]) << 56n);
+
+
+export const zeroService = (): ServiceAccount => ({
+  storage: new Map(), preimages: new Map(), lookupStorage: new Map(),
+  rootCodeHash: 0n, balance: 0n, gasAccumulate: 0n, gasOnTransfer: 0n,
+  cores: new Uint8Array(CORES_SIZE), selectorMap: new Map(),
+  ticketNext: 0n, coresOffset: 0, ticketIndex: 0,
+});

@@ -96,8 +96,8 @@ describe("ΩN newHandler (0.7.1) of gp", () => {
     const newId = st.registers[7];
     expect(newId >= RING_START).toBe(true);
 
-    const payer = env.getService(xs)!;
-    const acct  = env.getService(newId)!;
+    const payer = env.acc.allocator.env.deltas.get(xs)!;
+    const acct  = env.acc.allocator.env.deltas.get(newId)!;
 
     expect(payer.balance).toBe(100n - ACTIVATION_FEE);
     expect(acct.balance).toBe(ACTIVATION_FEE);
@@ -117,8 +117,8 @@ it("explicit id by root (i < S) -> returns i and uses it", () => {
   const st   = runBlob(blob, GAS, { env, memInit: mem });
 
   expect(st.registers[7]).toBe(BigInt(explicit));
-  expect(env.getService(BigInt(explicit))).toBeTruthy();
-  expect(env.getService(xs)!.balance).toBe(50n - ACTIVATION_FEE);
+  expect(env.acc.allocator.env.deltas.has(BigInt(explicit))).toBe(true);
+  expect(env.acc.allocator.env.deltas.get(xs)!.balance).toBe(50n - ACTIVATION_FEE);
 });
 
 it("explicit id by root (i < S) -> returns i and uses it", () => {
@@ -134,8 +134,8 @@ it("explicit id by root (i < S) -> returns i and uses it", () => {
   const st   = runBlob(blob, GAS, { env, memInit: mem });
 
   expect(st.registers[7]).toBe(BigInt(explicit));
-  expect(env.getService(BigInt(explicit))).toBeTruthy();
-  expect(env.getService(xs)!.balance).toBe(50n - ACTIVATION_FEE);
+  expect(env.acc.allocator.env.deltas.has(BigInt(explicit))).toBe(true);
+  expect(env.acc.allocator.env.deltas.get(xs)!.balance).toBe(50n - ACTIVATION_FEE);
 });
 
 it("explicit id already staged -> FULL", () => {
@@ -191,7 +191,7 @@ it("stores rootCodeHash and gas limits on the new account", () => {
   const blob = makeBlob(mkCode(HEAP, 42, GAS_ACC, GAS_TRANSFER, 0, 0));
   const st   = runBlob(blob, GAS, { env, memInit: mem });
   const id   = st.registers[7];
-  const svc  = env.getService(id)!;
+  const svc  = env.acc.allocator.env.deltas.get(id)!;
 
   const beHex = Buffer.from(H).reverse().toString("hex");
   expect(svc.rootCodeHash).toBe(BigInt("0x"+beHex));
@@ -212,7 +212,7 @@ it("(c,l) pair is recorded in lookupStorage", () => {
   const st   = runBlob(blob, GAS, { env, memInit: mem });
 
   const id = st.registers[7];
-  const acct = env.getService(id)!;
+  const acct = env.acc.allocator.env.deltas.get(id)!;
 
   const key = new Uint8Array(32+4);
   key.set(H, 0);
@@ -225,20 +225,20 @@ it("(c,l) pair is recorded in lookupStorage", () => {
   expect(acct.lookupStorage.has(clKey)).toBe(true);
 });
 
-it("skips taken ids and advances allocator cursor", () => {
-  const mem = new Uint8Array(1<<20);
-  mem.set(CODE_HASH, HEAP);
+  it("skips taken ids and advances allocator cursor", () => {
+    const mem = new Uint8Array(1<<20);
+    mem.set(CODE_HASH, HEAP);
 
-  const xs = 0x9999_aaaa_bbbb_ccccn;
-  const env = mkEnvWithPayer(xs, 100n);
+    const xs = 0x9999_aaaa_bbbb_ccccn;
+    const env = mkEnvWithPayer(xs, 100n);
 
-  const id1 = nextIdInRing(env.acc.allocator.index);
-  env.putService(id1, mkService(id1, 0n, 0n));
+    const id1 = nextIdInRing(env.acc.allocator.index);
+    env.putService(id1, mkService(id1, 0n, 0n));
 
-  const id2 = nextIdInRing(id1);
-  const st  = runBlob(makeBlob(mkCode()), GAS, { env, memInit: mem });
+    const id2 = nextIdInRing(id1);
+    const st  = runBlob(makeBlob(mkCode()), GAS, { env, memInit: mem });
 
-  expect(st.registers[7]).toBe(id2);
-  expect(env.acc.allocator.index).toBe(id2);
-});
+    expect(st.registers[7]).toBe(id2);
+    expect(env.acc.allocator.index).toBe(id2);
+  });
 })

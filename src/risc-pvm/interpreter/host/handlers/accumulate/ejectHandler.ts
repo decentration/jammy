@@ -1,9 +1,9 @@
 import { readBytes } from "../../../instructions/helpers";
 import { ExitReasonType } from "../../../types";
-import { HASH_BYTES, SVC_ID, WHO, HUH, OK } from "../../consts";
+import { HASH_BYTES, SVC_ID, WHO, HUH, OK, D } from "../../consts";
 import { finish, readU64LE } from "../../helpers";
 import { HostCallHandler, ServiceAccount } from "../../types";
-import { getOverlayChangeSet, stageAccount, stageTombstone } from "./helpers";
+import { getMergedXs, getOverlayChangeSet, getStagedOnly, stageAccount, stageTombstone } from "./helpers";
 
 // ΩJ – eject (selector 21)
 // 0.7.1
@@ -20,7 +20,7 @@ import { getOverlayChangeSet, stageAccount, stageTombstone } from "./helpers";
 //   WHO if d = ∇ OR d.c != E32(xs) (same rootCodeHash required)
 //   HUH if d.i != 2 OR (h,l) ∉ d.l  (we model d.i as optional `status`, default 2;
 //                                    we model d.l via lookupStorage keyed by (h,l))
-//   OK if d.l[h,l] = [x,y] and y < t − D  (we will use env.now() as t and D=0 for now)
+//   OK if d.l[h,l] = [x,y] and y < t − D 
 // EFFECT:
 //   s' = xs except s'_b = xs.b + d.b
 //   (xe)d  := (xe)d \ { d } ∪ { (xs ↦ s') } 
@@ -29,7 +29,7 @@ import { getOverlayChangeSet, stageAccount, stageTombstone } from "./helpers";
 //     - ∪ { (xs ↦ s') } is addition of the updated current service id (xs) with new balance
 
 // in this persistence model, we cannot delete a service id, so we zero out d.balance.
-const EJECT_DELAY: bigint = 0n; // D no delay for now
+const EJECT_DELAY: bigint = BigInt(D); 
 
 export const ejectHandler: HostCallHandler = (s, _id, env) => {
   const ejectId = BigInt.asUintN(64, s.registers[7]); // (d) candidate service id to ejec
@@ -41,12 +41,12 @@ export const ejectHandler: HostCallHandler = (s, _id, env) => {
 
   const xe = env.acc?.allocator?.env!;
   const currentServiceId = xe.currentServiceId ?? SVC_ID;  
-  const xs = getOverlayChangeSet(env, currentServiceId);
+  const xs = getMergedXs(env); // merged (staged over committed)
   if (!xs) return finish(s1, WHO);
 
   // candidate service must exist.
   if (ejectId === currentServiceId) return finish(s1, WHO);
-  const dService = getOverlayChangeSet(env, ejectId);
+  const dService = getStagedOnly(env, ejectId);
   if (!dService) return finish(s1, WHO);
 
   if (dService.rootCodeHash !== xs.rootCodeHash) return finish(s1, WHO);

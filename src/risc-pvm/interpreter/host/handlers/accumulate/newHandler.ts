@@ -1,8 +1,9 @@
-import { readBytes } from "../../instructions/helpers";
-import { ExitReasonType } from "../../types";
-import { ACTIVATION_FEE, CASH, CORES_SIZE, FULL, HASH_BYTES, HUH, MAX_LABEL, SVC_ID } from "../consts";
-import { checkAlloc, finish, nextIdInRing, RING_START } from "../helpers";
-import { HostCallHandler, ServiceAccount } from "../types";
+import { readBytes } from "../../../instructions/helpers";
+import { ExitReasonType } from "../../../types";
+import { ACTIVATION_FEE, CASH, CORES_SIZE, FULL, HASH_BYTES, HUH, MAX_LABEL, SVC_ID } from "../../consts";
+import { checkAlloc, finish, nextIdInRing, RING_START, zeroService } from "../../helpers";
+import { HostCallHandler, ServiceAccount } from "../../types";
+import { getMergedXs, stageAccount } from "./helpers";
 
 
 // ΩN – new (selector 9)
@@ -19,11 +20,18 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   if (!hash || labelBE > MAX_LABEL) return { state:{ ...s, exit:{ type: ExitReasonType.Panic } }, ok:true };
 
   // xs – current payer - allow either currentServiceId (xe.m) or SVC_ID fallback
-  const payerId = env.acc?.allocator?.env?.currentServiceId ?? SVC_ID;
+  const xsId = env.acc?.allocator?.env?.currentServiceId ?? SVC_ID;
 
   // enforce: if f != 0 then payer must match currentServiceId
-  if (flags !== 0n && env.acc.allocator.env.currentServiceId !== undefined && payerId !== env.acc.allocator.env.currentServiceId)
+  if (flags !== 0n && env.acc.allocator.env.currentServiceId !== undefined && xsId !== env.acc.allocator.env.currentServiceId)
   return finish(s1, HUH);
+
+  // If flags != 0 then payer must be exactly (xe).m per spec (privileged path)
+  if (flags !== 0n &&
+    env.acc?.allocator?.env?.currentServiceId !== undefined &&
+    xsId !== env.acc.allocator.env.currentServiceId) {
+      return finish(s1, HUH);
+  }
 
   // otherwise if sb < (xs)t
   // payer xs from accumulate session
@@ -32,31 +40,19 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   // if (!payer || payer.balance < ACTIVATION_FEE) return finish(s1, CASH);
 
 
-  // build new account - (a)
-  const payer: ServiceAccount = env.getService(payerId) ?? {
-    storage:       new Map(),
-    preimages:     new Map(),
-    lookupStorage: new Map(),
-    rootCodeHash:  BigInt("0x"+Buffer.from(hash).reverse().toString("hex")),
-    balance:       ACTIVATION_FEE, // initial balance is activation fee
-    gasAccumulate: gasAcc,
-    gasOnTransfer: gasTrans,
-    cores:         new Uint8Array(CORES_SIZE),
-    selectorMap:   new Map(),
-    ticketNext:    0n,
-    coresOffset:   0,
-    ticketIndex:   0,
-  };
+  // Effective xs (merged staged-over-committed); if truly missing, treat as zero
+  const xs0 = getMergedXs(env) ?? zeroService();
+  
 
-  const postDebit = payer.balance - ACTIVATION_FEE;
+  const postDebit = xs0.balance - ACTIVATION_FEE;
 
   // (xs)t : use explicit field if you add one later; until then fall back to env.activationFee (≥ 0)
-  const threshold = (payer as any).threshold ?? (env as any).activationFee ?? 0n;
+  const threshold = xs0.threshold ?? (env as any).activationFee ?? 0n;
 
   // otherwise if sb < (xs)t  -> CASH
   if (postDebit < threshold) return finish(s1, CASH);
 
-  const account: ServiceAccount = {
+  const newAccount: ServiceAccount = {
     storage:       new Map(),
     preimages:     new Map(),
     lookupStorage: new Map(),
@@ -71,34 +67,37 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
     ticketIndex:   0,
   };
 
-  const sDebited: ServiceAccount = { ...payer, balance: postDebit };
 
-  const clKey = (() => {  //(c, l) key for lookup storage
+ {  //(c, l) key for lookup storage
     const key = new Uint8Array(32 + 4);
     key.set(hash, 0); // as read from memory
     key[32] = Number(labelBE & 0xffn); // label low byte
     key[33] = Number((labelBE >> 8n) & 0xffn); //  mid byte
     key[34] = Number((labelBE >> 16n) & 0xffn); // high byte
     key[35] = Number((labelBE >> 24n) & 0xffn); // top byte
-    return Buffer.from(key).toString("hex");
-  })();
-  account.lookupStorage.set(clKey, new Uint8Array(0));
+    const clKey = Buffer.from(key).toString("hex");
+    newAccount.lookupStorage.set(clKey, new Uint8Array(0));
+  }
+
+  const debitedXs: ServiceAccount = { ...xs0, balance: postDebit };
+  const xe = env.acc.allocator.env;
 
   // branch: explicit candidate allowed only if xs == (xe)r and explicitIdx < S
-  const isRoot = (env.acc.allocator.env.root !== undefined) && (payerId === env.acc.allocator.env.root);
+  const isRoot = (xe.root !== undefined) && (xsId === xe.root);
   if (isRoot && explicitIdx < RING_START) {
+    const xe = env.acc.allocator.env;
+    const taken =
+      xe.deltas.has(explicitIdx) ||
+      (env.hasService?.(explicitIdx) ?? false) ||
+      xe.deleted?.has?.(explicitIdx);
     // if already staged at explicitIdx => FULL
-    if (env.acc.allocator.env.deltas.has(explicitIdx) || env.hasService?.(explicitIdx)) {// add last part for if explicitIdx is already used
+    if (taken) {// add last part for if explicitIdx is already used
       return finish(s1, FULL);
     }
 
     // stage deltas
-    env.acc.allocator.env.deltas.set(explicitIdx, account);
-    env.acc.allocator.env.deltas.set(payerId, sDebited);
-
-    // !TODO apply immediately to env for now but will be applied later stage of the pipeline.
-    env.putService(payerId, sDebited);
-    env.putService(explicitIdx, account);
+    stageAccount(env, explicitIdx, newAccount);
+    stageAccount(env, xsId, debitedXs);   
 
     return finish(s1, explicitIdx);
   }
@@ -110,23 +109,14 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   env.acc.allocator.index = candidate;
 
   // advance until free id (staged or committed)
-  while (env.acc.allocator.env.deltas.has(candidate) || env.hasService?.(candidate)) {
-  candidate = checkAlloc(nextIdInRing(candidate));
-  env.acc.allocator.index = candidate;
+  while (xe.deltas.has(candidate) || (env.hasService?.(candidate) ?? false) || xe.deleted?.has?.(candidate)) {
+    candidate = checkAlloc(nextIdInRing(candidate));
+    env.acc.allocator.index = candidate;
 }
 
   // stage deltas
-  env.acc.allocator.env.deltas.set(candidate, account);
-  env.acc.allocator.env.deltas.set(payerId, sDebited);
-
-  // debit fee from sender and store both accounts
-  // !TODO: apply immeidately for now... end of block integration step in pipeline required. 
-  // We stage into (xe).d (spec-correct), but also mirror to the committed store
-  // so other handlers/tests can observe the new state immediately.
-  // In a real pipeline, only (xe).d should be mutated here and commit happens
-  // at end-of-block; remove/guard the puts below when that is wired up.
-  env.putService(payerId, sDebited);
-  env.putService(candidate, account);
+  stageAccount(env, candidate, newAccount);
+  stageAccount(env, xsId, debitedXs);
 
   return finish(s1, candidate);
 

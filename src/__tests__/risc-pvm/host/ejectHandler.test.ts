@@ -2,7 +2,7 @@ import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
-import { OK, WHO, HUH, SVC_ID, HASH_BYTES } from "../../../risc-pvm/interpreter/host/consts";
+import { OK, WHO, HUH, SVC_ID, HASH_BYTES, D } from "../../../risc-pvm/interpreter/host/consts";
 import { DesignationEntry, EjectWitnessTuple, ServiceAccount, DESIGNATION_ROLE_EJECT, } from "../../../risc-pvm/interpreter/host/types";
 import { le32, le32ToBigInt, le64, makeBlob, makePayer, mkService } from "./helpers";
 import { toLE } from "../../../risc-pvm/interpreter/instructions/helpers";
@@ -11,6 +11,7 @@ const HEAP = 0x18000;
 const NOW  = 1_000_000n;  // t
 const BIG_ENOUGH_MEM = 1 << 20;
 const GAS  = 100_000;
+const EJECT_DELAY = BigInt(D); // D = 19,200
 
 function prog(d: bigint, o: number): Uint8Array {
   return Uint8Array.of(
@@ -34,20 +35,25 @@ describe("ΩJ eject handler", () => {
     const codeHash = le32ToBigInt(h);
   
     // xs is payer
-    const xs = env.getService(SVC_ID) ?? mkService(SVC_ID, 0n, 0n);
-    xs.rootCodeHash = codeHash;   // E32(xs) <- h
+    const xs = mkService(SVC_ID, codeHash, 0n);
     env.putService(SVC_ID, xs);
   
     // d MUST have same code hash as xs for WHO gate to pass
     const dId = 42n;
-    const d = env.getService(dId) ?? mkService(dId, 0n, 0n);
-    d.rootCodeHash = codeHash; 
+    const d = mkService(dId, codeHash, 0n);
     d.lookupStorage ??= new Map();
     env.putService(dId, d);
+    env.acc.allocator.env.deltas.set(dId, d);
+
   
     // designation entry: role=2, with an offset l, using 0 for simplicity
-    env.acc.allocator.env.designationEntries = new Map();
-    env.acc.allocator.env.designationEntries.set(dId, { id: dId, role: 2, offset: 0 });
+    env.acc.allocator.env.designationEntries = new Map<bigint, DesignationEntry>();
+    env.acc.allocator.env.designationEntries.set(dId, {
+      role: DESIGNATION_ROLE_EJECT,
+      boundCodeHash32: new Uint8Array(32), // not used by handler, provided for completeness
+      witnessBaseOffset: 0,
+      witnessIndex: undefined,
+    });
   
     // witness (h,l) is an element of d.l with tuple [x,y]; choose old y so y < t - D 
     const l = 0;
@@ -100,7 +106,7 @@ describe("ΩJ eject handler", () => {
   });
 
   it("WHO when dest is payer (d == xs) or entry missing or dc != E32(xs)", () => {
-    const xsId = 0xAAAn;
+    const xsId = 0xAAAn; 
     const payer = makePayer(xsId, 0n, 0n); // payer is xs;
     // set E32(xs) to some H1; provide a different H2 in memory to force mismatch
     const H1 = new Uint8Array(32).fill(0x42);
@@ -159,11 +165,15 @@ describe("ΩJ eject handler", () => {
     // to pass the WHO guard; we want to fail on the role check instead.
     const dService = mkService(dId, codeHash, 0n);
     dService.lookupStorage = new Map(); // leave witness empty so the role check is the first failure
-    env.putService(dId, dService);
+    env.acc.allocator.env.deltas.set(dId, dService);
 
     // designation entry with a bad role (!= 2) so eject handler returns HUH
     env.acc.allocator.env.designationEntries = new Map();
-    env.acc.allocator.env.designationEntries.set(dId, { id: dId, role: 1, offset: 0 }); // role 1 ≠ 2
+    env.acc.allocator.env.designationEntries.set(dId, {
+      role: 1, // bad role
+      boundCodeHash32: new Uint8Array(32),
+      witnessBaseOffset: 0,
+    });
 
     // init memory with the hash
     const mem = new Uint8Array(1 << 20);
@@ -184,8 +194,8 @@ describe("ΩJ eject handler", () => {
   }
 
   it("happy path: stages survivor in deltas and tombstones ejected id; persistent store unchanged", () => {
-    // fixed time so y < t - D (D=0) is easy to satisfy
-    const NOW = 1_000n;
+    // fixed time so y < t - D (D=19,200) is easy to satisfy
+    const NOW = 100_000n - EJECT_DELAY;
 
     // set up current service (xs) and candidate (d)
     const xsId = SVC_ID;  // payer/current service
@@ -201,7 +211,8 @@ describe("ΩJ eject handler", () => {
     const env = makeHostEnv({
       now: NOW,
       accounts: new Map<bigint, ServiceAccount>([
-        [xsId, xs],
+        [xsId, xs], // commited
+        // d committed is OK, but eject requires it STAGED:
         [dId,  d],
       ]),
     });
@@ -216,6 +227,9 @@ describe("ΩJ eject handler", () => {
       boundCodeHash32: new Uint8Array(32),
       witnessBaseOffset: 0
     });
+
+    // stage d, candidate must be in (xe).d
+    env.acc.allocator.env.deltas.set(dId, d);
 
     const h = new Uint8Array(HASH_BYTES).map((_, i) => (i * 7) & 0xff);
     const mem = new Uint8Array(1 << 20);

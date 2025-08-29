@@ -1,5 +1,5 @@
-import { checkpointAcc } from "../helpers";
-import { HostCallHandler } from "../types";
+import { checkpointAcc } from "../../helpers";
+import { HostCallHandler } from "../../types";
 
 // ΩC – checkpoint (selector 8)
 export const checkpointHandler: HostCallHandler = (s, _id, env) => {
