@@ -29,6 +29,7 @@ import { pagesHandler } from "./handlers/pagesHandler";
 import { ejectHandler } from "./handlers/accumulate/ejectHandler";
 import { queryHandler } from "./handlers/accumulate/queryHandler";
 import { yieldHandler } from "./handlers/accumulate/yieldHandler";
+import { forgetHandler } from "./handlers/accumulate/forgetHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -128,12 +129,12 @@ const gasHandler: HostCallHandler = (state, id, env ) => {
 // const voidHandler = zeroOrVoid(true ); // 24
 
 
-// FORGET PRE-IMAGE (ΩF) - selector 15
-const forgetHandler: HostCallHandler = (state, id, env) => {
-  const regs = state.registers.slice();
-  regs[7] = HUH;                       // “already solicited / cannot forget”
-  return { state: { ...state, registers: regs }, ok: true };
-};
+// // FORGET PRE-IMAGE (ΩF) - selector 15
+// const forgetHandler: HostCallHandler = (state, id, env) => {
+//   const regs = state.registers.slice();
+//   regs[7] = HUH;                       // “already solicited / cannot forget”
+//   return { state: { ...state, registers: regs }, ok: true };
+// };
 
 // //  FETCH (ΩY) — selector 18
 // const fetchHandler: HostCallHandler = (state, id, env) => {
@@ -231,7 +232,7 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
    22: queryHandler, // ΩQ - query (Accumulator)
   // 23: solicitHandler, // ΩS - solicit (Accumulator)//
   24: forgetHandler,    // ΩF - forget pre-image (Accumulator)
-   25: yieldHandler, // Ω♉︎ - yield (Accumulator)
+  25: yieldHandler, // Ω♉︎ - yield (Accumulator)
   // 18: fetchHandler,
   
   // 23: zeroHandler, // ΩZ - zero memory (refine)

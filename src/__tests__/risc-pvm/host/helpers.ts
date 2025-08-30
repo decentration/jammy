@@ -1,5 +1,6 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
 import { AccumulateContext, ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
+import { toLE } from "../../../risc-pvm/interpreter/instructions/helpers";
 
 export function makeOpcodeBitmask(code: Uint8Array, opcodeOffsets: number[]): Uint8Array {
   const bits = new Uint8Array(Math.ceil(code.length / 8));
@@ -84,6 +85,13 @@ export const makeAcc = (currentServiceId: bigint): AccumulateContext => ({
   allocator: { index: 0n, env: { deltas: new Map(), 
   currentServiceId: currentServiceId, root: 0n } },
   session: { 
-    scratch: {} 
+   
   },
 });
+
+// encode [x], [x,y], [x,y,z]... as 8*n LE bytes
+export const tuple = (...vals: bigint[]) => {
+  const out = new Uint8Array(8 * vals.length);
+  vals.forEach((v, i) => out.set(toLE(v, 8), i * 8));
+  return out;
+};
