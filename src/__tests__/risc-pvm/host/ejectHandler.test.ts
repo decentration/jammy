@@ -6,6 +6,7 @@ import { OK, WHO, HUH, SVC_ID, HASH_BYTES, D } from "../../../risc-pvm/interpret
 import { DesignationEntry, EjectWitnessTuple, ServiceAccount, DESIGNATION_ROLE_EJECT, } from "../../../risc-pvm/interpreter/host/types";
 import { le32, le32ToBigInt, le64, makeBlob, makePayer, mkService } from "./helpers";
 import { toLE } from "../../../risc-pvm/interpreter/instructions/helpers";
+import { ledgerPut } from "../../../risc-pvm/interpreter/host/handlers/accumulate/helpers";
 
 const HEAP = 0x18000;
 const NOW  = 1_000_000n;  // t
@@ -58,7 +59,6 @@ describe("ΩJ eject handler", () => {
     // witness (h,l) is an element of d.l with tuple [x,y]; choose old y so y < t - D 
     const l = 0;
     const keyHex = Buffer.from(h).toString("hex");
-    const dlKey = `ej:${keyHex}:${l}`;
     const y = 0n;    // long in past
     const x = 0n;
     const tuple = new Uint8Array(16);
@@ -66,10 +66,11 @@ describe("ΩJ eject handler", () => {
     // make the tuple [x,y] LE
     tuple.set(toLE(x, 8), 0);
     tuple.set(toLE(y, 8), 8);
-    d.lookupStorage.set(dlKey, tuple);
-    env.putService(dId, d);
+
+    const stagedD = env.acc.allocator.env.deltas.get(dId)!;
+    ledgerPut(stagedD, keyHex, 0, mkWitness(0n, 1n));
   
-    // make 'now' much large so y < now - D holds regardless of D
+    // make now much large so y < now - D holds regardless of D
     env.now = () => 10_000_000n;
   
     const bitmask = Uint8Array.of(0b0000_0001, 0b0000_0100, 0b0000_0101);
@@ -236,12 +237,9 @@ describe("ΩJ eject handler", () => {
     mem.set(h, HEAP);
 
     // Provide witness (h,l) -> [x,y] in d.lookupStorage; l = 0 because coresOffset=81
-    const key = `ej:${Buffer.from(h).toString("hex")}:0`;
-    const dPersist = env.getService(dId)!;
-    dPersist.lookupStorage ??= new Map();
-    // y < t (t=NOW) so choose y = 1
-    dPersist.lookupStorage.set(key, mkWitness(0n, 1n));
-    env.putService(dId, dPersist);
+    const hKey = Buffer.from(h).toString("hex")
+    const stagedD = env.acc.allocator.env.deltas.get(dId)!;
+    ledgerPut(stagedD, hKey, 0, mkWitness(0n, 1n));
 
     const blob = makeBlob(prog(dId, HEAP), bitmask);
     const st = runBlob(blob, GAS, { env, memInit: mem });

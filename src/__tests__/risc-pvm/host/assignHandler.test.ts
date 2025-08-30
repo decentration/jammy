@@ -55,7 +55,7 @@ function makeBlob(code: Uint8Array): Uint8Array {
           root: 0n,
         },
       },
-      session: { scratch: {} },
+      session: { },
     };
   }
 

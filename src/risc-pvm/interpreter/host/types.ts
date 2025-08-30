@@ -98,7 +98,7 @@ export interface ServiceAccount {
   ticketIndex?: number;  // ti – current queue head (stub = 0)
 
   threshold?: bigint; // (xs).t
-  ejectLedger?: Map<Hex32, Map<number, Uint8Array>>;
+  ledger?: Map<Hex32, Map<number, Uint8Array>>;
 
 }
 
@@ -162,7 +162,8 @@ export interface AccumulateX {
 }
   
 export interface AccumulateY {
-  scratch?: Record<string, any>; // ys — checkpoint mirror (snapshot of x at last ΩC)
+  checkpoint?: AccumulateX;      // y' — checkpoint mirror (snapshot of x at last ΩC)
+  yield?: Uint8Array;            // yy — yield blob for ΩY
 }
   
 export interface AccumulateContext {

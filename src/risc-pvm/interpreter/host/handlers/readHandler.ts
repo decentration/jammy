@@ -4,7 +4,7 @@ import { ExitReasonType } from "../../types";
 import { NONE, WHO } from "../consts";
 import { finish } from "../helpers";
 import { HostCallHandler, ServiceAccount } from "../types";
-import { getMergedXs, getOverlayChangeSet, getStagedOnly } from "./accumulate/helpers";
+import { getMergedXs, getStagedOnly } from "./accumulate/helpers";
 
 const WILDCARD = (1n << 64n) - 1n;
 

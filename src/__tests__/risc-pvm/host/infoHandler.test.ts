@@ -58,7 +58,7 @@ describe("ΩI info handler", () => {
     const cur = 0xdead_beefn;
     const env = makeHostEnv({
       accounts : new Map([[cur, sa]]),
-      initAcc: { allocator: { index: cur, env: { deltas: new Map(), currentServiceId: cur, root: 0n } }, session: { scratch: {} } }
+      initAcc: { allocator: { index: cur, env: { deltas: new Map(), currentServiceId: cur, root: 0n } }, session: {} }
 
     });
     env.encodeInfo = encodeInfoHelper;
@@ -121,7 +121,7 @@ describe("ΩI info handler with newer encodeInfoHelper", () => {
   it("writes info blob, r7 = Sv (INFO_BYTES)", () => {
     const env = makeHostEnv({
       accounts : new Map([[WILDCARD, sa]]),
-      initAcc: { allocator: { index: WILDCARD, env: { deltas: new Map(), currentServiceId: WILDCARD, root: 0n } }, session: { scratch: {} } }
+      initAcc: { allocator: { index: WILDCARD, env: { deltas: new Map(), currentServiceId: WILDCARD, root: 0n } }, session: {} }
 
     });
     env.encodeInfo = encodeInfoHelper;

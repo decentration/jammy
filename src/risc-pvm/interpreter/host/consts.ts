@@ -70,8 +70,6 @@ export const ZI = 224 // The standard pvm program initialization input data size
 export const ZP = 212 // The pvm memory page size. See equation 4.24.
 export const ZZ = 216 // The standard pvm program initialization zone size. See section A.7.
 
-
-
 // Accumulate consts for host calls
 export const SVC_ID = 0n // !TODO change when outer invocation is supported (bless and assign)
 export const CORE_BYTES = 32;          // 32-byte hash each (assign handler)

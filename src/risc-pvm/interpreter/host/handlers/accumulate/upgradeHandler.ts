@@ -4,7 +4,7 @@ import {  HASH_BYTES, OK, SVC_ID } from "../../consts";
 import { finish, zeroService } from "../../helpers";
 import { HostEnvInterface } from "../../hostEnvInterface";
 import { HostCallHandler, ServiceAccount } from "../../types";
-import { getMergedXs, getOverlayChangeSet, stageAccount } from "./helpers";
+import { getMergedXs, stageAccount } from "./helpers";
 
 const u256FromLE = (u8: Uint8Array): bigint => {
   let v = 0n;

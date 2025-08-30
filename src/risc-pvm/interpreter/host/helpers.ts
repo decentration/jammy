@@ -77,7 +77,7 @@ export function encodeInfoHelper(sa: ServiceAccount): Uint8Array {
 
 // checkpoint helper
 export function checkpointAcc(env: { acc: AccumulateContext }) {
-  env.acc.session.scratch = structuredClone(env.acc.allocator);
+  env.acc.session.checkpoint = structuredClone(env.acc.allocator);
 }
 
 export const RING_START = 1n << 8n;

@@ -3,7 +3,7 @@ import { ExitReasonType } from "../../../types";
 import { HASH_BYTES, SVC_ID, WHO, HUH, OK, D } from "../../consts";
 import { finish, readU64LE } from "../../helpers";
 import { HostCallHandler, ServiceAccount } from "../../types";
-import { getMergedXs, getOverlayChangeSet, getStagedOnly, stageAccount, stageTombstone } from "./helpers";
+import { getMergedXs, getStagedOnly, stageAccount, stageTombstone } from "./helpers";
 
 // ΩJ – eject (selector 21)
 // 0.7.1
@@ -29,7 +29,7 @@ import { getMergedXs, getOverlayChangeSet, getStagedOnly, stageAccount, stageTom
 //     - ∪ { (xs ↦ s') } is addition of the updated current service id (xs) with new balance
 
 // in this persistence model, we cannot delete a service id, so we zero out d.balance.
-const EJECT_DELAY: bigint = BigInt(D); 
+const EJECT_DELAY = BigInt(D);
 
 export const ejectHandler: HostCallHandler = (s, _id, env) => {
   const ejectId = BigInt.asUintN(64, s.registers[7]); // (d) candidate service id to ejec
@@ -59,10 +59,8 @@ export const ejectHandler: HostCallHandler = (s, _id, env) => {
   if (role !== 2) return finish(s1, HUH);
 
   // (h,l) is element of d.l gate:
-  // we use dService.lookupStorage with a composite key (seems simplest). Value must encode [x,y] (8+8 bytes LE), at least 16 bytes.
-  const keyHex = Buffer.from(h).toString("hex");
-  const dlKey = `ej:${keyHex}:${l}`;
-  const tuple = dService.lookupStorage?.get(dlKey);
+  const hHex = Buffer.from(h).toString("hex");
+  const tuple = dService.ledger?.get(hHex)?.get(l);
 
   // if no tuple or malformed, (h,l) not element of d.l
   if (!tuple || tuple.length < 16)  return finish(s1, HUH);

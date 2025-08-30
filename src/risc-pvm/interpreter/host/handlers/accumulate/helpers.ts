@@ -1,16 +1,6 @@
 import { HostEnvInterface } from "../../hostEnvInterface";
 import { ServiceAccount, ServiceId } from "../../types";
 
-export function getOverlayChangeSet(env: HostEnvInterface, id: bigint): ServiceAccount | undefined {
-
-  const xe = env.acc.allocator.env;
-  if (!xe) return env.getService(id); 
-  if (xe.deleted?.has(id)) return undefined;
-  const staged = env.acc.allocator.env.deltas.get(id) as ServiceAccount | undefined;
-
-  return staged ?? env.getService(id);
-}
-
 // return the effective merged view of xs in Accumulate.
 // If there is a staged delta for xs, return that; else fall back to committed
 export function getMergedXs(env: HostEnvInterface): ServiceAccount | undefined {
@@ -51,4 +41,39 @@ export function serviceExistsInAccumulate(env: HostEnvInterface, id: bigint): bo
   const xe = env.acc.allocator.env;
   if (xe.deleted?.has(id)) return false;
   return xe.deltas.has(id) || (env.hasService?.(id) ?? false);
+}
+
+
+// // previously used and is just like getStagedOnly but with fallback to committed
+// export function getOverlayChangeSet(env: HostEnvInterface, id: bigint): ServiceAccount | undefined {
+
+//   const xe = env.acc.allocator.env;
+//   if (!xe) return env.getService(id); 
+//   if (xe.deleted?.has(id)) return undefined;
+//   const staged = env.acc.allocator.env.deltas.get(id) as ServiceAccount | undefined;
+
+//   return staged ?? env.getService(id);
+// }
+
+export function ledgerGet(
+  acct: ServiceAccount | undefined,
+  hHex: string,
+  idx: number
+): Uint8Array | undefined {
+  return acct?.ledger?.get(hHex)?.get(idx);
+}
+
+export function ledgerPut(
+  acct: ServiceAccount,
+  hHex: string,
+  idx: number,
+  value: Uint8Array
+) {
+  acct.ledger ??= new Map();
+  let inner = acct.ledger.get(hHex);
+  if (!inner) {
+    inner = new Map();
+    acct.ledger.set(hHex, inner);
+  }
+  inner.set(idx, value);
 }

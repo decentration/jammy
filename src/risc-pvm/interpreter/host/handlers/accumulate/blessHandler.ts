@@ -3,7 +3,7 @@ import { ExitReasonType } from "../../../types";
 import { WHO, OK, SVC_ID, BYTES_PER_BLESS_HASH, MAX_BLESS_SELECTOR_SLOTS } from "../../consts";
 import { finish } from "../../helpers";
 import { HostCallHandler, ServiceAccount } from "../../types";
-import { getMergedXs, getOverlayChangeSet, stageAccount } from "./helpers";
+import { getMergedXs, stageAccount } from "./helpers";
 
 // ΩB – bless  (selector 5)
 // bless handler is used to register a service with a set of selector-hash pairs.

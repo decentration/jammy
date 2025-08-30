@@ -120,7 +120,10 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
       env: xe,
       transfers: initAcc?.allocator?.transfers ?? [], 
     },
-    session: { scratch: initAcc?.session?.scratch ?? {} },
+    session: { 
+      yield: initAcc?.session?.yield,
+      checkpoint: initAcc?.session?.checkpoint,
+    }
   };
 
   

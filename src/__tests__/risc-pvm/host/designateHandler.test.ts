@@ -28,7 +28,7 @@ describe("ΩD designate handler", () => {
     mem.set(payload, HEAP);
 
     const env = makeHostEnv({
-      initAcc: { allocator: { index: 0n, env: { deltas: new Map<bigint, any>(), currentServiceId: SVC_ID } }, session: { scratch: {},   } }
+      initAcc: { allocator: { index: 0n, env: { deltas: new Map<bigint, any>(), currentServiceId: SVC_ID } }, session: {   } }
     });    
     const st  = runBlob(mkBlob(code()), 100, { env, memInit: mem });
 
