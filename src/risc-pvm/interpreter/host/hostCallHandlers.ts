@@ -30,6 +30,7 @@ import { ejectHandler } from "./handlers/accumulate/ejectHandler";
 import { queryHandler } from "./handlers/accumulate/queryHandler";
 import { yieldHandler } from "./handlers/accumulate/yieldHandler";
 import { forgetHandler } from "./handlers/accumulate/forgetHandler";
+import { solicitHandler } from "./handlers/accumulate/solicitHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -229,8 +230,8 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   19: upgradeHandler, // ΩU - upgrade (Accumulator)
   20: transferHandler, // ΩT - transfer (Accumulator)
   21: ejectHandler, // ΩJ - eject (Accumulator)
-   22: queryHandler, // ΩQ - query (Accumulator)
-  // 23: solicitHandler, // ΩS - solicit (Accumulator)//
+  22: queryHandler, // ΩQ - query (Accumulator)
+  23: solicitHandler, // ΩS - solicit (Accumulator)//
   24: forgetHandler,    // ΩF - forget pre-image (Accumulator)
   25: yieldHandler, // Ω♉︎ - yield (Accumulator)
   // 18: fetchHandler,
