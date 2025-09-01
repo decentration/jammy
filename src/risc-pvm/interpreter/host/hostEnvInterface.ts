@@ -1,5 +1,5 @@
 import { AccEnv, AccumulateContext, DesignationEntry, FetchVector, MachineEntry, ServiceAccount, ServiceId } from "./types";
-import { encodeInfoHelper } from "./helpers"
+import { cloneEntry, cloneMap, cloneSet, cloneU8, encodeInfoHelper } from "./helpers"
 
 // output option parameters
 export interface HostEnvInterface {
@@ -102,23 +102,33 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const hasService = (id: bigint) => svcTab.has(id);
 
   const xe: AccEnv = {
-    deltas: initEnv?.deltas ?? new Map<bigint, any>(),
+    deltas: cloneMap(initEnv?.deltas),
     currentServiceId: initEnv?.currentServiceId,
     root: initEnv?.root ?? 0n,
-    deleted: initEnv?.deleted ?? new Set<ServiceId>(),
-    designations: initEnv?.designations ?? new Map<number, bigint>(),
-    designationsRaw: initEnv?.designationsRaw,
-    assignServiceAccount: initEnv?.assignServiceAccount ?? new Map(),
-    assignCore: initEnv?.assignCore ?? new Map(),
-    designationEntries: initEnv?.designationEntries ?? new Map<bigint, DesignationEntry>(),
-
+    deleted: cloneSet(initEnv?.deleted),
+    designations: cloneMap(initEnv?.designations),
+    designationsRaw: cloneU8(initEnv?.designationsRaw),
+    assignServiceAccount: cloneMap(initEnv?.assignServiceAccount),
+    assignCore: new Map(
+      [...(initEnv?.assignCore ?? new Map<number, Uint8Array>())]
+        .map(([idx, vec]) => [idx, vec.slice()]) // deep copy each Uint8Array
+    ),    
+    designationEntries: new Map([...(initEnv?.designationEntries ?? new Map())]
+      .map(([svcId, entry]) => [svcId, cloneEntry(entry)]))
   };
   
   const acc: AccumulateContext = { // acc(umulator) context
     allocator: {
       index: initAcc?.allocator?.index ?? 0n,
       env: xe,
-      transfers: initAcc?.allocator?.transfers ?? [], 
+      transfers: (initAcc?.allocator?.transfers ?? []).map(t => ({
+        from: t.from, to: t.to, amount: t.amount, gasLimit: t.gasLimit, memo: t.memo.slice()
+      })),         
+      providesSeen: new Map(
+        [...(initAcc?.allocator?.providesSeen ?? new Map<bigint, Set<string>>())]
+          .map(([sid, set]) => [sid, new Set(set)])
+      ),
+      provides: (initAcc?.allocator?.provides ?? []).map(p => ({ s: p.s, i: p.i.slice() })),
     },
     session: { 
       yield: initAcc?.session?.yield,

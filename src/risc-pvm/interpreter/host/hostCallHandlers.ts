@@ -31,6 +31,7 @@ import { queryHandler } from "./handlers/accumulate/queryHandler";
 import { yieldHandler } from "./handlers/accumulate/yieldHandler";
 import { forgetHandler } from "./handlers/accumulate/forgetHandler";
 import { solicitHandler } from "./handlers/accumulate/solicitHandler";
+import { provideHandler } from "./handlers/accumulate/provideHandler";
 
 // GAS (ΩG) - selector 0 
 const gasHandler: HostCallHandler = (state, id, env ) => {
@@ -239,7 +240,7 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   // 23: zeroHandler, // ΩZ - zero memory (refine)
   // 24: voidHandler, // ΩV - void memory (refine)
 
-  // 26: provideHandler, // Ω♈ - provide (Accumulate)
+  26: provideHandler, // Ω♈ - provide (Accumulate)
 
 
 };

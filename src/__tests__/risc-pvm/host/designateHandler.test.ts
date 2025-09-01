@@ -1,5 +1,5 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
-import { SVC_ID, OK, PAYLOAD_BYTES } from "../../../risc-pvm/interpreter/host/consts";
+import { SVC_ID, OK, PAYLOAD_BYTES, HUH } from "../../../risc-pvm/interpreter/host/consts";
 import { decodeDesignationsVector } from "../../../risc-pvm/interpreter/host/helpers";
 import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
@@ -28,14 +28,32 @@ describe("ΩD designate handler", () => {
     mem.set(payload, HEAP);
 
     const env = makeHostEnv({
-      initAcc: { allocator: { index: 0n, env: { deltas: new Map<bigint, any>(), currentServiceId: SVC_ID } }, session: {   } }
+      initAcc: { allocator: { index: 0n, env: { deltas: new Map<bigint, any>(), currentServiceId: SVC_ID } }, session: {} }
     });    
     const st  = runBlob(mkBlob(code()), 100, { env, memInit: mem });
 
-    const expected = decodeDesignationsVector(payload)
+    const expected = decodeDesignationsVector(payload)!;
 
     expect(st.registers[7]).toBe(OK);
-    expect(env.acc.allocator.env.designations).toEqual(expected);
+    expect(env.acc.allocator.env.designations).toEqual(expected.designations);
+    expect(env.acc.allocator.env.designationEntries).toBeDefined();
+    expect(env.acc.allocator.env.designationsRaw).toEqual(payload);
+    expect(st.exit?.type).toBe(ExitReasonType.Panic);
+
+  });
+
+  it("panics on OOB payload read", () => {
+    const mem = new Uint8Array(1 << 20);
+  
+    // a pointer that forces readBytes past the end of mem
+    const nearEnd = (1 << 20) - (PAYLOAD_BYTES - 1); // one byte short -> OOB
+  
+    const st = runBlob(mkBlob(code(nearEnd)), 100, {
+      env: makeHostEnv({ initAcc: { allocator: { index: 0n, env: { deltas: new Map<bigint, any>(), currentServiceId: SVC_ID } }, session: {} } }),
+      memInit: mem,
+    });
+  
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
+
 });

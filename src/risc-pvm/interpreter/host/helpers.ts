@@ -1,8 +1,8 @@
 import { u32, u64 } from "scale-ts";
 import { fromLE, toLE } from "../instructions/helpers";
 import { InterpreterState } from "../types";
-import { BI, BL, BS, BYTES_PER_SLOT, C, CORES_SIZE, D, E, GA, GI, GR, GT, H, I, INFO_BYTES, J, K, L, N, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
-import { AccumulateContext, FetchVector, ServiceAccount } from "./types";
+import { BI, BL, BS, BYTES_PER_SLOT, C, CORES_SIZE, D, E, GA, GI, GR, GT, H, HUH, I, INFO_BYTES, J, K, L, N, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
+import { AccumulateContext, DesignationEntry, DesignationMap, FetchVector, ServiceAccount, ServiceId } from "./types";
 
 
 // // ΩY fetch vector selector map 
@@ -39,7 +39,9 @@ export const buildFetchConfigVector = (): Uint8Array => {
   return out;
 };
 
-export function finish(s: InterpreterState, c: bigint) { 
+export type finishState = { state: InterpreterState; ok: boolean };
+
+export function finish(s: InterpreterState, c: bigint): finishState {
     return { 
         state: { ...s, registers: Object.assign([], s.registers, { 7: c }) }, 
         ok: true 
@@ -94,14 +96,43 @@ export function checkAlloc(i: bigint): bigint {
   return i; // !TODO stub for now
 }
 
-// for designateHandler - !TODO  - refine decoder
-export const decodeDesignationsVector = (v: Uint8Array): Map<number, bigint> => { //v is the memory slice
-  const out = new Map<number, bigint>();
-  for (let i = 0; i + BYTES_PER_SLOT <= v.length; i += BYTES_PER_SLOT) {
-    out.set(i / BYTES_PER_SLOT, fromLE(v, i, 8));
-  }
-  return out;
+export type DecodedDesignations = {
+  designations: DesignationMap;                            // slotIndex -> destId
+  entries: Map<ServiceId, DesignationEntry>;               // destId -> entry
 };
+
+// for designateHandler 
+export const decodeDesignationsVector = (v: Uint8Array): DecodedDesignations | null => { //v is the memory slice
+
+  if (v.length === 0) return { designations: new Map(), entries: new Map() };;
+  if (v.length % BYTES_PER_SLOT !== 0) return null
+
+  const designations: DesignationMap = new Map();
+  const entries = new Map<ServiceId, DesignationEntry>();
+
+  for (let i = 0; i< v.length; i += BYTES_PER_SLOT) { // for each 336-byte slot 
+
+    const slotIdx = i / BYTES_PER_SLOT;
+
+    const destId = fromLE(v, i, 8);
+
+    designations.set(slotIdx, destId);
+    
+    
+      // v.subarray(i, i + BYTES_PER_SLOT)); 
+      // we set the index to the bigint value at offset i
+      if (!entries.has(destId)) {
+        entries.set(destId, {
+          boundCodeHash32: new Uint8Array(0),
+          role: 0,
+          witnessBaseOffset: 0,
+          witnessIndex: new Map()
+      });
+      }
+    }
+  
+    return { designations, entries };
+  };
 
 
 // Decode [x,y] from the 16-byte payload (little-endian 64-bit each)
@@ -116,4 +147,20 @@ export const zeroService = (): ServiceAccount => ({
   rootCodeHash: 0n, balance: 0n, gasAccumulate: 0n, gasOnTransfer: 0n,
   cores: new Uint8Array(CORES_SIZE), selectorMap: new Map(),
   ticketNext: 0n, coresOffset: 0, ticketIndex: 0,
+});
+
+// CLONE HELPERS
+export const cloneObj = <T>(o?: T) => (o ? { ...o } : undefined);
+export const cloneMap = <K, V>(m?: Map<K, V>) => new Map<K, V>(m ?? []);
+export const cloneSet = <T>(s?: Set<T>) => new Set<T>(s ?? []);
+export const cloneU8  = (u?: Uint8Array) => (u ? u.slice() : undefined);
+
+// for designate handler
+export const cloneEntry = (e: DesignationEntry) => ({
+  boundCodeHash32: e.boundCodeHash32.slice(),
+  role: e.role,
+  witnessBaseOffset: e.witnessBaseOffset,
+  witnessIndex: e.witnessIndex
+    ? new Map([...e.witnessIndex].map(([k,v]) => [k, { x: v.x, y: v.y }]))
+    : undefined,
 });

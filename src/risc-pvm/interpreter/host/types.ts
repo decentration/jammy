@@ -140,6 +140,7 @@ export interface DesignationEntry {
   witnessIndex?: Map<EjectWitnessKey, EjectWitnessTuple>; // d_l: (h,l) -> [x,y]
 }
 
+export type DesignationMap = Map<number, ServiceId>;
 export interface AccEnv {           // xe
   deltas: Map<bigint, any>;         // (xe.d) — mutable staging (service mutations this block)
   currentServiceId?: bigint;        // (xe.m) – the payer / current service
@@ -150,7 +151,7 @@ export interface AccEnv {           // xe
   assignServiceAccount?: Map<CoreIndex, ServiceId>;  // (xe).a[c] — assigned owner service for core c
   assignCore?: Map<CoreIndex, CoreAssignmentVector>;  // (xe).q[c] — the 32*Q bytes core c’s assignment vector
 
-  designations?: Map<number, ServiceId>; // (parsed) (xe).i — designations (ΩD)
+  designations?: DesignationMap; // (parsed) (xe).i — designations (ΩD)
   designationsRaw?: Uint8Array;          // (raw version)
   designationEntries?: Map<ServiceId, DesignationEntry>;
 }
@@ -159,6 +160,9 @@ export interface AccumulateX {
   index: bigint;        // xi — allocator index (ring)
   env: AccEnv;          // xe — environment for the accumulatorn (deltas and meta)
   transfers?: DeferredTransfer; // (xe).t — transfers for the accumulator
+
+  providesSeen?: Map<bigint, Set<string>>; // track duplicates within block
+  provides?: Array<{ s: bigint; i: Uint8Array }>; // x_p — list of (s,i) pairs provided during the block
 }
   
 export interface AccumulateY {
