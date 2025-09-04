@@ -10,6 +10,13 @@ export const LOW   = (1n << 64n) - 8n; // 18446744073709551608n
 export const HUH   = (1n << 64n) - 9n; // 18446744073709551607n
 
 
+// Inner PVM fault codes
+export const HALT = 0n // : The invocation completed and halted normally.
+export const PANIC = 1n //: The invocation completed with a panic.
+export const FAULT = 2n //: The invocation completed with a page fault.
+export const HOST = 3n  //: The invocation completed with a host-call fault.
+export const OOG = 4n // The invocation completed by running out of gas.
+
 
 // info handler:
 export const INFO_BYTES = 32 + 16 + 8 + 8 + 8 + 4 + 4;

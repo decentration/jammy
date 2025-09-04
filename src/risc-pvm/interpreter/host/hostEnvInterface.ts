@@ -1,5 +1,6 @@
 import { AccEnv, AccumulateContext, DesignationEntry, FetchVector, MachineEntry, ServiceAccount, ServiceId } from "./types";
 import { cloneEntry, cloneMap, cloneSet, cloneU8, encodeInfoHelper } from "./helpers"
+import { ExitReasonType, RunInnerMachineFn } from "../types";
 
 // output option parameters
 export interface HostEnvInterface {
@@ -10,6 +11,7 @@ export interface HostEnvInterface {
   fetchVector(name: FetchVector): Uint8Array | null; // vLength in ΩY 
 
   machineTable: Map<number, MachineEntry>; // ΩM, table of inner-machines (Refine)... m of (m, e) 
+  runInnerMachine?: RunInnerMachineFn;
 
   getStorage?: (key: Uint8Array) => Uint8Array | undefined;  // as[k] / ss[k] in ΩR and ΩW 
   putStorage?: (key: Uint8Array, value: Uint8Array) => void; // mutate ΩW
@@ -43,6 +45,7 @@ export interface HostEnvOptions {
   expOff?: number;
   expSegs?: Uint8Array[];
   machines?: Map<number, { p: Uint8Array; u: any; i: number }>;
+  runInnerMachine?: RunInnerMachineFn;
   accounts?: Map<bigint, ServiceAccount>;
   activationFee?: bigint; // global existential deposit / minimum balance
   initAcc?: Partial<AccumulateContext>;
@@ -60,6 +63,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     expOff,
     expSegs,
     machines,
+    runInnerMachine,
     accounts,
     activationFee = 0n,
     initAcc,
@@ -74,7 +78,6 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const images  = preImage ?? new Map<string, Uint8Array>();
   const infos   = infoMap  ?? new Map<string, Uint8Array>();
   const mTable = machines ?? new Map<number, { p: Uint8Array; u: any; i: number }>();
-
   const svcTab  = accounts ?? new Map<bigint, ServiceAccount>();
   const initEnv = initAcc?.allocator?.env;
 
@@ -136,6 +139,18 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     }
   };
 
+  console.log("[env] runInnerMachine override:", !!opts.runInnerMachine);
+
+  const runInnerMachineFinal =
+  runInnerMachine ?? ((p, ic, gas, regs, u) => ({
+    exit: ExitReasonType.Halt,
+    nextIc: ic,
+    gasRemaining: gas,
+    regs,
+    u
+  }));
+
+
   
   return {
     now: () => now,
@@ -161,6 +176,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     exportOffset : expOff,
     exportSegments: expSegs ?? [],
     machineTable: mTable,
+    runInnerMachine: runInnerMachineFinal,
 
     activationFee,
 

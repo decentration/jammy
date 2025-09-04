@@ -6,7 +6,7 @@ import { bitmaskToBoolean } from "./utils/bitmask";
 import { createPageTable, mapPages } from "./memory";
 import { dispatchHostCall } from "./host/hostCallHandlers";
 import { HostEnvInterface, makeHostEnv } from "./host/hostEnvInterface";
-import { HostCallHandler, HostDispatcher } from "./host/types";
+import { HostDispatcher } from "./host/types";
 
 
 export interface RunBlobOpts {
@@ -74,8 +74,11 @@ export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts 
     console.log("here is state after step");
 
     if (state.exit?.type === ExitReasonType.HostCall) 
-      console.log("Host call detected, dispatching...");
+      console.log("[run] Host call detected, dispatching...", String(state.exit.id)); 
+   
+   
       state = host(state, env);
+      console.log("[run] after dispatch: exit=", ExitReasonType[state.exit?.type ?? 0], "pc=", state.pc);
     continue;
   }
   

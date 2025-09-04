@@ -27,8 +27,13 @@ export function writeBytes(
   console.log("writeBytes", { addr, buf, s });
 
   const badPage = checkAccess(s.context!.pageTable, addr, buf.length, true);
-  if (badPage !== undefined)
+  console.log("[mem] after checkAccess, and badPage is this:", badPage);
+  if (badPage !== undefined) {
+    const pg = badPage >>> 16; 
+    const pte = s.context!.pageTable[pg];
+    console.log("[mem] deny page", pg, "addr", addr, "len", buf.length, "pte=", pte);
     return triggerFaultWithDetail(s, badPage);
+  }
   s.memory.set(buf, addr);
   return s;
 }

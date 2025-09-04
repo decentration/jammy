@@ -1,3 +1,4 @@
+import { InnerMachineState } from "./host/types";
 import { InstructionAddressTypes } from "./instructions/opcodes";
 
 
@@ -22,7 +23,7 @@ export type InterpreterState = {
   opcodeMaskBits: boolean[];   // Opcode mask bits (ϳ), array of booleans indicating which opcodes are enabled
   pc: number;                  // Program counter (ı)
   gas: number;                 // Gas remaining (ϱ)
-  registers: bigint[];         // General-purpose registers (ω), array of 13 registers as per spec
+  registers: bigint[];         // General-purpose registers (φ), array of 13 registers as per spec
   memory: Uint8Array;          // RAM (μ), typically an ArrayBuffer-backed typed array
   exit?: ExitReason;     // reason why the interpreter stopped
   context?: InterpreterContext;
@@ -55,3 +56,21 @@ export interface OpcodeDefinition {
 }
 
 
+// --- InnerRunResult
+export type InnerRunResult = {
+  exit: ExitReasonType;          // ε
+  nextIc: number;                // ı'
+  gasRemaining: bigint;          // ϱ'
+  regs: BigUint64Array;          // φ' (length 13)
+  u: InnerMachineState;          // μ' memory (engine-defined)
+  hostId?: bigint;               // h
+  faultPage?: bigint;            // x
+};
+
+export type RunInnerMachineFn = (
+  p: Uint8Array, // blob
+  ic: number, // instruction counrer
+  gas: bigint, // gas
+  regs: BigUint64Array, // registers
+  u: InnerMachineState // (u') memory
+) => InnerRunResult;

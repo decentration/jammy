@@ -4,6 +4,7 @@ import { HUH } from "../../../risc-pvm/interpreter/host/consts";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
+import { InnerMachineState, MachineEntry } from "../../../risc-pvm/interpreter/host/types";
 
 const HEAP    = 0x18000;   // inner‑VM blob lives here
 const BAD_PTR = 0x0020;    // unmapped (low) address
@@ -27,7 +28,9 @@ const innerBlob = buildBlob({
 });
 
 const P_LEN = innerBlob.length;
-const machineOpts = { p: innerBlob, u: null, i: 0 }; 
+
+const inner: InnerMachineState = { v: new Uint8Array, a: []}
+const machineOpts: MachineEntry = { p: innerBlob, u: inner, i: 0 }; // Replace with a valid InnerMachineState
 
 //  outer programme builder
 function makeCode(ptr: number, len: number, idx: number): Uint8Array {
@@ -35,7 +38,7 @@ function makeCode(ptr: number, len: number, idx: number): Uint8Array {
     Opcodes.load_imm, 7,  ptr&255, ptr>>8&255, ptr>>16&255, ptr>>24&255, // po
     Opcodes.load_imm, 8,  len&255, len>>8&255, len>>16&255, len>>24&255, // pz
     Opcodes.load_imm, 9,  idx&255, idx>>8&255, idx>>16&255, idx>>24&255, // i
-    Opcodes.ecalli, 20,                                                  // ΩM
+    Opcodes.ecalli, 8,                                                  // ΩM
     Opcodes.trap
   );
 }
