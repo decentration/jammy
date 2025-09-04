@@ -2,9 +2,9 @@ import { readBytes, writeBytes } from "../../instructions/helpers";
 import { ExitReasonType } from "../../types";
 import { OK, OOB, WHO } from "../consts";
 import { finish } from "../helpers";
-import { HostCallHandler } from "../types";
+import { HostCallHandler, InnerMachineState } from "../types";
 
-// PEEK (ΩK) — selector 22
+// PEEK (ΩK) — selector 9
 export const peekHandler: HostCallHandler = (s, _id, env) => {
   const n   = Number(s.registers[7]);   // machine‑id
   const o   = Number(s.registers[8]);   // outer‑dest offset
@@ -15,7 +15,8 @@ export const peekHandler: HostCallHandler = (s, _id, env) => {
   const entry = env.machineTable?.get(n);
   if (!entry) return finish(s, WHO);
 
-  const innerMem: Uint8Array = entry.u.mem ?? new Uint8Array(0);
+  const u: InnerMachineState = entry.u;
+  const innerMem = u.v;
   if (src + z > innerMem.length) return finish(s, OOB);
 
   const slice = innerMem.subarray(src, src + z);

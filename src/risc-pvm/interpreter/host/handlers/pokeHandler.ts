@@ -2,9 +2,9 @@ import { readBytes }               from "../../instructions/helpers";
 import { ExitReasonType }          from "../../types";
 import { OK, OOB, WHO }            from "../consts";
 import { finish }                  from "../helpers";
-import { HostCallHandler }         from "../types";
+import { HostCallHandler, InnerMachineState }         from "../types";
 
-// PEEK (ΩK) — selector 21
+// PEEK (ΩK) — selector 10
 export const pokeHandler: HostCallHandler = (s, _id, env) => {
   const n   = Number(s.registers[7]);   // machine‑id
   const src = Number(s.registers[8]);   // outer‑source offset
@@ -19,11 +19,11 @@ export const pokeHandler: HostCallHandler = (s, _id, env) => {
   if (!bytes) return { state:{ ...s, exit:{ type: ExitReasonType.Panic } }, ok:true };
 
   // grow inner memory if needed
-  const inner = entry.u.mem ?? new Uint8Array(0);
+  const u: InnerMachineState = entry.u;
 
   // out of bounds on the inner side -> OOB
-  if (dst + z > inner.length) return finish(s1, OOB);
-  inner.set(bytes, dst);
+  if (dst + z > u.v.length) return finish(s1, OOB);
+  u.v.set(bytes, dst);
 
   return finish(s1, OK);
 };

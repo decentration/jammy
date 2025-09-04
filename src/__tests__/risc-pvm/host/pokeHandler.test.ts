@@ -21,7 +21,7 @@ function outerCodePoke(id: number, src: number, dest: number, len: number) {
     Opcodes.load_imm, 8,  src & 255, src >>> 8 & 255, src >>> 16 & 255, src >>> 24 & 255,
     Opcodes.load_imm, 9,  dest & 255, dest >>> 8 & 255, dest >>> 16 & 255, dest >>> 24 & 255,
     Opcodes.load_imm,10,  len & 255, len >>> 8 & 255, len >>> 16 & 255, len >>> 24 & 255,
-    Opcodes.ecalli, 22, // ΩO  – poke
+    Opcodes.ecalli, 10, // ΩO  – poke
     Opcodes.trap
   );
 }
@@ -36,11 +36,11 @@ const makeBlob = (code: Uint8Array) =>
 
 // inner machine 
 function makeMachine(memContents: Uint8Array): MachineEntry {
-  return { p: new Uint8Array(), u: { mem: memContents }, i: 0 };
+  return { p: new Uint8Array(), u: { v: memContents, a: [] }, i: 0 };
 }
 
 const innerMem = new Uint8Array(16).map((_,i)=>i+1); // [1..16]
-const machine0 = { p:new Uint8Array(), u:{ mem: innerMem }, i:0 };
+const machine0: MachineEntry = { p:new Uint8Array(), u:{ v: innerMem, a: [] }, i:0 };
 
 describe("ΩO poke handler", () => {
 
@@ -56,7 +56,7 @@ describe("ΩO poke handler", () => {
       const st   = runBlob(blob, GAS, { env, memInit: mem });
   
       expect(st.registers[7]).toBe(OK);
-      expect(env.machineTable.get(0)!.u.mem.slice(4,8)).toEqual(Uint8Array.of(9,9,9,9));
+      expect(env.machineTable.get(0)!.u.v.slice(4,8)).toEqual(Uint8Array.of(9,9,9,9));
       expect(st.exit?.type).toBe(ExitReasonType.Panic);
     });
   

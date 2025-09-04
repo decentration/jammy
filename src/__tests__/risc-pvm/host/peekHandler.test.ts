@@ -4,6 +4,7 @@ import { OK, OOB, WHO } from "../../../risc-pvm/interpreter/host/consts";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
+import { MachineEntry } from "../../../risc-pvm/interpreter/host/types";
 
 const DEST       = 0x19000;
 const BAD_ADDR   = 0x0020;
@@ -15,7 +16,7 @@ function outerCodePeek(n: number, o: number, s: number, z: number) {
     Opcodes.load_imm, 8,  o&255, o>>8&255, o>>16&255, o>>24&255,
     Opcodes.load_imm, 9,  s&255, s>>8&255, s>>16&255, s>>24&255,
     Opcodes.load_imm,10,  z&255, z>>8&255, z>>16&255, z>>24&255,
-    Opcodes.ecalli, 21,   // ΩP
+    Opcodes.ecalli, 9,   // ΩP
     Opcodes.trap
   );
 }
@@ -30,7 +31,7 @@ const makeBlob = (code: Uint8Array) =>
 
 // inner machine
 const innerMem = new Uint8Array(16).map((_,i)=>i+1); // [1..16]
-const machine0 = { p:new Uint8Array(), u:{ mem: innerMem }, i:0 };
+const machine0: MachineEntry = { p:new Uint8Array(), u:{ v: innerMem , a: []}, i:0 };
 
 
 describe("ΩP peek handler", () => {
