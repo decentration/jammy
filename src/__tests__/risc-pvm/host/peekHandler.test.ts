@@ -1,10 +1,10 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
 import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
-import { OK, OOB, WHO } from "../../../risc-pvm/interpreter/host/consts";
+import { OK, OOB, WHO, ZP } from "../../../risc-pvm/interpreter/host/consts";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
-import { MachineEntry } from "../../../risc-pvm/interpreter/host/types";
+import { MachineEntry } from "../../../risc-pvm/interpreter/host/innerMem/types";
 
 const DEST       = 0x19000;
 const BAD_ADDR   = 0x0020;
@@ -31,14 +31,32 @@ const makeBlob = (code: Uint8Array) =>
 
 // inner machine
 const innerMem = new Uint8Array(16).map((_,i)=>i+1); // [1..16]
-const machine0: MachineEntry = { p:new Uint8Array(), u:{ v: innerMem , a: []}, i:0 };
+const machine0: MachineEntry = { p:new Uint8Array(), u:{ vPages: new Map([[0, innerMem]]) , aPages: new Map()}, i:0 };
 
+function makeMachine(): MachineEntry {
+  const page = 16;
+  const buf = new Uint8Array(ZP);
+
+  for (let i = 0; i < 16; i++) buf[i] = i + 1;
+
+  return {
+    p: new Uint8Array(),
+    u: { vPages: new Map([[page, buf]]), aPages: new Map([[page, 1 /*R*/]]) },
+    i: 0,
+  };
+}
 
 describe("ΩP peek handler", () => {
 
   it("happy‑path -> r7=OK & bytes copied", () => {
-    const env = makeHostEnv({ machines: new Map([[0, machine0]]) });
-    const code = outerCodePeek(0, DEST, 2, 4); // copy [3,4,5,6]
+    const env  = makeHostEnv({ machines: new Map([[0, makeMachine()]]) });
+
+    const page = 16;
+    const src  = page * ZP + 2;        // point at byte 2 inside page 16
+    const dest = DEST;                 
+    const len  = 4;
+
+    const code = outerCodePeek(0, dest, src, len);
     const blob = makeBlob(code);
 
     const mem = new Uint8Array(1<<20);

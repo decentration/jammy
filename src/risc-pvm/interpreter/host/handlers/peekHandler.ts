@@ -2,7 +2,9 @@ import { readBytes, writeBytes } from "../../instructions/helpers";
 import { ExitReasonType } from "../../types";
 import { OK, OOB, WHO } from "../consts";
 import { finish } from "../helpers";
-import { HostCallHandler, InnerMachineState } from "../types";
+import { ensureInnerMem, innerRead } from "../innerMem/helpers";
+import { InnerMachineState } from "../innerMem/types";
+import { HostCallHandler } from "../types";
 
 // PEEK (ΩK) — selector 9
 export const peekHandler: HostCallHandler = (s, _id, env) => {
@@ -15,12 +17,11 @@ export const peekHandler: HostCallHandler = (s, _id, env) => {
   const entry = env.machineTable?.get(n);
   if (!entry) return finish(s, WHO);
 
-  const u: InnerMachineState = entry.u;
-  const innerMem = u.v;
-  if (src + z > innerMem.length) return finish(s, OOB);
+  const u = ensureInnerMem(entry.u);  
+  const slice = innerRead(u, src, z);
+  if (!slice) return finish(s, OOB);
 
-  const slice = innerMem.subarray(src, src + z);
-  const s1    = writeBytes(s, o, slice);
+  const s1 = writeBytes(s, o, slice);
   if (s1.exit?.type === ExitReasonType.PageFault)
     return { state:{ ...s, exit:{ type: ExitReasonType.Panic } }, ok:true };
 

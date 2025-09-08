@@ -1,12 +1,12 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
 import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
-import { OK, OOB, WHO } from "../../../risc-pvm/interpreter/host/consts";
+import { OK, OOB, WHO, ZP } from "../../../risc-pvm/interpreter/host/consts";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
-import { MachineEntry } from "../../../risc-pvm/interpreter/host/types";
+import { MachineEntry } from "../../../risc-pvm/interpreter/host/innerMem/types";
 
-const SRC        = 0x1A000;
+const SRC        = 0x1A000; // 
 const BAD_ADDR   = 0x0020;
 const GAS        = 100;
 
@@ -35,18 +35,32 @@ const makeBlob = (code: Uint8Array) =>
   );
 
 // inner machine 
+
 function makeMachine(memContents: Uint8Array): MachineEntry {
-  return { p: new Uint8Array(), u: { v: memContents, a: [] }, i: 0 };
+  const pg = 0; // ΩZ’s p>=16 applies only when calling ΩZ
+  const page = new Uint8Array(ZP);
+  page.set(memContents, 0); // seed first 16 bytes [1..16]
+
+  return {
+    p: new Uint8Array(),
+    u: {
+      vPages: new Map([[pg, page]]),
+      aPages: new Map([[pg, 2]]), // 2 (writable)  => in bytes * mem
+    },
+    i: 0,
+  };
 }
 
 const innerMem = new Uint8Array(16).map((_,i)=>i+1); // [1..16]
-const machine0: MachineEntry = { p:new Uint8Array(), u:{ v: innerMem, a: [] }, i:0 };
+
+// innerMem is not a new uin8array instead it is Map<number, Uint8Array<ArrayBufferLike>>
+const machine0: MachineEntry = { p:new Uint8Array(), u:{ vPages: new Map([[0, innerMem]]), aPages: new Map()}, i:0 };
 
 describe("ΩO poke handler", () => {
 
     it("happy‑path -> r7=OK & inner mem updated", () => {
       const innerMachine = makeMachine(innerMem)
-      const env = makeHostEnv({ machines: new Map([[0, innerMachine ]])});
+      const env = makeHostEnv({ machines: new Map([[0, innerMachine]])});
       const mem = new Uint8Array(1<<20);
       mem.set([9,9,9,9], SRC);
 
@@ -56,7 +70,9 @@ describe("ΩO poke handler", () => {
       const st   = runBlob(blob, GAS, { env, memInit: mem });
   
       expect(st.registers[7]).toBe(OK);
-      expect(env.machineTable.get(0)!.u.v.slice(4,8)).toEqual(Uint8Array.of(9,9,9,9));
+      // expect(env.machineTable.get(0)!.u.vPages.slice(4,8)).toEqual(Uint8Array.of(9,9,9,9));
+      expect(env.machineTable.get(0)!.u.vPages.get(0)?.slice(4,8)).toEqual(Uint8Array.of(9,9,9,9));
+
       expect(st.exit?.type).toBe(ExitReasonType.Panic);
     });
   

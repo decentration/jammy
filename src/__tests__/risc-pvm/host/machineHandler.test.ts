@@ -4,7 +4,7 @@ import { HUH } from "../../../risc-pvm/interpreter/host/consts";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
-import { InnerMachineState, MachineEntry } from "../../../risc-pvm/interpreter/host/types";
+import { InnerMachineState, MachineEntry } from "../../../risc-pvm/interpreter/host/innerMem/types";
 
 const HEAP    = 0x18000;   // inner‑VM blob lives here
 const BAD_PTR = 0x0020;    // unmapped (low) address
@@ -29,7 +29,9 @@ const innerBlob = buildBlob({
 
 const P_LEN = innerBlob.length;
 
-const inner: InnerMachineState = { v: new Uint8Array, a: []}
+const innerMem = new Uint8Array(16).map((_,i)=>i+1); // [1..16]
+
+const inner: InnerMachineState = { vPages: new Map([[0, innerMem]]), aPages: new Map()}
 const machineOpts: MachineEntry = { p: innerBlob, u: inner, i: 0 }; // Replace with a valid InnerMachineState
 
 //  outer programme builder

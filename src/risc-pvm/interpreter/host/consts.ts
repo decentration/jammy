@@ -73,9 +73,9 @@ export const WT = 128 // The size of a transfer memo in octets.
 export const WX = 3_072 // The maximum number of exports in a work-package.
 export const Y = 500 // The number of slots into an epoch at which ticket-submission ends.
 export const ZA = 2 // The pvm dynamic address alignment factor. See equation A.18.
-export const ZI = 224 // The standard pvm program initialization input data size. See equation A.7.
-export const ZP = 212 // The pvm memory page size. See equation 4.24.
-export const ZZ = 216 // The standard pvm program initialization zone size. See section A.7.
+export const ZI = 1 << 24 // The standard pvm program initialization input data size. See equation A.7.
+export const ZP = 1 << 12 // The pvm memory page size. See equation 4.24.
+export const ZZ = 1 << 16 // The standard pvm program initialization zone size. See section A.7.
 
 // Accumulate consts for host calls
 export const SVC_ID = 0n // !TODO change when outer invocation is supported (bless and assign)
@@ -84,3 +84,8 @@ export const CORES_SIZE = CORE_BYTES * Q; // 2560 bytes for 80 cores (assign han
 export const MAX_BLESS_SELECTOR_SLOTS = 2**16;;  // NS !TODO what is max? (bless handler)
 export const BYTES_PER_BLESS_HASH = 12; // 12 bytes for each bless hash (bless handler)
  
+
+// -- Inner Memory Paging
+export const PAGE_SIZE = 1 << 12;       // 4096 bytes
+export const MIN_PAGE  = 16;            // p >= 16
+export const MAX_PAGES = 1 << 20;       // 2^32 / 2^12 = 1,048,576

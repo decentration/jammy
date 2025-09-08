@@ -1,9 +1,11 @@
 import { readBytes }  from "../../instructions/helpers";
 import { ExitReasonType } from "../../types";
 import { HUH } from "../consts";
-import { HostCallHandler, MachineEntry, InnerMachineState } from "../types";
+import { HostCallHandler } from "../types";
 import { deblob } from "../../deblob";
 import { finish } from "../helpers";
+import { MachineEntry } from "../innerMem/types";
+import { ensureInnerMem } from "../innerMem/helpers";
 
 
 
@@ -28,9 +30,9 @@ export const machineHandler: HostCallHandler = (s, _id, env) => {
   while (tbl.has(firstUnsdMachine)) ++firstUnsdMachine; // the difference between ++x and x++ is 
 
   // u  – new machine object
-  const newMachineObject: InnerMachineState = { v: new Uint8Array(0), a: [] };
+  const u = ensureInnerMem(undefined); 
 
-  tbl.set(firstUnsdMachine, { p, u: newMachineObject, i: i0 });
+  tbl.set(firstUnsdMachine, { p, u: u, i: i0 });
 
   // (success path) reg 7 will contain ID of the newly created machine
   return finish(s1, BigInt(firstUnsdMachine));

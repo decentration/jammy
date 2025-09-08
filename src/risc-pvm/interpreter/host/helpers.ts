@@ -3,6 +3,7 @@ import { fromLE, toLE } from "../instructions/helpers";
 import { InterpreterState } from "../types";
 import { BI, BL, BS, BYTES_PER_SLOT, C, CORES_SIZE, D, E, GA, GI, GR, GT, H, HUH, I, INFO_BYTES, J, K, L, N, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
 import { AccumulateContext, DesignationEntry, DesignationMap, FetchVector, ServiceAccount, ServiceId } from "./types";
+import { HostEnvInterface } from "./hostEnvInterface";
 
 
 // // ΩY fetch vector selector map 
@@ -92,9 +93,18 @@ export function nextIdInRing(current: bigint): bigint {
   return RING_START + ((off + STEP) % RING_SPAN);
 }
 
-export function checkAlloc(i: bigint): bigint {
-  return i; // !TODO stub for now
+export function checkAlloc(env: HostEnvInterface, i: bigint): bigint {
+  let candidate = i;
+  while (
+    env.acc.allocator.env.deltas.has(candidate) ||
+    (env.hasService?.(candidate) ?? false) ||
+    env.acc.allocator.env.deleted?.has(candidate)
+  ) {
+    candidate = nextIdInRing(candidate);
+  }
+  return candidate;
 }
+
 
 export type DecodedDesignations = {
   designations: DesignationMap;                            // slotIndex -> destId

@@ -2,7 +2,9 @@ import { readBytes }               from "../../instructions/helpers";
 import { ExitReasonType }          from "../../types";
 import { OK, OOB, WHO }            from "../consts";
 import { finish }                  from "../helpers";
-import { HostCallHandler, InnerMachineState }         from "../types";
+import { ensureInnerMem, innerWrite } from "../innerMem/helpers";
+import { InnerMachineState } from "../innerMem/types";
+import { HostCallHandler }         from "../types";
 
 // PEEK (ΩK) — selector 10
 export const pokeHandler: HostCallHandler = (s, _id, env) => {
@@ -19,11 +21,10 @@ export const pokeHandler: HostCallHandler = (s, _id, env) => {
   if (!bytes) return { state:{ ...s, exit:{ type: ExitReasonType.Panic } }, ok:true };
 
   // grow inner memory if needed
-  const u: InnerMachineState = entry.u;
+  const u: InnerMachineState = ensureInnerMem(entry.u);
+  if (!innerWrite(u, dst, bytes)) return finish(s1, OOB);
 
-  // out of bounds on the inner side -> OOB
-  if (dst + z > u.v.length) return finish(s1, OOB);
-  u.v.set(bytes, dst);
+  env.machineTable.set(n, { ...entry, u });
 
   return finish(s1, OK);
 };

@@ -1,37 +1,6 @@
-import { WHO, HUH, OK } from "../consts";
+import { WHO, HUH, OK, MIN_PAGE, MAX_PAGES } from "../consts";
+import { ensureInnerMem, getAccess, setAccess, zeroPage } from "../innerMem/helpers";
 import { HostCallHandler } from "../types";
-
-type InnerMem = {
-  vPages: Map<number, Uint8Array>; // values...  pageNo -> 4096B
-  aPages: Map<number, number>;     // access... 0=empty, 1=R, 2=W
-};
-
-const PAGE_SIZE = 1 << 12;       // 4096 bytes
-const MIN_PAGE  = 16;            // p >= 16
-const MAX_PAGES = 1 << 20;       // 2^32 / 2^12 = 1,048,576
-
-function ensureInnerMem(mem: any): InnerMem {
-  if (mem && mem.vPages && mem.aPages) return mem as InnerMem;
-  else return { vPages: new Map(), aPages: new Map() };
-}
-
-function getAccess(mem: InnerMem, page: number): number {
-  return mem.aPages.get(page) ?? 0; // empty by default
-}
-
-function setAccess(mem: InnerMem, page: number, mode: number) {
-  if (mode === 0) mem.aPages.delete(page); 
-  else mem.aPages.set(page, mode); // mem is (u)
-}
-
-function zeroPage(mem: InnerMem, page: number) {
-  const buf = mem.vPages.get(page);
-  if (buf) {
-    buf.fill(0);
-  } else {
-    mem.vPages.set(page, new Uint8Array(PAGE_SIZE)); // implicitly zeroed
-  }
-}
 
 // ΩZ – pages (selector 11)
 // g = 10 (charged by our dispatcher globally)
@@ -61,7 +30,7 @@ export const pagesHandler: HostCallHandler = (s, _id, env) => {
   // if r>2 (3 or 4), forbid promoting empty pages (must already be allocated)
   if (mode > 2) {
     for (let page = startPage; page < startPage + count; page++) {
-      if (getAccess(memory, page) === 0) {
+      if (!memory.aPages.has(page) || getAccess(memory, page) === 0) {
         regs[7] = HUH;
         return { state: { ...s, registers: regs }, ok: true };
       }
@@ -79,8 +48,7 @@ export const pagesHandler: HostCallHandler = (s, _id, env) => {
   for (let page = startPage; page < startPage + count; page++) setAccess(memory, page, accessMode);
 
   // write back
-  entry.u = memory;
-  env.machineTable.set(machineIdx, entry);
+  env.machineTable.set(machineIdx, { ...entry, u: memory });
 
   regs[7] = OK;
   return { state: { ...s, registers: regs }, ok: true };

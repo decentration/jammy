@@ -1,4 +1,4 @@
-import { InnerMachineState } from "./host/types";
+import { InnerMachineState } from "./host/innerMem/types";
 import { InstructionAddressTypes } from "./instructions/opcodes";
 
 
