@@ -124,7 +124,7 @@ describe("ΩR read handler", () => {
     const env = makeHostEnv();  // empty storage
     const st = runBlob(blob, 100, { env, memInit: mem });
     console.log(st.registers);
-    expect(st.registers[7]).toBe(WHO);
+    expect(st.registers[7]).toBe(NONE);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
@@ -155,7 +155,7 @@ describe("ΩR read handler", () => {
   });
   
 
-  it("unknown service index -> r7 = WHO", () => {
+  it("unknown service index -> r7 = NONE", () => {
     // Patch program so r7 (srvIdx) = 123                  */
     const badCode = Uint8Array.from(makeCode());
     badCode[2] = 123;  // second byte after load_imm opcode (little‑endian)
@@ -165,7 +165,7 @@ describe("ΩR read handler", () => {
     const env = makeHostEnv();
     const st  = runBlob(badBlob, 100, { env, memInit: mem });
   
-    expect(st.registers[7]).toBe(WHO);
+    expect(st.registers[7]).toBe(NONE);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 

@@ -1,11 +1,11 @@
 import { GAS_HOST_CALL } from "../consts";
 import { InterpreterState, ExitReasonType } from "../types";
 import { OK, WHAT } from "./consts";
-import { fetchHandler } from "./handlers/fetchHandler";
-import { lookupHandler } from "./handlers/lookupHandler";
-import { readHandler } from "./handlers/readHandler";
-import { writeHandler } from "./handlers/writeHandler";
-import { infoHandler } from "./handlers/infoHandler";
+import { fetchHandler } from "./handlers/general/fetchHandler";
+import { lookupHandler } from "./handlers/general/lookupHandler";
+import { readHandler } from "./handlers/general/readHandler";
+import { writeHandler } from "./handlers/general/writeHandler";
+import { infoHandler } from "./handlers/general/infoHandler";
 import { HostEnvInterface } from "./hostEnvInterface";
 import { HostCallHandler } from "./types";
 import { historicalLookupHandler } from "./handlers/historicalLookupHandler";

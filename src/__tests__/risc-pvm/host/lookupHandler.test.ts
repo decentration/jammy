@@ -3,7 +3,7 @@ import { makeHostEnv }     from "../../../risc-pvm/interpreter/host/hostEnvInter
 import { Opcodes }         from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob }         from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType }  from "../../../risc-pvm/interpreter/types";
-import { NONE, WHO }       from "../../../risc-pvm/interpreter/host/consts";
+import { NONE }       from "../../../risc-pvm/interpreter/host/consts";
 import { makeAcc, makeOpcodeBitmask, mkService } from "./helpers";
 
 const HASH_ADDR = 0x18000; // 32‑byte hash
@@ -68,7 +68,7 @@ describe("ΩL lookup handler", () => {
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
-  it("unknown service index -> r7 = WHO", () => {
+  it("unknown service index -> r7 = NONE", () => {
     const bad = Uint8Array.from(makeCode());
     bad[2] = 42; // r7 low byte = 42
     const mem = new Uint8Array(1<<20);
@@ -76,7 +76,7 @@ describe("ΩL lookup handler", () => {
 
     const st = runBlob(blob(bad), 100, { env: makeHostEnv(), memInit: mem });
 
-    expect(st.registers[7]).toBe(WHO);
+    expect(st.registers[7]).toBe(NONE);
   });
 
   it("dest in R/O page -> Panic", () => {

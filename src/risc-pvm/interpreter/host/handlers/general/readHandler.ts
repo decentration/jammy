@@ -1,10 +1,10 @@
-import { hash } from "../../../../utils/crypto";
-import { readBytes, toLE, writeBytes } from "../../instructions/helpers";
-import { ExitReasonType } from "../../types";
-import { NONE, WHO } from "../consts";
-import { finish } from "../helpers";
-import { HostCallHandler, ServiceAccount } from "../types";
-import { getMergedXs, getStagedOnly } from "./accumulate/helpers";
+import { hash } from "../../../../../utils/crypto";
+import { readBytes, toLE, writeBytes } from "../../../instructions/helpers";
+import { ExitReasonType } from "../../../types";
+import { NONE, WHO } from "../../consts";
+import { finish } from "../../helpers";
+import { HostCallHandler, ServiceAccount } from "../../types";
+import { getMergedXs, getStagedOnly } from "../accumulate/helpers";
 
 const WILDCARD = (1n << 64n) - 1n;
 
@@ -16,36 +16,16 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
   const fOff = Number(s.registers[11]);  // value‑offset
   let   len  = Number(s.registers[12]);  // length‑requested
 
-
-  const setR7 = (state: typeof s, v: bigint) => ({
-      state: { ...state, registers: Object.assign([], state.registers, { 7: v }) },
-      ok   : true,
-    });
-
-  const sel = BigInt.asUintN(64, srvIdxRaw);
-
-  console.log("readHandler 1", {
-      sel, ko, kz, dest, fOff, len,
-      registers: s.registers.slice(),
-  });
-
-  //1. Service index check (WHO) !TODO, when support more than one service - change this. 
-  if (sel !== NONE) return setR7(s, WHO);     // multi‑service unsupported yet
-
-  console.log("readHandler 2", {
-      sel, ko, kz, dest, fOff, len,
-      registers: s.registers.slice(),
-  });
-
-  // 2. read key bytes from memory - panic if unmapped
+  // 1. read key bytes from memory - panic if unmapped
   const { bytes: key, state: s1 } = readBytes(s, ko, kz);
   
   if (!key) return { state: { ...s, exit: { type: ExitReasonType.Panic } }, ok: true };
 
-  
+  const reqId  = BigInt.asUintN(64, srvIdxRaw);
   const xsId = env.acc?.allocator?.env?.currentServiceId;
-  const targetId = (sel === WILDCARD ? xsId : sel);
+  const targetId = (reqId === WILDCARD ? xsId : reqId);
   
+  // 2. resove account
   let acct: ServiceAccount | undefined;
   if (targetId === undefined) {
     acct = undefined;
@@ -58,13 +38,6 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
   }
 
   if (!acct) return finish(s1, NONE);
-
-  console.log("readHandler 2 (acct resolved)", {
-    targetId,
-    xsId,
-    hasAcct: !!acct,
-  });
-
 
   const pref = toLE(BigInt.asUintN(32, targetId ?? 0n), 4);
   const prefixedKey = new Uint8Array(pref.length + key.length);

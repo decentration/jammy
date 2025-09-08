@@ -1,4 +1,4 @@
-import { ExitReasonType, InterpreterState } from "../types";
+import { InterpreterState } from "../types";
 import { HostEnvInterface } from "./hostEnvInterface";
 
 export type HostMode = "accumulate" | "refine" | "isAuth" | "general";

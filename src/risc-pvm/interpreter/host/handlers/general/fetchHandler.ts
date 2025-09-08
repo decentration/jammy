@@ -1,8 +1,8 @@
-import { writeBytes } from "../../instructions/helpers";
-import { ExitReasonType } from "../../types";
-import { WHAT, NONE } from "../consts";
-import { buildFetchConfigVector } from "../helpers";
-import { FetchSel, fetchVecSelectorMap, HostCallHandler } from "../types";
+import { writeBytes } from "../../../instructions/helpers";
+import { ExitReasonType } from "../../../types";
+import { WHAT, NONE } from "../../consts";
+import { buildFetchConfigVector } from "../../helpers";
+import { FetchSel, fetchVecSelectorMap, HostCallHandler } from "../../types";
 
 
 // ΩY  – selector 1  --
