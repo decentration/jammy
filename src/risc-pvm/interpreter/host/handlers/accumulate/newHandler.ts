@@ -1,7 +1,7 @@
 import { readBytes } from "../../../instructions/helpers";
 import { ExitReasonType } from "../../../types";
-import { ACTIVATION_FEE, CASH, CORES_SIZE, FULL, HASH_BYTES, HUH, MAX_LABEL, SVC_ID, WHO } from "../../consts";
-import { checkAlloc, finish, nextIdInRing, RING_START, zeroService } from "../../helpers";
+import { ACTIVATION_FEE, CASH, CORES_SIZE, FULL, HASH_BYTES, HUH, MAX_LABEL, RING_START, WHO } from "../../consts";
+import { checkAlloc, finish, nextIdInRing, zeroService } from "../../helpers";
 import { HostCallHandler, ServiceAccount } from "../../types";
 import { getMergedXs, stageAccount } from "./helpers";
 
@@ -21,17 +21,11 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
 
   // xs – current payer - allow either currentServiceId (xe.m) no need for SVC_ID fallback
   const xsId = env.acc!.allocator!.env!.currentServiceId; // xs
+  if (xsId === undefined) return finish(s1, WHO);
 
   // enforce: if f != 0 then payer must match currentServiceId
-  if (flags !== 0n && env.acc.allocator.env.currentServiceId !== undefined && xsId !== env.acc.allocator.env.currentServiceId)
-  return finish(s1, HUH);
-
-  // If flags != 0 then payer must be exactly (xe).m per spec (privileged path)
-  if (flags !== 0n &&
-    env.acc?.allocator?.env?.currentServiceId !== undefined &&
-    xsId !== env.acc.allocator.env.currentServiceId) {
-      return finish(s1, HUH);
-  }
+  if (flags !== 0n && env.acc.allocator.env.currentServiceId !== undefined && xsId !== env.acc.allocator.env.currentServiceId) 
+    return finish(s1, HUH);
 
   // otherwise if sb < (xs)t
   // payer xs from accumulate session
@@ -105,13 +99,13 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   // id allocator (ring)
   let cursor = env.acc.allocator.index;
   // pick candidate per ring, run check, persist cursor
-  let candidate = checkAlloc(env,nextIdInRing(cursor));
+  let candidate = checkAlloc(env, nextIdInRing(cursor));
   env.acc.allocator.index = candidate;
 
 
   // stage deltas
   stageAccount(env, candidate, newAccount);
-  if (xsId !== undefined) stageAccount(env, xsId, debitedXs);
+  stageAccount(env, xsId, debitedXs);
 
   return finish(s1, candidate);
 

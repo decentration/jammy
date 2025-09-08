@@ -10,7 +10,7 @@ function code(r7: number, r8 = 0) {
   return Uint8Array.of(
     Opcodes.load_imm, 7, r7&255, r7>>8&255, r7>>16&255, r7>>24&255,
     Opcodes.load_imm, 8, r8&255, r8>>8&255, r8>>16&255, r8>>24&255,
-    Opcodes.ecalli, 26,
+    Opcodes.ecalli, 13,
     Opcodes.trap
   );
 }

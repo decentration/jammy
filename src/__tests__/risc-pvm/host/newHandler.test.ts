@@ -1,6 +1,6 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
-import { ACTIVATION_FEE, CASH, FULL, HASH_BYTES } from "../../../risc-pvm/interpreter/host/consts";
-import { nextIdInRing, RING_START } from "../../../risc-pvm/interpreter/host/helpers";
+import { ACTIVATION_FEE, CASH, FULL, HASH_BYTES, RING_START } from "../../../risc-pvm/interpreter/host/consts";
+import { nextIdInRing } from "../../../risc-pvm/interpreter/host/helpers";
 import { HostEnvInterface, makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
 import { AccumulateContext } from "../../../risc-pvm/interpreter/host/types";
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";

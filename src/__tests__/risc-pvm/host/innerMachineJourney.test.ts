@@ -3,7 +3,7 @@ import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
-import { OK, OOB, HUH, ZP } from "../../../risc-pvm/interpreter/host/consts";
+import { OK, OOB, HUH, ZP, WHO } from "../../../risc-pvm/interpreter/host/consts";
 
 const GAS      = 200;
 const HEAP     = 0x18000;               // safe mapped area
@@ -157,20 +157,21 @@ function makeCodeLoad3(r7:number, r8:number, r9:number, sel:number) {
 describe("Inner-machine journey: ΩM machine -> ΩZ pages -> ΩO poke -> ΩP peek", () => {
   it("allocates a page, pokes 4 bytes, then peeks them back", () => {
       const env = makeHostEnv();
-
+      const mem = new Uint8Array(1<<20);
+  
       // --- Step 1: ΩM create a machine with a minimal program blob in outer RAM ---
       {
-      const mem = new Uint8Array(1<<20);
-      mem.set(innerBlob, HEAP);
+        const mem = new Uint8Array(1<<20);
+        mem.set(innerBlob, HEAP);
 
-      const mask3 = Uint8Array.of(0b0100_0001,0b0001_0000,0b0001_0100);
-      const code3 = makeCodeLoad3(HEAP, innerBlob.length, 0, 8); // r7=po, r8=pz, r9=i0; ΩM=8
-      const blob3 = makeBlob(code3, mask3);
-      const st   = runBlob(blob3, GAS, { env, memInit: mem });
+        const mask3 = Uint8Array.of(0b0100_0001,0b0001_0000,0b0001_0100);
+        const code3 = makeCodeLoad3(HEAP, innerBlob.length, 0, 8); // r7=po, r8=pz, r9=i0; ΩM=8
+        const blob3 = makeBlob(code3, mask3);
+        const st   = runBlob(blob3, GAS, { env, memInit: mem });
 
-      expect(st.exit?.type).toBe(ExitReasonType.Panic); // due to trap
-      // r7 now holds machine id "n"
-      expect(Number(st.registers[7])).toBe(0); // first ID will be 0
+        expect(st.exit?.type).toBe(ExitReasonType.Panic); // due to trap
+        // r7 now holds machine id "n"
+        expect(Number(st.registers[7])).toBe(0); // first ID will be 0
       }
 
       const n = 0;
@@ -179,50 +180,65 @@ describe("Inner-machine journey: ΩM machine -> ΩZ pages -> ΩO poke -> ΩP pee
 
       // --- Step 2: ΩZ allocate page 16 as writeable (mode=2; zeroed) ---
       {
-      const mem  = new Uint8Array(1<<20);
-      const code = withTrap(Uint8Array.of(...makeCode(n, page, 1, 2, 11))); // r7=n, r8=p, r9=c, r10=r=2 (W); ΩZ=11
+        const mem  = new Uint8Array(1<<20);
+        const code = withTrap(Uint8Array.of(...makeCode(n, page, 1, 2, 11))); // r7=n, r8=p, r9=c, r10=r=2 (W); ΩZ=11
 
-      const mask4 = Uint8Array.of( 0b0100_0001,0b0001_0000,0b0000_0100, 0b0000_0101);
+        const mask4 = Uint8Array.of( 0b0100_0001,0b0001_0000,0b0000_0100, 0b0000_0101);
 
 
 
-      const blob = makeBlob(code, mask4);
-      const st   = runBlob(blob, GAS, { env, memInit: mem });
+        const blob = makeBlob(code, mask4);
+        const st   = runBlob(blob, GAS, { env, memInit: mem });
 
-      expect(st.registers[7]).toBe(OK);
-      expect(st.exit?.type).toBe(ExitReasonType.Panic);
+        expect(st.registers[7]).toBe(OK);
+        expect(st.exit?.type).toBe(ExitReasonType.Panic);
       }
 
       // --- Step 3: ΩO poke 4 bytes from outer SRC -> inner offset page16*ZP ---
       {
-      const mem = new Uint8Array(1<<20);
-      mem.set([9,9,9,9], SRC);
-      const code = withTrap(Uint8Array.of(...makeCode(n, SRC, innerOff, 4, 10))); // ΩO=10
+        const mem = new Uint8Array(1<<20);
+        mem.set([9,9,9,9], SRC);
+        const code = withTrap(Uint8Array.of(...makeCode(n, SRC, innerOff, 4, 10))); // ΩO=10
 
-      const mask4 = Uint8Array.of( 0b0100_0001,0b0001_0000,0b0000_0100, 0b0000_0101);
+        const mask4 = Uint8Array.of( 0b0100_0001,0b0001_0000,0b0000_0100, 0b0000_0101);
 
 
-      const blob = makeBlob(code, mask4);
-      const st   = runBlob(blob, GAS, { env, memInit: mem });
+        const blob = makeBlob(code, mask4);
+        const st   = runBlob(blob, GAS, { env, memInit: mem });
 
-      expect(st.registers[7]).toBe(OK);
-      expect(st.exit?.type).toBe(ExitReasonType.Panic);
+        expect(st.registers[7]).toBe(OK);
+        expect(st.exit?.type).toBe(ExitReasonType.Panic);
       }
 
       // --- Step 4: ΩP peek 4 bytes from inner offset -> outer DST ---
       {
-      const mem  = new Uint8Array(1<<20);
-      const code = withTrap(Uint8Array.of(...makeCode(n, DST, innerOff, 4, 9))); // ΩP=9
+        const mem  = new Uint8Array(1<<20);
+        const code = withTrap(Uint8Array.of(...makeCode(n, DST, innerOff, 4, 9))); // ΩP=9
 
-      const mask4 = Uint8Array.of( 0b0100_0001,0b0001_0000,0b0000_0100, 0b0000_0101);
+        const mask4 = Uint8Array.of( 0b0100_0001,0b0001_0000,0b0000_0100, 0b0000_0101);
 
 
-      const blob = makeBlob(code, mask4);
-      const st   = runBlob(blob, GAS, { env, memInit: mem });
+        const blob = makeBlob(code, mask4);
+        const st   = runBlob(blob, GAS, { env, memInit: mem });
 
-      expect(st.registers[7]).toBe(OK);
-      expect(st.memory.slice(DST, DST+4)).toEqual(Uint8Array.of(9,9,9,9));
-      expect(st.exit?.type).toBe(ExitReasonType.Panic);
+        expect(st.registers[7]).toBe(OK);
+        expect(st.memory.slice(DST, DST+4)).toEqual(Uint8Array.of(9,9,9,9));
+        expect(st.exit?.type).toBe(ExitReasonType.Panic);
       }
-  });
+
+      // --- step 5: ΩX: expunge
+      {
+        const mask3 = Uint8Array.of(0b0100_0001,0b0001_0000,0b0001_0100); // 12 bytes
+        const st = runBlob(makeBlob(makeCodeLoad3(n, 0, 0, 13), mask3), GAS, { env, memInit: mem }); // ΩX=13
+        // r7 now holds the deleted machine's last i (implementation dependent), but just ensure no error:
+        expect(st.exit?.type).toBe(ExitReasonType.Panic);
+      }
+      // ---- step 6: ΩP after expunge must see unknown machine -> WHO
+      {
+        const mask4 = Uint8Array.of( 0b0100_0001,0b0001_0000,0b0000_0100, 0b0000_0101);
+        const code = withTrap(Uint8Array.of(...makeCode(n, DST, innerOff, 4, 9))); // ΩP=9
+        const stP2 = runBlob(makeBlob(code, mask4), GAS, { env, memInit: mem });
+        expect(stP2.registers[7]).toBe(WHO);
+      }
+      });
 });

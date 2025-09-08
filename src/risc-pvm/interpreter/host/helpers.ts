@@ -1,7 +1,7 @@
 import { u32, u64 } from "scale-ts";
 import { fromLE, toLE } from "../instructions/helpers";
 import { InterpreterState } from "../types";
-import { BI, BL, BS, BYTES_PER_SLOT, C, CORES_SIZE, D, E, GA, GI, GR, GT, H, HUH, I, INFO_BYTES, J, K, L, N, O, P, Q, R, S, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
+import { BI, BL, BS, BYTES_PER_SLOT, C, CORES_SIZE, D, E, GA, GI, GR, GT, H, HUH, I, INFO_BYTES, J, K, L, N, O, P, Q, R, RING_SPAN, RING_START, S, STEP, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
 import { AccumulateContext, DesignationEntry, DesignationMap, FetchVector, ServiceAccount, ServiceId } from "./types";
 import { HostEnvInterface } from "./hostEnvInterface";
 
@@ -83,9 +83,6 @@ export function checkpointAcc(env: { acc: AccumulateContext }) {
   env.acc.session.checkpoint = structuredClone(env.acc.allocator);
 }
 
-export const RING_START = 1n << 8n;
-export const STEP  = 1n << 9n;
-export const RING_SPAN = (1n << 32n) - RING_START;
 
 export function nextIdInRing(current: bigint): bigint {
   

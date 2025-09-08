@@ -89,3 +89,9 @@ export const BYTES_PER_BLESS_HASH = 12; // 12 bytes for each bless hash (bless h
 export const PAGE_SIZE = 1 << 12;       // 4096 bytes
 export const MIN_PAGE  = 16;            // p >= 16
 export const MAX_PAGES = 1 << 20;       // 2^32 / 2^12 = 1,048,576
+
+
+// -- New Handler for check allocation ring
+export const RING_START = 1n << 8n;
+export const STEP  = 1n << 9n;
+export const RING_SPAN = (1n << 32n) - RING_START;
