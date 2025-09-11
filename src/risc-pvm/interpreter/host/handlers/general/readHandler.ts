@@ -6,10 +6,9 @@ import { finish } from "../../helpers";
 import { HostCallHandler, ServiceAccount } from "../../types";
 import { getMergedXs, getStagedOnly } from "../accumulate/helpers";
 
-const WILDCARD = (1n << 64n) - 1n;
-
+// ΩR – read (selector 3)
 export const readHandler: HostCallHandler = (s, _id, env) => {
-  const srvIdxRaw = s.registers[7];         // service index
+  const selRaw = s.registers[7];         // service index
   const ko   = Number(s.registers[8]);   // key offset
   const kz   = Number(s.registers[9]);   // key length
   const dest = Number(s.registers[10]);  // μ destination
@@ -21,9 +20,9 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
   
   if (!key) return { state: { ...s, exit: { type: ExitReasonType.Panic } }, ok: true };
 
-  const reqId  = BigInt.asUintN(64, srvIdxRaw);
+  const req  = BigInt.asUintN(64, selRaw);
   const xsId = env.acc?.allocator?.env?.currentServiceId;
-  const targetId = (reqId === WILDCARD ? xsId : reqId);
+  const targetId = (req === NONE ? xsId : req);
   
   // 2. resove account
   let acct: ServiceAccount | undefined;
@@ -47,6 +46,8 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
   // 3. hash the key
   const hKey = hash(prefixedKey);
   const hKeyHex = Buffer.from(hKey).toString("hex");
+
+
   // 4. Lookup in external storage
   const value = acct.storage.get(hKeyHex);
   console.log("readHandler 3", { hKeyHex, hasValue: !!value });

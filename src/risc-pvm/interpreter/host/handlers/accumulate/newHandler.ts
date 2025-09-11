@@ -6,7 +6,7 @@ import { HostCallHandler, ServiceAccount } from "../../types";
 import { getMergedXs, stageAccount } from "./helpers";
 
 
-// ΩN – new (selector 9)
+// ΩN – new (selector 18)
 export const newHandler: HostCallHandler = (s, _id, env) => {
   const off =          Number(s.registers[7]);                // (o) – offset pointer to 32-byte code-hash
   const labelBE =      BigInt.asUintN(64, s.registers[8]);    // (l) – 2^32-bit label (taking low 64)
@@ -23,6 +23,9 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   const xsId = env.acc!.allocator!.env!.currentServiceId; // xs
   if (xsId === undefined) return finish(s1, WHO);
 
+  const xe = env.acc.allocator.env;
+  const isRoot = (xe.root !== undefined) && (xsId === xe.root);
+
   // enforce: if f != 0 then payer must match currentServiceId
   if (flags !== 0n && env.acc.allocator.env.currentServiceId !== undefined && xsId !== env.acc.allocator.env.currentServiceId) 
     return finish(s1, HUH);
@@ -37,14 +40,7 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   // Effective xs (merged staged-over-committed); if truly missing, treat as zero
   const xs0 = getMergedXs(env) ?? zeroService();
   
-
-  const postDebit = xs0.balance - ACTIVATION_FEE;
-
-  // (xs)t : use explicit field if you add one later; until then fall back to env.activationFee (≥ 0)
-  const threshold = xs0.threshold ?? (env as any).activationFee ?? 0n;
-
-  // otherwise if sb < (xs)t  -> CASH
-  if (postDebit < threshold) return finish(s1, CASH);
+  const at = env.activationFee ?? 0n;
 
   const newAccount: ServiceAccount = {
     storage:       new Map(),
@@ -73,13 +69,21 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
     newAccount.lookupStorage.set(clKey, new Uint8Array(0));
   }
 
+
+  const postDebit = xs0.balance - at;
+
+  // (xs)t : use explicit field if you add one later; until then fall back to env.activationFee (≥ 0)
+  const threshold = xs0.threshold ?? at;
+
+  // otherwise if sb < (xs)t  -> CASH
+  if (postDebit < threshold) return finish(s1, CASH);
+  
   const debitedXs: ServiceAccount = { ...xs0, balance: postDebit };
-  const xe = env.acc.allocator.env;
+
 
   // branch: explicit candidate allowed only if xs == (xe)r and explicitIdx < S
-  const isRoot = (xe.root !== undefined) && (xsId === xe.root);
   if (isRoot && explicitIdx < RING_START) {
-    const xe = env.acc.allocator.env;
+
     const taken =
       xe.deltas.has(explicitIdx) ||
       (env.hasService?.(explicitIdx) ?? false) ||

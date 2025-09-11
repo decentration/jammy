@@ -10,10 +10,10 @@ import { Instruction, InstructionAddressTypes, OpcodeTable, Opcodes } from "./op
   * @returns An Instruction object containing the type, opcode, and operands.
   */
 export function decodeInstruction(memory: Uint8Array, pc: number, opcodeBits: boolean[]): Instruction {
-  console.log("Decoding instruction at pc:", {memory, pc});
+  // console.log("Decoding instruction at pc:", {memory, pc});
     const opcode = memory[pc];
     const type = OpcodeTable[opcode as Opcodes];
-    console.log("Decoded opcode:", {opcode, type, pc});
+    // console.log("Decoded opcode:", {opcode, type, pc});
 
     const length = skip(pc, opcodeBits); // length of the instruction in bytes
     // length field is always an unsigned nibble (0‥15) but spec clamps to <= 4.

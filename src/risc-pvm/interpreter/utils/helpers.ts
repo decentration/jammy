@@ -39,7 +39,7 @@ export function decodeImmediate64(bytes: Uint8Array): bigint {
 
 // Decode a signed LE integer of 1…8 octets.
 export function decodeSignedIntLE(bytes: Uint8Array): bigint {
-  console.log("decodeSignedIntLE", bytes);
+  // console.log("decodeSignedIntLE", bytes);
   if (bytes.length === 0 || bytes.length > 8)
     throw new Error("decodeSignedIntLE: length must be 1-8");
 

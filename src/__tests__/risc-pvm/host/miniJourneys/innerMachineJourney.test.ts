@@ -1,9 +1,9 @@
-import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
-import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
-import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
-import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
-import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
-import { OK, OOB, HUH, ZP, WHO } from "../../../risc-pvm/interpreter/host/consts";
+import { buildBlob } from "../../../../risc-pvm/interpreter/deblob";
+import { makeHostEnv } from "../../../../risc-pvm/interpreter/host/hostEnvInterface";
+import { Opcodes } from "../../../../risc-pvm/interpreter/instructions/opcodes";
+import { runBlob } from "../../../../risc-pvm/interpreter/runBlob";
+import { ExitReasonType } from "../../../../risc-pvm/interpreter/types";
+import { OK, OOB, HUH, ZP, WHO } from "../../../../risc-pvm/interpreter/host/consts";
 
 const GAS      = 200;
 const HEAP     = 0x18000;               // safe mapped area

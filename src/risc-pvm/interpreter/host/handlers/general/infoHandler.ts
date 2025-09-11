@@ -5,7 +5,6 @@ import { encodeInfoHelper } from "../../helpers";
 import { HostCallHandler, ServiceAccount } from "../../types";
 import { getMergedXs, getStagedOnly } from "../accumulate/helpers";
 
-const WILDCARD = (1n << 64n) - 1n;
 
 export const infoHandler: HostCallHandler = (s, _id, env) => {
   const rawId = BigInt.asUintN(64, s.registers[7]);
@@ -15,7 +14,7 @@ export const infoHandler: HostCallHandler = (s, _id, env) => {
 
   // branching for (a)
   const xsId = env.acc?.allocator?.env?.currentServiceId;
-  const targetId = (rawId === WILDCARD ? xsId : rawId);
+  const targetId = (rawId === NONE ? xsId : rawId);
 
   let acct: ServiceAccount | undefined;
   if (targetId === undefined) {

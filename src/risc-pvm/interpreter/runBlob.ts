@@ -19,9 +19,9 @@ export interface RunBlobOpts {
 }
 
 export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts = {}) {
-  console.log("runBlob", { blob, initialGas, opts });
+  // console.log("runBlob", { blob, initialGas, opts });
   const { jumpTable, jumpEntryLength, jumpEntries, instructionData, opcodeBitmask } = deblob(blob);
-  console.log("runBlob bitmask bits, bitmask" ,{ opcodeBitmask});
+  // console.log("runBlob bitmask bits, bitmask" ,{ opcodeBitmask});
 
   const env  = opts.env ?? makeHostEnv();
   const host: HostDispatcher = opts.overrideHost ?? dispatchHostCall;

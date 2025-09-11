@@ -49,7 +49,9 @@ const mkService = (
 
 // helper to seed a payer (“xs”) and the accumulate context
 function mkEnvWithPayer(payerId: bigint, payerBalance: bigint, opts: any = {}) {
+  // add activation fee as 10n in makeHostEnv...
   const env = makeHostEnv();
+  env.activationFee = 10n;
   env.acc = {
     allocator: {
       index: 0n,
@@ -57,6 +59,7 @@ function mkEnvWithPayer(payerId: bigint, payerBalance: bigint, opts: any = {}) {
         currentServiceId: payerId, // xs
         root: opts.root ?? undefined,
         deltas: new Map<bigint, any>(),
+
       }
     },
     session: {}, 
@@ -99,8 +102,10 @@ describe("ΩN newHandler (0.7.1) of gp", () => {
     const payer = env.acc.allocator.env.deltas.get(xs)!;
     const acct  = env.acc.allocator.env.deltas.get(newId)!;
 
+    const ACTIVATION_FEE = env.activationFee ?? 0n
     expect(payer.balance).toBe(100n - ACTIVATION_FEE);
-    expect(acct.balance).toBe(ACTIVATION_FEE);
+    console.log("activation fee", env.activationFee)
+    expect(acct.balance).toBe(env.activationFee);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
 });
 
@@ -135,7 +140,7 @@ it("explicit id by root (i < S) -> returns i and uses it", () => {
 
   expect(st.registers[7]).toBe(BigInt(explicit));
   expect(env.acc.allocator.env.deltas.has(BigInt(explicit))).toBe(true);
-  expect(env.acc.allocator.env.deltas.get(xs)!.balance).toBe(50n - ACTIVATION_FEE);
+  expect(env.acc.allocator.env.deltas.get(xs)!.balance).toBe(50n - ACTIVATION_FEE)
 });
 
 it("explicit id already staged -> FULL", () => {

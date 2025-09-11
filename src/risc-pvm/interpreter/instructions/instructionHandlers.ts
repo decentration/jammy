@@ -10,11 +10,11 @@ import { toBytes } from "../../../codecs";
 export function nextPc(state: InterpreterState): number {
 
   const opBytes = skip(state.pc, state.opcodeMaskBits);
-  console.log("Next PC calculation:", {
-    pc: state.pc,
-    opBytes,
-    nextPc: state.pc + 1 + opBytes,
-  });
+  // console.log("Next PC calculation:", {
+  //   pc: state.pc,
+  //   opBytes,
+  //   nextPc: state.pc + 1 + opBytes,
+  // });
 
   return state.pc + 1 + opBytes;
 }
@@ -25,7 +25,7 @@ const branchHandler = (
   gasCost: number = GAS_COST_JUMP
 ): ExecutionHandler => {
   return (state, [rA, imm, offset]) => {
-    console.log("Branch Handler called with operands:", { rA, imm, offset });
+    // console.log("Branch Handler called with operands:", { rA, imm, offset });
     const basicBlockStarts = state.context?.basicBlockStarts;
     if (!basicBlockStarts) return panic(state);
 
@@ -396,9 +396,9 @@ const storeInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
     // Attempt write – may return a PageFault state
     const stateAfter = writeBytes(state, addr, data);
 
-    console.log("storeInd after writeBytes:", {
-      rA, rB, imm, addr, data, stateAfter
-    });
+    // console.log("storeInd after writeBytes:", {
+    //   rA, rB, imm, addr, data, stateAfter
+    // });
     
 
     // If writeBytes set PageFault, just propagate that state

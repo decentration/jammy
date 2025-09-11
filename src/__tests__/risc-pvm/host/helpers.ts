@@ -1,6 +1,7 @@
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
 import { AccumulateContext, ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
 import { toLE } from "../../../risc-pvm/interpreter/instructions/helpers";
+import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 
 export function makeOpcodeBitmask(code: Uint8Array, opcodeOffsets: number[]): Uint8Array {
   const bits = new Uint8Array(Math.ceil(code.length / 8));
@@ -95,3 +96,6 @@ export const tuple = (...vals: bigint[]) => {
   vals.forEach((v, i) => out.set(toLE(v, 8), i * 8));
   return out;
 };
+
+export const loadImm = (reg:number, x:number) =>
+  Uint8Array.of(Opcodes.load_imm, reg, x & 255, x>>>8 & 255, x>>>16 & 255, x>>>24 & 255);

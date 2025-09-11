@@ -6,8 +6,9 @@ import { finish }                  from "../../helpers";
 import { HostCallHandler, ServiceAccount }         from "../../types";
 import { getMergedXs, stageAccount } from "../accumulate/helpers";
 
-// ΩW – selector 3
+// ΩW – selector 4
 export const writeHandler: HostCallHandler = (s, _id, env) => {
+  
     const kOff = Number(s.registers[7]);      // (kO) key offset
     const kLen = Number(s.registers[8]);      // (kZ) key length
     const vOff = Number(s.registers[9]);   // (vO) value offset
@@ -64,8 +65,7 @@ export const writeHandler: HostCallHandler = (s, _id, env) => {
       const r = readBytes(s1, vOff, vLen);
       if (!r.bytes) {
         // value bytes OOB => Panic (A.8–A.9; ΩW)
-        return { state: { ...r.state, exit: { type: ExitReasonType.Panic } }, ok: true };
-      }
+        return { state: { ...r.state, exit: { type: ExitReasonType.Panic } }, ok: true }}
         s2 = r.state;
         newStorage.set(kHashHex, r.bytes); //stage put
   }
