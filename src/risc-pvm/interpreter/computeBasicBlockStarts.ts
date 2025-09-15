@@ -24,7 +24,7 @@ import { skip } from "./utils/skip";
  * @returns A Set containing the starting indices of basic blocks.
  */
 export function computeBasicBlockStarts(instructionData: Uint8Array, opcodeBits: boolean[]): Set<number> {
-  console.log("Computing basic block starts...", { instructionData, opcodeBits });
+  // console.log("Computing basic block starts...", { instructionData, opcodeBits });
     const basicBlockStarts = new Set<number>([0]); 
   
     let pc = 0;

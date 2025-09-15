@@ -102,7 +102,7 @@ export function deblobMetadata ( blob: Uint8Array ): {
   metadata: Uint8Array;
   blob: Uint8Array;
 } {
-  console.log("deblobMetadata: blob", blob);
+  // console.log("deblobMetadata: blob", blob);
   if (blob.length < 1) throw new Error("Blob is too short");
   
   const metadataLength = blob[0]; // first byte is the metadata length

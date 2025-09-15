@@ -5,7 +5,6 @@ import { encodeInfoHelper } from "../../helpers";
 import { HostCallHandler, ServiceAccount } from "../../types";
 import { getMergedXs, getStagedOnly } from "../accumulate/helpers";
 
-
 export const infoHandler: HostCallHandler = (s, _id, env) => {
   const rawId = BigInt.asUintN(64, s.registers[7]);
   const dest  = Number(s.registers[8]); // destination offset (o)
@@ -19,12 +18,9 @@ export const infoHandler: HostCallHandler = (s, _id, env) => {
   let acct: ServiceAccount | undefined;
   if (targetId === undefined) {
     acct = undefined;
-  } else if (xsId !== undefined && targetId === xsId) {
-    acct = getMergedXs(env);
-  } else {
-    // look only in (xe).d for non-xs
-    acct = getStagedOnly(env, targetId);
-  }
+  } else if (targetId !== undefined) {
+  acct = getStagedOnly(env, targetId);
+}
 
   if (!acct) {
     // wehn v is empty, write nothing to memory

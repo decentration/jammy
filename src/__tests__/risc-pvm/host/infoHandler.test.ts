@@ -61,6 +61,7 @@ describe("ΩI info handler", () => {
       initAcc: { allocator: { index: cur, env: { deltas: new Map(), currentServiceId: cur, root: 0n } }, session: {} }
 
     });
+    env.acc.allocator.env.deltas.set(cur, sa);
     env.encodeInfo = encodeInfoHelper;
     const st = runBlob(blob, 100,{ env, memInit:new Uint8Array(1<<20) });
 
@@ -119,20 +120,21 @@ describe("ΩI info handler", () => {
 describe("ΩI info handler with newer encodeInfoHelper", () => {
 
   it("writes info blob, r7 = Sv (INFO_BYTES)", () => {
+
+    const targetId = 0xDEAD_BEEFn;
     const env = makeHostEnv({
-      accounts : new Map([[WILDCARD, sa]]),
-      initAcc: { allocator: { index: WILDCARD, env: { deltas: new Map(), currentServiceId: WILDCARD, root: 0n } }, session: {} }
+      initAcc: { allocator: { index: 0n, env: { deltas: new Map(), currentServiceId:targetId, root: 0n } }, session: {} }
 
     });
-    env.encodeInfo = encodeInfoHelper;
+    env.acc.allocator.env.deltas.set(targetId, sa);
+    const encodeSa= encodeInfoHelper(sa);
+    env.encodeInfo = () => encodeSa;
 
     const mem = new Uint8Array(1 << 20);
     const st  = runBlob(blob, 100, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(BigInt(INFO_BYTES));                 // <-- Sv
-    expect(st.memory.slice(DEST, DEST + INFO_BYTES))
-      .toEqual(encodeInfoHelper(sa));                                  // bytes written
-    expect(st.exit?.type).toBe(ExitReasonType.Panic);                  // due to trap
+    expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
 }); 

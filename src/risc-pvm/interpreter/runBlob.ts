@@ -71,14 +71,14 @@ export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts 
   while (state.exit?.type === ExitReasonType.Continue && state.gas > 0) {
     state = executeSingleStep(state);
 
-    console.log("here is state after step");
+    // console.log("here is state after step");
 
     if (state.exit?.type === ExitReasonType.HostCall) 
-      console.log("[run] Host call detected, dispatching...", String(state.exit.id)); 
+      // console.log("[run] Host call detected, dispatching...", String(state.exit.id)); 
    
    
       state = host(state, env);
-      console.log("[run] after dispatch: exit=", ExitReasonType[state.exit?.type ?? 0], "pc=", state.pc);
+      // console.log("[run] after dispatch: exit=", ExitReasonType[state.exit?.type ?? 0], "pc=", state.pc);
     continue;
   }
   
