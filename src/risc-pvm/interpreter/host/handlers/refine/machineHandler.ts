@@ -1,11 +1,11 @@
-import { readBytes }  from "../../instructions/helpers";
-import { ExitReasonType } from "../../types";
-import { HUH } from "../consts";
-import { HostCallHandler } from "../types";
-import { deblob } from "../../deblob";
-import { finish } from "../helpers";
-import { MachineEntry } from "../innerMem/types";
-import { ensureInnerMem } from "../innerMem/helpers";
+import { readBytes }  from "../../../instructions/helpers";
+import { ExitReasonType } from "../../../types";
+import { HUH } from "../../consts";
+import { HostCallHandler } from "../../types";
+import { deblob } from "../../../deblob";
+import { finish } from "../../helpers";
+import { MachineEntry } from "../../innerMem/types";
+import { ensureInnerMem } from "../../innerMem/helpers";
 
 
 

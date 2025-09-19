@@ -1,6 +1,6 @@
-import { WHO } from "../consts";
-import { finish } from "../helpers";
-import { HostCallHandler } from "../types";
+import { WHO } from "../../consts";
+import { finish } from "../../helpers";
+import { HostCallHandler } from "../../types";
 
 // ΩX  – expunge (selector 13)
 export const expungeHandler: HostCallHandler = (state, _id, env) => {

@@ -1,8 +1,8 @@
-import { fromLE, panic, readBytes, toLE, writeBytes } from "../../instructions/helpers";
-import { ExitReasonType, InterpreterState } from "../../types";
-import { WHO, OK, E, FAULT, HALT, HOST, OOG, PANIC } from "../consts";
-import { finish } from "../helpers";
-import { HostCallHandler } from "../types";
+import { fromLE, panic, readBytes, toLE, writeBytes } from "../../../instructions/helpers";
+import { ExitReasonType, InterpreterState } from "../../../types";
+import { WHO, OK, E, FAULT, HALT, HOST, OOG, PANIC } from "../../consts";
+import { finish } from "../../helpers";
+import { HostCallHandler } from "../../types";
 
 // ΩK  – invoke  (selector 25)
 export const invokeHandler: HostCallHandler = (state, _id, env) => {

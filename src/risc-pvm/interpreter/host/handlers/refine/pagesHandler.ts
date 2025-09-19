@@ -1,6 +1,6 @@
-import { WHO, HUH, OK, MIN_PAGE, MAX_PAGES } from "../consts";
-import { ensureInnerMem, getAccess, setAccess, zeroPage } from "../innerMem/helpers";
-import { HostCallHandler } from "../types";
+import { WHO, HUH, OK, MIN_PAGE, MAX_PAGES } from "../../consts";
+import { ensureInnerMem, getAccess, setAccess, zeroPage } from "../../innerMem/helpers";
+import { HostCallHandler } from "../../types";
 
 // ΩZ – pages (selector 11)
 // g = 10 (charged by our dispatcher globally)

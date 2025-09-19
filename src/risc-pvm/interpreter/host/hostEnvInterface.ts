@@ -1,4 +1,4 @@
-import { AccEnv, AccumulateContext, DesignationEntry, FetchVector, ServiceAccount, ServiceId } from "./types";
+import { AccEnv, AccumulateContext, FetchVector, ServiceAccount } from "./types";
 import { cloneEntry, cloneMap, cloneSet, cloneU8, encodeInfoHelper } from "./helpers"
 import { ExitReasonType, RunInnerMachineFn } from "../types";
 import { MachineEntry } from "./innerMem/types";

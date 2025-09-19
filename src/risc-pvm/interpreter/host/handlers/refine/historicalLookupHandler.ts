@@ -1,8 +1,8 @@
-import { readBytes, writeBytes }      from "../../instructions/helpers";
-import { ExitReasonType }             from "../../types";
-import { NONE, WHO }                  from "../consts";
-import { finish }                     from "../helpers";
-import { HostCallHandler }            from "../types";
+import { readBytes, writeBytes }      from "../../../instructions/helpers";
+import { ExitReasonType }             from "../../../types";
+import { NONE, WHO }                  from "../../consts";
+import { finish }                     from "../../helpers";
+import { HostCallHandler }            from "../../types";
 
 export const historicalLookupHandler: HostCallHandler = (s, _id, env) => {
   const srvIdx = BigInt.asUintN(64, s.registers[7]);

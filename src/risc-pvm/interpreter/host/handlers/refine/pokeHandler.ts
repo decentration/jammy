@@ -1,10 +1,10 @@
-import { readBytes }               from "../../instructions/helpers";
-import { ExitReasonType }          from "../../types";
-import { OK, OOB, WHO }            from "../consts";
-import { finish }                  from "../helpers";
-import { ensureInnerMem, innerWrite } from "../innerMem/helpers";
-import { InnerMachineState } from "../innerMem/types";
-import { HostCallHandler }         from "../types";
+import { readBytes }               from "../../../instructions/helpers";
+import { ExitReasonType }          from "../../../types";
+import { OK, OOB, WHO }            from "../../consts";
+import { finish }                  from "../../helpers";
+import { ensureInnerMem, innerWrite } from "../../innerMem/helpers";
+import { InnerMachineState } from "../../innerMem/types";
+import { HostCallHandler }         from "../../types";
 
 // PEEK (ΩK) — selector 10
 export const pokeHandler: HostCallHandler = (s, _id, env) => {

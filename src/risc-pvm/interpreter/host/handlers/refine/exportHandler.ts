@@ -1,7 +1,7 @@
-import { readBytes }                 from "../../instructions/helpers";
-import { ExitReasonType }            from "../../types";
-import { FULL, OK, WG, WX }                  from "../consts";
-import { HostCallHandler }           from "../types";
+import { readBytes }                 from "../../../instructions/helpers";
+import { ExitReasonType }            from "../../../types";
+import { FULL, OK, WG, WX }                  from "../../consts";
+import { HostCallHandler }           from "../../types";
 
 
 export const exportHandler: HostCallHandler = (s, _id, env) => {
