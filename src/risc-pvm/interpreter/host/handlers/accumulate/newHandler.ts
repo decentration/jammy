@@ -20,10 +20,12 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   if (!hash || labelBE > MAX_LABEL) return { state:{ ...s, exit:{ type: ExitReasonType.Panic } }, ok:true };
 
   // xs – current payer - allow either currentServiceId (xe.m) no need for SVC_ID fallback
-  const xsId = env.acc!.allocator!.env!.currentServiceId; // xs
-  if (xsId === undefined) return finish(s1, WHO);
+  const xsId = env.acc?.allocator?.env?.currentServiceId; // xs
+  // if (xsId === undefined) return finish(s1, WHO);
 
   const xe = env.acc.allocator.env;
+  if (!(xe.deltas instanceof Map))  xe.deltas  = new Map<bigint, ServiceAccount>();
+  if (!(xe.deleted instanceof Set)) xe.deleted = new Set<bigint>();
   const isRoot = (xe.root !== undefined) && (xsId === xe.root);
 
   // enforce: if f != 0 then payer must match currentServiceId
@@ -76,9 +78,11 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
   const threshold = xs0.threshold ?? at;
 
   // otherwise if sb < (xs)t  -> CASH
-  if (postDebit < threshold) return finish(s1, CASH);
+  if (xsId !== undefined && postDebit < threshold) return finish(s1, CASH);
   
-  const debitedXs: ServiceAccount = { ...xs0, balance: postDebit };
+  const debitedXs: ServiceAccount = (xsId !== undefined)
+    ? { ...xs0, balance: postDebit }
+    : xs0; // if no xsId, no debit
 
 
   // branch: explicit candidate allowed only if xs == (xe)r and explicitIdx < S
@@ -109,8 +113,9 @@ export const newHandler: HostCallHandler = (s, _id, env) => {
 
   // stage deltas
   stageAccount(env, candidate, newAccount);
-  stageAccount(env, xsId, debitedXs);
-
+  if (xsId !== undefined) {
+    stageAccount(env, xsId, debitedXs);
+  }
   return finish(s1, candidate);
 
 };

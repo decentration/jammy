@@ -2,7 +2,7 @@ import { u32, u64 } from "scale-ts";
 import { fromLE, toLE } from "../instructions/helpers";
 import { InterpreterState } from "../types";
 import { BI, BL, BS, BYTES_PER_SLOT, C, CORES_SIZE, D, E, GA, GI, GR, GT, H, HUH, I, INFO_BYTES, J, K, L, N, O, P, Q, R, RING_SPAN, RING_START, S, STEP, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y } from "./consts";
-import { AccumulateContext, DesignationEntry, DesignationMap, FetchVector, ServiceAccount, ServiceId } from "./types";
+import { AccEnv, AccumulateContext, DesignationEntry, DesignationMap, FetchVector, ServiceAccount, ServiceId } from "./types";
 import { HostEnvInterface } from "./hostEnvInterface";
 
 
@@ -90,16 +90,28 @@ export function nextIdInRing(current: bigint): bigint {
   return RING_START + ((off + STEP) % RING_SPAN);
 }
 
+// export function checkAlloc(env: HostEnvInterface, i: bigint): bigint {
+//   let candidate = i;
+//   while (
+//     env.acc.allocator.env.deltas.has(candidate) ||
+//     (env.hasService?.(candidate) ?? false) ||
+//     env.acc.allocator.env.deleted?.has(candidate)
+//   ) {
+//     candidate = nextIdInRing(candidate);
+//   }
+//   return candidate;
+// }
+
 export function checkAlloc(env: HostEnvInterface, i: bigint): bigint {
-  let candidate = i;
-  while (
-    env.acc.allocator.env.deltas.has(candidate) ||
-    (env.hasService?.(candidate) ?? false) ||
-    env.acc.allocator.env.deleted?.has(candidate)
-  ) {
+    let candidate = i;
+    const xe = env.acc?.allocator?.env as any;
+    for (;;) { // loop until we find a free candidate
+    const staged  = xe?.deltas?.has?.(candidate) ?? false;
+    const live    = env.hasService?.(candidate) ?? false;
+    const deleted = xe?.deleted?.has?.(candidate) ?? false;
+    if (!staged && !live && !deleted) return candidate;
     candidate = nextIdInRing(candidate);
   }
-  return candidate;
 }
 
 
@@ -171,3 +183,33 @@ export const cloneEntry = (e: DesignationEntry) => ({
     ? new Map([...e.witnessIndex].map(([k,v]) => [k, { x: v.x, y: v.y }]))
     : undefined,
 });
+
+
+export function hydrateAccEnv(xeLike: Partial<AccEnv> | undefined): AccEnv {
+  const deltas =
+    xeLike?.deltas instanceof Map
+      ? xeLike!.deltas as Map<bigint, ServiceAccount>
+      : new Map<bigint, ServiceAccount>();
+
+  const deleted =
+    xeLike?.deleted instanceof Set
+      ? xeLike!.deleted as Set<bigint>
+      : new Set<bigint>();
+
+  return {
+    deltas,
+    deleted,
+    currentServiceId: xeLike?.currentServiceId,
+    root: xeLike?.root,
+    designations:
+      xeLike?.designations instanceof Map ? xeLike.designations : new Map(),
+    designationsRaw:
+      xeLike?.designationsRaw ? xeLike.designationsRaw.slice() : undefined,
+    assignServiceAccount:
+      xeLike?.assignServiceAccount instanceof Map ? xeLike.assignServiceAccount : new Map(),
+    assignCore:
+      xeLike?.assignCore instanceof Map ? xeLike.assignCore : new Map(),
+    designationEntries:
+      xeLike?.designationEntries instanceof Map ? xeLike.designationEntries : new Map(),
+  };
+}

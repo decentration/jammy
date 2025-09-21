@@ -94,4 +94,4 @@ export const MAX_PAGES = 1 << 20;       // 2^32 / 2^12 = 1,048,576
 // -- New Handler for check allocation ring
 export const RING_START = 1n << 8n;
 export const STEP  = 1n << 9n;
-export const RING_SPAN = (1n << 32n) - RING_START;
+export const RING_SPAN = (1n << 32n) - STEP;

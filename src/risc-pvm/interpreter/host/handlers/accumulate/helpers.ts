@@ -25,6 +25,8 @@ export function getStagedOnly(env: HostEnvInterface, id: ServiceId): ServiceAcco
 // stage a mutated account into (xe).d
 export function stageAccount(env: HostEnvInterface, id: bigint, acct: ServiceAccount): void {
   const xe = env.acc.allocator.env;
+  if (!(xe.deltas instanceof Map))  xe.deltas  = new Map<bigint, ServiceAccount>();
+  if (!(xe.deleted instanceof Set)) xe.deleted = new Set<bigint>();
   xe.deleted?.delete(id);
   env.acc.allocator.env.deltas.set(id, acct);
 }

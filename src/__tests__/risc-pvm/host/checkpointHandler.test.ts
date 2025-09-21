@@ -8,7 +8,7 @@ const GAS_START = 100;
 const GAS_COST  = 10;  // ecalli base cost
 
 // tiny program: ecalli 8 ; trap
-const code = Uint8Array.of(Opcodes.ecalli, 8, Opcodes.trap);
+const code = Uint8Array.of(Opcodes.ecalli, 17, Opcodes.trap);
 const mask = Uint8Array.of(0b0000_0101);        // ecalli + trap
 const blob = buildBlob({ meta:Uint8Array.of(0), jumpTbl:Uint8Array.of(0), z:1,
                          instr:code, jumpEntries:[Uint8Array.of(0)], bitmaskBits:mask });

@@ -1,7 +1,7 @@
 import { checkpointAcc } from "../../helpers";
 import { HostCallHandler } from "../../types";
 
-// ΩC – checkpoint (selector 8)
+// ΩC – checkpoint (selector 17)
 export const checkpointHandler: HostCallHandler = (s, _id, env) => {
   checkpointAcc(env);
   const regs = s.registers.slice();

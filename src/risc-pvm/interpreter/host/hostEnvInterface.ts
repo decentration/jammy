@@ -1,5 +1,5 @@
 import { AccEnv, AccumulateContext, FetchVector, ServiceAccount } from "./types";
-import { cloneEntry, cloneMap, cloneSet, cloneU8, encodeInfoHelper } from "./helpers"
+import { cloneEntry, cloneMap, cloneSet, cloneU8, encodeInfoHelper, hydrateAccEnv } from "./helpers"
 import { ExitReasonType, RunInnerMachineFn } from "../types";
 import { MachineEntry } from "./innerMem/types";
 
@@ -80,7 +80,7 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const infos   = infoMap  ?? new Map<string, Uint8Array>();
   const mTable = machines ?? new Map<number, { p: Uint8Array; u: any; i: number }>();
   const svcTab  = accounts ?? new Map<bigint, ServiceAccount>();
-  const initEnv = initAcc?.allocator?.env;
+  const initEnv = hydrateAccEnv(initAcc?.allocator?.env);
 
   let used = 0;
   store.forEach(v => { used += v.length; });

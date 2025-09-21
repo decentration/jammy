@@ -5,6 +5,7 @@ import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
 import { ACTIVATION_FEE, HASH_BYTES } from "../../../risc-pvm/interpreter/host/consts";
 import { nextIdInRing } from "../../../risc-pvm/interpreter/host/helpers";
+import { AccEnv } from "../../../risc-pvm/interpreter/host/types";
 
 const HEAP = 0x18000;
 const GAS  = 100;
@@ -16,7 +17,7 @@ function mkCode(off=HEAP, label=1, g=1000, m=2000): Uint8Array {
     Opcodes.load_imm, 8,  label&255, label>>8&255, label>>16&255, label>>24&255,
     Opcodes.load_imm, 9,  g&255, g>>8&255, g>>16&255, g>>24&255,
     Opcodes.load_imm, 10, m&255, m>>8&255, m>>16&255, m>>24&255,
-    Opcodes.ecalli, 9,
+    Opcodes.ecalli, 18,
     Opcodes.trap
   );
 }
@@ -77,8 +78,11 @@ describe("ΩN new handler – uses ring allocator and skips taken ids", () => {
     env.putService(senderId, senderAcct as any);
 
     env.acc = {
-      allocator: { index: 1n << 8n, updates: {} },
-      session: { scratch: {} }
+      allocator: {
+        index: 1n << 8n,
+        env: { deltas: new Map(), deleted: new Set() } as AccEnv
+      },
+      session: {}
     };
 
     const candidate1 = nextIdInRing(BigInt(env.acc.allocator.index));
@@ -89,7 +93,7 @@ describe("ΩN new handler – uses ring allocator and skips taken ids", () => {
     const candidate2 = nextIdInRing(BigInt(candidate1));
 
     expect(st.registers[7]).toBe(candidate2);
-    expect(env.getService(BigInt(candidate2))).toBeTruthy();
+    expect(env.acc.allocator.env.deltas.has(candidate2)).toBe(true);
     expect(env.acc.allocator.index).toBe(candidate2);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
@@ -123,8 +127,9 @@ describe("ΩN new handler – uses ring allocator and skips taken ids", () => {
     env.putService(senderId, senderAcct as any);
 
     env.acc = {
-      allocator: { index: 1n << 8n, updates: {} },
-      session: { scratch: {} }
+      allocator: { index: 1n << 8n,  env: { deltas: new Map(), deleted: new Set() } as AccEnv
+       },
+      session: {}
     };
 
     const candidate1 = nextIdInRing(BigInt(env.acc.allocator.index));
@@ -132,7 +137,8 @@ describe("ΩN new handler – uses ring allocator and skips taken ids", () => {
     const st = runBlob(blob, GAS, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(candidate1);
-    expect(env.getService(BigInt(candidate1))).toBeTruthy();
+    
+    expect(env.acc.allocator.env.deltas.has(candidate1)).toBe(true);
     expect(env.acc.allocator.index).toBe(candidate1);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });

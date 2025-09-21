@@ -3,19 +3,17 @@ import { makeHostEnv }           from "../../../risc-pvm/interpreter/host/hostEn
 import { Opcodes }               from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob }               from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType }        from "../../../risc-pvm/interpreter/types";
-import { FULL }                  from "../../../risc-pvm/interpreter/host/consts";
+import { FULL, WG, WX }                  from "../../../risc-pvm/interpreter/host/consts";
 
 const DEST        = 0x18000;       // inside heap – mapped
 const UNMAPPED   = 0x200000;       // > 1 MiB – unmapped
-const WG         = 8;              // segment width
-const WX         = 1024;           // max segments (spec)
 
 
 function makeCode(ptr: number, len = WG): Uint8Array {
   return Uint8Array.of(
     Opcodes.load_imm, 7, ptr&255, ptr>>8&255, ptr>>16&255, ptr>>24&255,
     Opcodes.load_imm, 8, len, 0,0,0,
-    Opcodes.ecalli, 19,
+    Opcodes.ecalli, 7,
     Opcodes.trap
   );
 }

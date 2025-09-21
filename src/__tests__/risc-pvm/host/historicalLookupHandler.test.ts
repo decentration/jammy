@@ -9,16 +9,20 @@ const HASH_ADDR = 0x18000;
 const DEST_ADDR  = 0x19000;
 const BAD_ADDR  = 0x20000;
 
-function makeCode (): Uint8Array {
+function makeCode (opts?: {srvIdx?: number; hashAddr?: number; destAddr?: number; fOff: number, len: number}) : Uint8Array { const {
+  srvIdx = 0xFFFF_FFFF, hashAddr = HASH_ADDR, destAddr = DEST_ADDR, fOff = 0, len = 0}
+  = opts ?? { };
+
   return Uint8Array.of(
-    Opcodes.load_imm, 7, 0xff,0xff,0xff,0xff,                  // r7  srv‑idx
-    Opcodes.load_imm, 8, HASH_ADDR&255, HASH_ADDR>>8&255, 
-                         HASH_ADDR>>16&255, HASH_ADDR>>24&255, // r8  hash ptr
-    Opcodes.load_imm, 9, DEST_ADDR&255, DEST_ADDR>>8&255, 
-                         DEST_ADDR>>16&255, DEST_ADDR>>24&255, // r9  dest
-    Opcodes.load_imm,10, 0,0,0,0,                              // r10 f‑off
-    Opcodes.load_imm,11, 0,0,0,0,                              // r11 len (=0)
-    Opcodes.ecalli, 17,                                        // ΩH
+    Opcodes.load_imm, 7, srvIdx & 255, (srvIdx>>8)&255, (srvIdx>>16)&255, (srvIdx>>24)&255, // r7  srv‑idx
+    Opcodes.load_imm, 8, hashAddr & 255, (hashAddr >> 8) & 255, (hashAddr >> 16) & 255, (hashAddr >> 24) & 255,
+    // r8  hash ptr
+    Opcodes.load_imm, 9, destAddr & 255, (destAddr >> 8) & 255, (destAddr >> 16) & 255, (destAddr >> 24) & 255,
+    // r9  dest
+    Opcodes.load_imm,10, fOff & 255, (fOff >> 8) & 255, (fOff >> 16) & 255, (fOff >> 24) & 255,
+    // r10 f‑off
+    Opcodes.load_imm,11, len & 255, (len >> 8) & 255, (len >> 16) & 255, (len >> 24) & 255,    // r11 len (=0)
+    Opcodes.ecalli, 6,                                        // ΩH
     Opcodes.trap
   );
 }
@@ -34,8 +38,7 @@ describe("ΩH historical_lookup handler", () => {
     const mem   = new Uint8Array(1<<20);
     mem.set(HASH, HASH_ADDR);
 
-    const imgs  = new Map<string,Uint8Array>().set(Array.from(HASH).join(","), VALUE);
-    const env   = makeHostEnv({now: 0n,capBytes: Infinity,preImage: imgs});
+    const imgs  = new Map<string,Uint8Array>().set(Buffer.from(HASH).toString("hex"), VALUE);    const env   = makeHostEnv({now: 0n,capBytes: Infinity,preImage: imgs});
 
     const st = runBlob(blob(), 100, { env, memInit: mem });
 
@@ -61,8 +64,7 @@ describe("ΩH historical_lookup handler", () => {
   });
 
   it("unknown service index -> r7 = WHO", () => {
-    const bad = Uint8Array.from(makeCode());
-    bad[2] = 42;
+    const bad = Uint8Array.from(makeCode({ srvIdx: 42, fOff: 0, len: 0 }));
     const mem = new Uint8Array(1<<20);
     mem.set(new Uint8Array(32).fill(2), HASH_ADDR);
 
@@ -72,11 +74,12 @@ describe("ΩH historical_lookup handler", () => {
   });
 
   it("dest in R/O page -> Panic", () => {
-    const bad = Uint8Array.from(makeCode());
-    bad[14] = BAD_ADDR&255; 
-    bad[15] = BAD_ADDR>>8&255;
-    bad[16] = BAD_ADDR>>16&255; 
-    bad[17] = BAD_ADDR>>24&255;
+    const bad = Uint8Array.from(makeCode({
+      destAddr: BAD_ADDR,
+      fOff: 0,
+      len: 0
+    }));
+   
 
     const mem = new Uint8Array(1<<20);
     mem.set(new Uint8Array(32).fill(3), HASH_ADDR);
