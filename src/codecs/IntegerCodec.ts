@@ -21,9 +21,8 @@ export function encodeProtocolInt(x: number | bigint | null | undefined): Uint8A
   }
 
   // 1) <= 127 (7 bits) => 1-byte
-  if (val <= 127n) {
-    return Uint8Array.of(Number(val));
-  }
+  if (val <= 127n) return Uint8Array.of(Number(val));
+
 
   // 2) <= 16383 (14 bits) => 2-byte
   if (val <= 16383n) {
@@ -36,7 +35,7 @@ export function encodeProtocolInt(x: number | bigint | null | undefined): Uint8A
   }
 
   // 3) <= 2_097_151 (21 bits) => 3-byte
-  if (val <= 2_097_151n) {
+  if (val <= 2_097_151n) { 
     const low8  = Number(val & 0xFFn);
     const mid8  = Number((val >> 8n) & 0xFFn);
     const high5 = Number((val >> 16n) & 0x1Fn);
@@ -45,7 +44,7 @@ export function encodeProtocolInt(x: number | bigint | null | undefined): Uint8A
   }
 
   // 4) <= 268_435_455 (28 bits) => 4-byte
-  if (val <= 268_435_455n) {
+  if (val <= 268_435_455n) { 
     const low8  = Number(val & 0xFFn);
     const mid8  = Number((val >> 8n) & 0xFFn);
     const high8 = Number((val >> 16n) & 0xFFn);
@@ -54,60 +53,25 @@ export function encodeProtocolInt(x: number | bigint | null | undefined): Uint8A
     return new Uint8Array([byte0, low8, mid8, high8]);
   }
 
-  // 5) <= 34_359_738_367 (35 bits) => 5-byte
-  if (val <= 34_359_738_367n) {
-    const marker = 0b11110000; // 0xf0 means "5-byte mode"
-    const out = new Uint8Array(1 + 5);
-    out[0] = marker;
-    let temp = val;
-    for (let i = 1; i <= 5; i++) {
-      out[i] = Number(temp & 0xFFn);
-      temp >>= 8n;
+  // 5) generic => 5-byte to 9-byte classes
+  // determine l so that 2^7l <= val < 2^7(l+1) (l ∈ {4,…,8})
+  let l = 4;
+    while (l < 8 && val >= 1n << BigInt(7 * (l + 1))) l++;
+  
+    const q = val >> (8n * BigInt(l));                // ⌊x / 2⁸ˡ⌋
+    const header = 256 - (1 << (8 - l)) + Number(q);       // spec C.6
+  
+    const out = new Uint8Array(1 + l);
+    out[0] = header;
+    let tmp = val;
+    for (let i = 0; i < l; i++) {
+      out[1 + i] = Number(tmp & 0xffn);
+      tmp >>= 8n;
     }
     return out;
   }
 
-  // 6) <= 8_796_093_022_207 => 6-byte
-  if (val <= 8_796_093_022_207n) {
-    const marker = 0b11110001; // 0xf1 => 6-byte mode
-    const out = new Uint8Array(1 + 6);
-    out[0] = marker;
-    let temp = val;
-    for (let i = 1; i <= 6; i++) {
-      out[i] = Number(temp & 0xFFn);
-      temp >>= 8n;
-    }
-    return out;
-  }
-
-  // 7) <= 2_251_799_813_685_247 => 7-byte
-  if (val <= 2_251_799_813_685_247n) {
-    const marker = 0b11110010; // 0xf2 => 7-byte mode
-    const out = new Uint8Array(1 + 7);
-    out[0] = marker;
-    let temp = val;
-    for (let i = 1; i <= 7; i++) {
-      out[i] = Number(temp & 0xFFn);
-      temp >>= 8n;
-    }
-    return out;
-  }
-
-  // 8) <= 18_446_744_073_709_551_615 => 8-byte
-  if (val <= 18_446_744_073_709_551_615n) {
-    const marker = 0b11110011; // 0xf3 => 8-byte mode
-    const out = new Uint8Array(1 + 8);
-    out[0] = marker;
-    let temp = val;
-    for (let i = 1; i <= 8; i++) {
-      out[i] = Number(temp & 0xFFn);
-      temp >>= 8n;
-    }
-    return out;
-  }
-
-  throw new Error(`encodeProtocolInt: value too large (>= 2^64) => ${val.toString()}`);
-}
+  
 
 
 
