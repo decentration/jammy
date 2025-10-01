@@ -6,11 +6,11 @@ import { u32, u64, Bytes } from "scale-ts";
 import { RefineLoadCodec } from "./RefineLoadCodec";
 import { encodeProtocolInt } from "./IntegerCodec";
 import { convertToReadableFormat } from "../utils";
+import { coerceU64 } from "./utils";
 
 export const ResultCodec: Codec<Result> = [
   // ENCODER
   (r: Result): Uint8Array => {
-    console.log("ResultCodec: enc", convertToReadableFormat(r));
     // 1) encode service_id (u32 -> 4 bytes LE)
     const encServiceId = ServiceIdCodec.enc(r.service_id);
 
@@ -21,15 +21,16 @@ export const ResultCodec: Codec<Result> = [
     const encPayloadHash = Bytes(32).enc(r.payload_hash);
 
     // 4) encode accumulate_gas (u64 -> 8 bytes LE)
-    const encAccumulateGas = u64.enc(BigInt(r.accumulate_gas)); 
+    const encAccumulateGas = u64.enc(coerceU64(r.accumulate_gas)); 
     // const encAccumulateGas = u64.(r.accumulate_gas);
 
     // 5) encode result (ResultValueCodec)
     const encResult = ResultValueCodec.enc(r.result);
 
+    // 6)
     const encRefineLoad = RefineLoadCodec.enc(r.refine_load);
 
-    // 6) concatenate all
+    // 7) concatenate all
     const totalLen =
       encServiceId.length +
       encCodeHash.length +
@@ -45,7 +46,8 @@ export const ResultCodec: Codec<Result> = [
     out.set(encCodeHash, offset);        offset += encCodeHash.length;
     out.set(encPayloadHash, offset);     offset += encPayloadHash.length;
     out.set(encAccumulateGas, offset);   offset += encAccumulateGas.length;
-    out.set(encResult, offset);
+    out.set(encResult, offset);          offset += encResult.length;
+    out.set(encRefineLoad, offset);      offset += encRefineLoad.length;
 
     return out;
   },
@@ -80,6 +82,7 @@ export const ResultCodec: Codec<Result> = [
     // const { value: accumulate_gas, bytesRead: gasUsed } = decodeProtocolInt( uint8.slice(offset));
     // offset += gasUsed;
 
+    console.log('going in to reusult value', convertToReadableFormat(uint8.slice(offset)), ' bytes left:', uint8.length - offset, ' offset=', offset);
     // 5) decode result
     const { value: result, bytesUsed: resultUsed } = decodeWithBytesUsed(ResultValueCodec, uint8.slice(offset));
     offset += resultUsed;
@@ -87,7 +90,7 @@ export const ResultCodec: Codec<Result> = [
     const { value: refine_load, bytesUsed: refineLoadUsed } = decodeWithBytesUsed(RefineLoadCodec, uint8.slice(offset));
     offset += refineLoadUsed;
 
-    return { service_id, code_hash, payload_hash, accumulate_gas: Number(accumulate_gas), result, refine_load };
+    return { service_id, code_hash, payload_hash, accumulate_gas, result, refine_load };
   },
 ] as unknown as Codec<Result>;
 

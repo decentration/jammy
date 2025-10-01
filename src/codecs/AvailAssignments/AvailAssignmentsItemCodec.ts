@@ -31,9 +31,9 @@ export const AvailAssignmentsItemCodec: Codec<AvailAssignment | null> = [
         ? new TextEncoder().encode(data)
         : new Uint8Array(data);
 
-    if (uint8.length === 0) {
-      throw new Error("AvailAssignmentsItemCodec.dec: no data to decode");
-    }
+    // if (uint8.length === 0) {
+    //   throw new Error("AvailAssignmentsItemCodec.dec: no data to decode");
+    // }
 
     const tag = uint8[0];
    // console.log("avail assignment tag: ", tag);

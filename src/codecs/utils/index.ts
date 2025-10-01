@@ -133,3 +133,24 @@ export function deepConvertHexToBytes(obj: any): any {
     return obj;
   }
 }
+
+
+// Take a number | string | bigint and return a bounded unsigned 64-bit bigint
+export function coerceU64(x: number | string | bigint): bigint {
+  let v: bigint;
+  if (typeof x === 'bigint') v = x;
+  else if (typeof x === 'number') {
+    if (!Number.isInteger(x) || x < 0) throw new RangeError("u64 must be a non-negative integer");
+    v = BigInt(x);
+  } else if (typeof x === 'string') {
+    // allow decimal or 0x… hex; throw if not an integer
+    v = x.startsWith('0x') || x.startsWith('0X') ? BigInt(x) : BigInt(x.replace(/_/g, ''));
+  } else {
+    throw new TypeError(`Unsupported u64 type: ${typeof x}`);
+  }
+
+  if (v < 0n || v > 0xFFFF_FFFF_FFFF_FFFFn) {
+    throw new RangeError("u64 out of range (0..2^64-1)");
+  }
+  return v;
+}

@@ -1,6 +1,7 @@
 import { Codec, u32 } from "scale-ts";
 import { concatAll, decodeProtocolInt, decodeWithBytesUsed, DiscriminatorCodec, encodeProtocolInt } from "../../../codecs";
 import { AlwaysAccumulateMapEntry, Privileges } from "../types";
+import { decodeProtocolIntBig } from "../../../codecs/IntegerCodec2";
 
 
  const AlwaysAccumulateMapEntryCodec: Codec<AlwaysAccumulateMapEntry> = [
@@ -31,7 +32,7 @@ import { AlwaysAccumulateMapEntry, Privileges } from "../types";
 
     const id = read(u32);
 
-    const { value: gas, bytesRead: gasUsed } = decodeProtocolInt(uint8.slice(offset));
+    const { value: gas, bytesRead: gasUsed } = decodeProtocolIntBig(uint8.slice(offset));
     offset += gasUsed;
   
 

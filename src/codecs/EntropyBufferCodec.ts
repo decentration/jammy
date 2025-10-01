@@ -7,7 +7,7 @@ import { convertToReadableFormat } from "../utils";
 export const EntropyBufferCodec: Codec<Entropy[]> = [
   // ENCODER
   (items: Uint8Array[]): Uint8Array => {
-    console.log("EntropyBufferCodec items", items);
+    // console.log("EntropyBufferCodec items", items);
     if (items.length !== 4) {
       throw new Error(`EntropyBuffer must have exactly 4 items, got ${items.length}`);
     }
@@ -15,7 +15,7 @@ export const EntropyBufferCodec: Codec<Entropy[]> = [
     const out = new Uint8Array(4 * 32);
     let offset = 0;
     for (const ent of items) {
-      console.log("EntropyBufferCodec ent", convertToReadableFormat(ent));
+      // console.log("EntropyBufferCodec ent", convertToReadableFormat(ent));
       if (ent.length !== 32) {
         throw new Error(`Entropy item is not 32 bytes is ${ent.length}`);
       }

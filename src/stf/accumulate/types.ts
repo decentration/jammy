@@ -1,9 +1,10 @@
 import { Bytes, Codec, u32 } from "scale-ts";
 import { OpaqueHash, Report } from "../../types";
 import { Entropy } from "../reports/types";
+import { ServiceInfo } from "../types";
 
 export type ServiceId = number; // u32
-export type Gas = number; // u64    
+export type Gas = bigint; // u64    
 export type AccountId = number; // u32
 export type WorkPackageHash = OpaqueHash; 
 export type WorkReportHash = OpaqueHash;
@@ -94,15 +95,6 @@ export interface PreimageItem {
     blob: Uint8Array,
 } 
 
-export interface ServiceInfo {
-    code_hash: Uint8Array; // 32 bytes
-    balance: number;       // u64
-    min_item_gas: number;   // u32
-    min_memo_gas: number;   // u32
-    bytes: number;         // u64
-    items: number;      // u32
-}
-
 
 
 //----
@@ -129,7 +121,7 @@ export interface AccumulateEphemeral {
     codeUpgrades?: CodeUpgrade[];
     selfTerminated?: boolean;
     commitmentHash?: string; 
-    actualGasUsed?: number;
+    actualGasUsed?: Gas;
   }
   
   

@@ -1,8 +1,6 @@
 import { Struct, u32 } from "scale-ts";
-import { Assurance, Dispute, Guarantee, Preimage, ServicesStatisticsMapEntry, Ticket } from "../../types/types";
+import { Assurance, CoresActivityRecord, Dispute, Guarantee, Preimage, ServicesStatisticsMapEntry, Ticket } from "../../types/types";
 import { ValidatorInfo } from "../types";
-import { CoresActivityRecord } from "../reports/types";
-
 
 export interface StatsStf {
     input: StatsInput;
@@ -18,7 +16,6 @@ export interface StatsStf {
     assurances: Assurance[];
     disputes: Dispute;
   }
-  
  
   export interface StatsInput {
     slot: number;          // TimeSlot = u32
@@ -26,19 +23,24 @@ export interface StatsStf {
     extrinsic: ExtrinsicData;
   }
   
-
   export type StatsOutput = null;
   
-
   export interface StatsState {
     statistics: Statistics;
     slot: number;               // TimeSlot = u32
     curr_validators: ValidatorInfo[];
   }
+
+  export interface FlatStatsState {
+    vals_curr_stats: PerformanceRecord[];
+    vals_last_stats: PerformanceRecord[];
+    slot: number;
+    curr_validators: any[];
+  };
   
   export interface Statistics {
-    vals_current: PerformanceRecord[];
-    vals_last: PerformanceRecord[];
+    vals_curr_stats: PerformanceRecord[];
+    vals_last_stats: PerformanceRecord[];
     cores: CoresActivityRecord[];
     services: ServicesStatisticsMapEntry[];
   }

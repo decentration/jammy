@@ -14,6 +14,7 @@ export function parseReportJson(json: any): Report {
       context: parseContextJson(json.context),
       core_index: json.core_index,
       authorizer_hash: hexStringToBytes(json.authorizer_hash),
+      auth_gas_used: json.auth_gas_used,
       auth_output: hexStringToBytes(json.auth_output || "0x"), // might be empty
       segment_root_lookup: (json.segment_root_lookup || []).map((seg: any) => {
         return {
@@ -23,7 +24,7 @@ export function parseReportJson(json: any): Report {
         }
       ),
       results: (json.results || []).map((res: any) => parseResultsRecordJson(res)),
-      auth_gas_used: json.auth_gas_used,
+     
       }
     }
 

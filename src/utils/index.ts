@@ -19,13 +19,29 @@ export function stripHexPrefix(hex: string): string {
   return hex.startsWith("0x") ? hex.slice(2) : hex;
 }
 
+const MAX_SAFE = BigInt(Number.MAX_SAFE_INTEGER);
+
 // Recursively convert all Uint8Arrays -> hex (for debugging)
 export function convertToReadableFormat(obj: any): any {
-  if (obj instanceof Uint8Array) {
-    return toHex(obj);
-  } else if (Array.isArray(obj)) {
-    return obj.map(convertToReadableFormat);
-  } else if (typeof obj === 'object' && obj !== null) {
+  if (obj instanceof Uint8Array) return toHex(obj);
+
+  if (typeof obj === "bigint") {
+    const abs = obj >= 0n ? obj : -obj;
+    return abs <= MAX_SAFE ? Number(obj) : obj.toString();
+  }
+    
+  if (Array.isArray(obj)) return obj.map(convertToReadableFormat);
+
+  if (obj instanceof Map) {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of obj.entries()) out[String(k)] = convertToReadableFormat(v);
+    return out;
+  }
+  if (obj instanceof Set) {
+    return Array.from(obj, convertToReadableFormat);
+  }
+  
+  if (typeof obj === 'object' && obj !== null) {
     const result: any = {};
     for (const [k, v] of Object.entries(obj)) {
       result[k] = convertToReadableFormat(v);

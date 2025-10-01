@@ -57,7 +57,7 @@ export function serializeState(state: State): [Uint8Array, Uint8Array][] {
   push(ChapterID.Judgments,                 RecordsCodec.enc(state.judgements));   // psi ψ  Judgements
   push(ChapterID.Entropy,                   EntropyBufferCodec.enc(state.entropyPool));   // eta η  Entropy
   push(ChapterID.ValidatorsNext,            ValidatorsInfoCodec.enc(state.validatorQueue)); // iota ι  Validators-next
-  push(ChapterID.ValidatorsCurrent,         ValidatorsInfoCodec.enc(state.currentValidators));   //kappa  κ  Validators-current
+  push(ChapterID.ValidatorsCurrent,         ValidatorsInfoCodec.enc(state.curr_validators));   //kappa  κ  Validators-current
   push(ChapterID.ValidatorsPrev,            ValidatorsInfoCodec.enc(state.archivedValidators));   // lambda λ  Validators-previous
   push(ChapterID.PendingReports,            PendingReportsCodec.enc(state.pendingReports));  // rho ρ  Pending reports
   push(ChapterID.Timeslot,                  TimeSlotCodec.enc(state.timeslotIndex));   // tau τ  Timeslot

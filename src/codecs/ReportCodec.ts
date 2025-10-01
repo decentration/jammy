@@ -5,9 +5,10 @@ import { ResultCodec } from "./ResultCodec";
 import { DiscriminatorCodec } from "./DiscriminatorCodec";
 import { SegmentItemCodec } from "./SegmentItemCodec";
 import { ContextCodec } from "./ContextCodec";
-import { VarLenBytesCodec, decodeProtocolInt, decodeWithBytesUsed, encodeProtocolInt } from "./index";
+import { VarLenBytesCodec, decodeWithBytesUsed } from "./index";
 import { Bytes, Vector } from "scale-ts";
 import { convertToReadableFormat } from "../utils";
+import { decodeProtocolIntBig, decodeProtocolIntNumber, encodeProtocolInt } from "./IntegerCodec2";
 
 export const SegmentArrayCodec = DiscriminatorCodec(SegmentItemCodec);
 
@@ -31,30 +32,28 @@ export const ReportCodec: Codec<Report> = [
     const encCtx = ContextCodec.enc(report.context);
 
     // 3) encode core_index (u16)
-    const coreIndexBuf = new Uint8Array(2);
-    new DataView(coreIndexBuf.buffer).setUint16(0, report.core_index, true);
+    const encCoreIndex = encodeProtocolInt(report.core_index);
     
-
     // 4) encode authorizer_hash (32 bytes)
     const encAuthHash = Bytes(32).enc(report.authorizer_hash);
-
     // console.log("encAuthHash", Buffer.from(encAuthHash).toString("hex"));
-    // 5) encode auth_output with VarLenBytesCodec
+
+    // 5) newly added auth-gas-used (u64)
+    const encAuthGasUsed = encodeProtocolInt(report.auth_gas_used);
+
+    // 6) encode auth_output with VarLenBytesCodec
     const encAuthOutput = VarLenBytesCodec.enc(report.auth_output);
 
     // console.log("encAuthOutput", encAuthOutput);
-    // console.log("encAuthOutput", encAuthOutput);
-    // 6) encode segment_root_lookup with Vector(Bytes(32))
-
+    // 7) encode segment_root_lookup with Vector(Bytes(32))
     const encSegLookup = DiscriminatorCodec(SegmentItemCodec).enc(report.segment_root_lookup);
     // log string hex
 
-    // 7) encode results with DiscriminatorCodec(ResultCodec)
+    // 8) encode results with DiscriminatorCodec(ResultCodec)
     const encResults = DiscriminatorCodec(ResultCodec, { minSize: 1, maxSize: 16 }).enc(report.results);
 
 
-    // 8) newly added auth-gas-used (u64)
-    const authGasUsedBuf = encodeProtocolInt(report.auth_gas_used);
+    
     
     // new DataView(authGasUsedBuf.buffer).setBigUint64(0, report.auth_gas_used, true);
 
@@ -62,12 +61,13 @@ export const ReportCodec: Codec<Report> = [
     const totalSize =
       encPkg.length +
       encCtx.length +
-      2 + // for core_index (u16)
+      encCoreIndex.length + // for core_index (u16)
       encAuthHash.length +
+      encAuthGasUsed.length +
       encAuthOutput.length +
       encSegLookup.length +
-      encResults.length +
-      authGasUsedBuf.length;
+      encResults.length 
+     
 
     const out = new Uint8Array(totalSize);
     let offset = 0;
@@ -78,11 +78,14 @@ export const ReportCodec: Codec<Report> = [
     out.set(encCtx, offset);
     offset += encCtx.length;
 
-    out.set(coreIndexBuf, offset);
-    offset += 2;
+    out.set(encCoreIndex, offset);
+    offset += encCoreIndex.length;
 
     out.set(encAuthHash, offset);
     offset += encAuthHash.length;
+
+    out.set(encAuthGasUsed, offset);     
+    offset += encAuthGasUsed.length;
 
     // console.log("encAuthOutput", encAuthOutput);
     out.set(encAuthOutput, offset);
@@ -90,7 +93,9 @@ export const ReportCodec: Codec<Report> = [
 
     out.set(encSegLookup, offset);
     offset += encSegLookup.length;
+    
     out.set(encResults, offset);
+    
     return out;
   },
 
@@ -105,7 +110,7 @@ export const ReportCodec: Codec<Report> = [
 
     let offset = 0;
 
-    console.log("ReportCodec dec", convertToReadableFormat(uint8));
+    console.log("ReportCodec dec", convertToReadableFormat(uint8).length);
 
     // 1) decode package_spec
     {
@@ -131,9 +136,12 @@ export const ReportCodec: Codec<Report> = [
     if (offset + 2 > uint8.length) {
       throw new Error("ReportCodec: not enough bytes for core_index");
     }
-    const coreView = new DataView(uint8.buffer, uint8.byteOffset + offset, 2);
-    const core_index = coreView.getUint16(0, true);
-    offset += 2;
+    {
+      const { value: coreIndex, bytesRead } = decodeProtocolIntNumber(uint8.slice(offset));
+      offset += bytesRead;
+      var core_index = coreIndex;
+      // use core_index
+    }
 
     // 4) decode authorizer_hash (32 bytes)
     if (offset + 32 > uint8.length) {
@@ -142,42 +150,49 @@ export const ReportCodec: Codec<Report> = [
     const authorizer_hash = uint8.slice(offset, offset + 32);
     offset += 32;
 
-    // 5) decode auth_output with VarLenBytesCodec
+    // log offset
+    console.log("authorizer_hash", Buffer.from(authorizer_hash).toString("hex"));
+
+    // 5) decode auth_gas_used (u64) in C.5/6 encoder
+    if (offset + 8 > uint8.length) throw new Error("ReportCodec: not enough bytes for auth_gas_used");
     {
-      const { value: authOutputVal, bytesUsed } = decodeWithBytesUsed(
-        VarLenBytesCodec,
-        uint8.slice(offset)
-      );
-      offset += bytesUsed;
-      var auth_output = authOutputVal;
+      const slice = uint8.slice(offset);
+      const { value, bytesRead } = decodeProtocolIntBig(slice);
+      offset += bytesRead;
+      var auth_gas_used = value;
     }
+     
+      // log offset
+    console.log("auth_gas_used", auth_gas_used);
+
+    // 6) decode auth_output with VarLenBytesCodec  
+    const { value: authOutputVal, bytesUsed } = decodeWithBytesUsed(
+      VarLenBytesCodec,
+      uint8.slice(offset)
+    );
+    offset += bytesUsed;
+    var auth_output = authOutputVal;
+
+    // log offset
+    console.log("auth_output", convertToReadableFormat(auth_output), ' offset=', offset, ' total=', uint8.length);
 
 
-    // 6) decode segment_root_lookup => SegmentArrayCodec
-    {
-      const { value: segLookup, bytesUsed } = decodeWithBytesUsed(
-        SegmentArrayCodec,
-        uint8.slice(offset)
-      );
-      offset += bytesUsed;
-      var segment_root_lookup = segLookup;
-    }
+    // 7) decode segment_root_lookup => SegmentArrayCodec
+    const { value: segLookup, bytesUsed: segBytesUsed } = decodeWithBytesUsed(
+      SegmentArrayCodec,
+      uint8.slice(offset)
+    );
+    offset += segBytesUsed;
+    var segment_root_lookup = segLookup;
 
-
-    // 7) decode results with DiscriminatorCodec(ResultCodec)
-    {
-      const { value: resultsVal, bytesUsed } = decodeWithBytesUsed(
-        DiscriminatorCodec(ResultCodec),
-        uint8.slice(offset)
-      );
-      offset += bytesUsed;
-      var results = resultsVal;
-    }
-
-    // 8) decode auth_gas_used (u64)
-    const { value: authGasValue, bytesRead } = decodeProtocolInt(uint8.slice(offset));
-    offset += bytesRead;
-    const auth_gas_used = authGasValue;
+    // 8) decode results with DiscriminatorCodec(ResultCodec)    
+    const { value: resultsVal, bytesUsed: resultBytesUsed } = decodeWithBytesUsed(
+      DiscriminatorCodec(ResultCodec),
+      uint8.slice(offset)
+    );
+    offset += resultBytesUsed;
+    var results = resultsVal;
+  
 
     // 8) Return final object
     return {
@@ -185,10 +200,11 @@ export const ReportCodec: Codec<Report> = [
       context: ctx,
       core_index,
       authorizer_hash,
+      auth_gas_used,
       auth_output,
       segment_root_lookup,
       results,
-      auth_gas_used
+     
     };
   },
 ] as unknown as Codec<Report>;

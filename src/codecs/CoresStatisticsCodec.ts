@@ -1,71 +1,64 @@
-import { Codec } from "scale-ts";
-import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec";
-import { concatAll, toUint8Array } from "./utils";
+import { Codec, u16, u32, u64 } from "scale-ts";
+import { coerceU64, concatAll, toUint8Array } from "./utils";
 import { CoresActivityRecord } from "../types";
-import { DiscriminatorCodec } from "./DiscriminatorCodec";
 import { CORES_COUNT } from "../consts";
-import { concat } from "fp-ts/lib/ReadonlyNonEmptyArray";
+import { encodeProtocolInt } from "./IntegerCodec";
+import { decodeProtocolIntBig, decodeProtocolIntNumber } from "./IntegerCodec2";
 
 export const CoresActivityRecordCodec: Codec<CoresActivityRecord> = [
   // ENCODER
   (item: CoresActivityRecord): Uint8Array => {
+    const daLoad        = u32.enc(item.da_load);
+    const popularity    = u16.enc(item.popularity);
+    const imports       = u16.enc(item.imports);
+    const extrinsicCnt  = u16.enc(item.extrinsic_count);
+    const extrinsicSize = u32.enc(item.extrinsic_size);
+    const exports       = u16.enc(item.exports);
+    const bundleSize    = u32.enc(item.bundle_size);
+    const gasUsed       = u64.enc(coerceU64(item.gas_used));
+    
 
-    const gasUsed       = encodeProtocolInt(item.gas_used);
-    const imports       = encodeProtocolInt(item.imports);
-    const extrinsicCnt  = encodeProtocolInt(item.extrinsic_count);
-    const extrinsicSize = encodeProtocolInt(item.extrinsic_size);
-    const exports       = encodeProtocolInt(item.exports);
-    const bundleSize    = encodeProtocolInt(item.bundle_size);
-    const daLoad        = encodeProtocolInt(item.da_load);
-    const popularity    = encodeProtocolInt(item.popularity);
+    // const daLoad        = encodeProtocolInt(item.da_load);
+    // const popularity    = encodeProtocolInt(item.popularity);
+    // const imports       = encodeProtocolInt(item.imports);
+    // const extrinsicCnt  = encodeProtocolInt(item.extrinsic_count);
+    // const extrinsicSize = encodeProtocolInt(item.extrinsic_size);
+    // const exports       = encodeProtocolInt(item.exports);
+    // const bundleSize    = encodeProtocolInt(item.bundle_size);
+    // const gasUsed       = encodeProtocolInt(BigInt(item.gas_used));
 
     return concatAll(
-      gasUsed,
-      imports,
-      extrinsicCnt,
-      extrinsicSize,
-      exports,
-      bundleSize,
-      daLoad,
-      popularity
+     daLoad,
+     popularity,
+     imports,
+     extrinsicCnt,
+     extrinsicSize,
+     exports,
+     bundleSize,
+     gasUsed
     );
   },
 
   // DECODER
   (data: ArrayBuffer | Uint8Array | string) => {
-    const uint8 = toUint8Array(data);
-    let offset = 0;
+    const u = toUint8Array(data);
+    let off = 0;
 
-    function readProtocolInt(): number {
-      const { value, bytesRead } = decodeProtocolInt(uint8.slice(offset));
-      offset += bytesRead;
-      return value;
-    }
-
-    const gas_used       = readProtocolInt();
-    const imports        = readProtocolInt();
-    const extrinsicCount = readProtocolInt();
-    const extrinsicSize  = readProtocolInt();
-    const exports        = readProtocolInt();
-    const bundleSize     = readProtocolInt();
-    const daLoad         = readProtocolInt();
-    const popularity     = readProtocolInt();
+    const dv = new DataView(u.buffer, u.byteOffset, u.byteLength);
+    const read = (n: number) => { const s = u.slice(off, off + n); off += n; return s; };
 
     const record: CoresActivityRecord = {
-      gas_used,
-      imports,
-      extrinsic_count: extrinsicCount,
-      extrinsic_size: extrinsicSize,
-      exports,
-      bundle_size: bundleSize,
-      da_load: daLoad,
-      popularity,
+      da_load:         u32.dec(read(4)),
+      popularity:      u16.dec(read(2)),
+      imports:         u16.dec(read(2)),
+      extrinsic_count: u16.dec(read(2)),
+      extrinsic_size:  u32.dec(read(4)),
+      exports:         u16.dec(read(2)),
+      bundle_size:     u32.dec(read(4)),
+      gas_used:        u64.dec(read(8))
     };
 
-    return {
-      ...record,
-    };
-
+    return record;
     
   },
 
@@ -91,41 +84,17 @@ export const CoresStatisticsCodec: Codec<CoresActivityRecord[]> = [
 
   // DECODER
 (data: ArrayBuffer | Uint8Array | string): CoresActivityRecord[] => {
-      const uint8 = toUint8Array(data);
-    let offset = 0;
-
-    const results: CoresActivityRecord[] = [];
+    const RECORD_SIZE = 28;
+    
+    const u = toUint8Array(data);
+    const out: CoresActivityRecord[] = [];
+    let off = 0;
     for (let i = 0; i < CORES_COUNT; i++) {
-      function readProtocolInt(): number {
-        const { value, bytesRead } = decodeProtocolInt(uint8.slice(offset));
-        offset += bytesRead;
-        return value;
-      }
-
-      const gas_used = readProtocolInt();
-      const imports = readProtocolInt();
-      const extrinsic_count = readProtocolInt();
-      const extrinsic_size = readProtocolInt();
-      const exports = readProtocolInt();
-      const bundle_size = readProtocolInt();
-      const da_load = readProtocolInt();
-      const popularity = readProtocolInt();
-
-      results.push({
-        gas_used,
-        imports,
-        extrinsic_count,
-        extrinsic_size,
-        exports,
-        bundle_size,
-        da_load,
-        popularity,
-      });
-  
+      out.push(CoresActivityRecordCodec.dec(u.slice(off, off + RECORD_SIZE)));
+      off += RECORD_SIZE;
     }
-
-    return results;
-  },
+    return out;
+  }
 ] as unknown as Codec<CoresActivityRecord[]>;
 
 CoresStatisticsCodec.enc = CoresStatisticsCodec[0];

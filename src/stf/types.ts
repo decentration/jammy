@@ -20,13 +20,18 @@ export interface MMR {
 
 export interface BlockItem {
     header_hash: Uint8Array; 
-    mmr: MMR;                // { peaks: (Uint8Array|null)[] }
+    beefy_root: Uint8Array; 
     state_root: Uint8Array; 
     reported: WorkPackage[]; 
 }
 
 export interface HistoryState {
-  beta: BlockItem[];
+  beta: BetaState                // { peaks: (Uint8Array|null)[] }
+}
+
+export interface BetaState {
+  history: BlockItem[];
+  mmr: MMR;                // { peaks: (Uint8Array|null)[] }
 }
 
  // placeholder
@@ -91,3 +96,27 @@ export interface ValidatorInfo {
     OK = 0,
     ERR = 1,
   }
+
+
+export interface ServiceItem {
+    id: number;  // u32
+    data: ServiceInfoData;
+  }
+
+  export interface ServiceInfoData {
+    service: ServiceInfo;
+  }
+
+
+export interface ServiceInfo {
+  code_hash: Uint8Array; // 32 bytes
+  balance: bigint;       // u64
+  min_item_gas: bigint;   // u32
+  min_memo_gas: bigint;   // u32
+  bytes: bigint;         // u64
+  deposit_offset: bigint; // u32
+  items: number;      // u32
+  creation_slot: number; // u32
+  last_accumulation_slot: number // u32
+  parent_service: number; // u32
+}

@@ -1,10 +1,12 @@
 import { Codec } from "scale-ts";
 import { toUint8Array } from "./utils";
 import { DiscriminatorCodec } from "./DiscriminatorCodec";
+import { cons } from "fp-ts/lib/ReadonlyNonEmptyArray";
 
 const OffenderCodec: Codec<Uint8Array> = [
   // 1) Encode => must be exactly 32 bytes
   (off: Uint8Array): Uint8Array => {
+    console.log("OffenderCodec: enc", off);
     if (off.length !== 32) {
       throw new Error("OffenderCodec: item not 32 bytes");
     }
@@ -13,6 +15,7 @@ const OffenderCodec: Codec<Uint8Array> = [
 
   // 2) Decode
   (data: ArrayBuffer | Uint8Array | string): Uint8Array => {
+    console.log("OffenderCodec: dec", data);
     const uint8 = toUint8Array(data);
     if (uint8.length < 32) {
       throw new Error("OffenderCodec: not enough data");

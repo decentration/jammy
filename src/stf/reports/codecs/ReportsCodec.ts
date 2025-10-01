@@ -5,8 +5,6 @@ import { ReportsStateCodec } from "./ReportsStateCodec";
 import { OutputCodec } from "./OutputCodec";
 import { decodeWithBytesUsed } from "../../../codecs";
 import { toUint8Array } from "../../../codecs";
-import { cons } from "fp-ts/lib/ReadonlyNonEmptyArray";
-import { convertToReadableFormat } from "../../../utils";
 
 export const ReportsCodec: Codec<Reports> = [
   // ------------------
@@ -24,6 +22,9 @@ export const ReportsCodec: Codec<Reports> = [
 
     // d) encode post_state
     const encPostState = ReportsStateCodec.enc(reports.post_state);
+
+    console.log('LEN input/pre/output/post:',
+      encInput.length, encPreState.length, encOutput.length, encPostState.length);
 
     // e) concat
     const totalSize =
@@ -62,14 +63,18 @@ export const ReportsCodec: Codec<Reports> = [
     {
       const slice = uint8.slice(offset);
       const { value, bytesUsed } = decodeWithBytesUsed(ReportsInputCodec, slice);
+      console.log('ReportsCodec.dec: input bytesUsed =', bytesUsed, ' total =', uint8.length);
       offset += bytesUsed;
       var input = value;
     }
+
+    console.log('After input decode, offset =', offset, ' total =', uint8.length);
 
     // b) decode pre_state
     {
       const slice = uint8.slice(offset);
       const { value, bytesUsed } = decodeWithBytesUsed(ReportsStateCodec, slice);
+      console.log('ReportsCodec pre_state bytesUsed:', bytesUsed);
       offset += bytesUsed;
       var pre_state = value;
     }

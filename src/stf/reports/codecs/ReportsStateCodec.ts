@@ -5,9 +5,8 @@ import { ReportsState } from "../types";
 import { ServicesCodec } from "./Services/ServicesCodec";
 import { ServicesStatisticsCodec } from "../../../codecs/ServicesStatisticsCodec";
 import { convertToReadableFormat } from "../../../utils";
+import { RecentBlocksCodec } from "./RecentBlocksCodec";
 
-const HashCodec      = Bytes(32);
-const OffendersCodec = DiscriminatorCodec(HashCodec);
 export const ReportsStateCodec: Codec<ReportsState> = [
   // --- ENCODER ---
   (state: ReportsState): Uint8Array => {
@@ -15,11 +14,10 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const encCurrVal = ValidatorsInfoCodec.enc(state.curr_validators);
     const encPrevVal = ValidatorsInfoCodec.enc(state.prev_validators);
     const encEntropy = EntropyBufferCodec.enc(state.entropy);
-    const encOffenders = OffendersCodec.enc(state.offenders);
-    const encRecentBlocks = DiscriminatorCodec(BlockItemCodec).enc(state.recent_blocks);
+    const encOffenders = OffendersMarkCodec.enc(state.offenders);
+    const encRecentBlocks = RecentBlocksCodec.enc(state.recent_blocks);
     const encAuthPools = AuthPoolsCodec.enc(state.auth_pools);
     const encServices = ServicesCodec.enc(state.accounts);
-
     const encCoresStats    = CoresStatisticsCodec.enc(state.cores_statistics);
     const encServicesStats = ServicesStatisticsCodec.enc(state.services_statistics);
 
@@ -33,7 +31,8 @@ export const ReportsStateCodec: Codec<ReportsState> = [
       encAuthPools,
       encServices,
       encCoresStats,
-      encServicesStats,
+      encServicesStats
+
     );
 
     console.log('ReportsStateCodec.enc result', convertToReadableFormat(result)); 
@@ -47,7 +46,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const uint8 = toUint8Array(data);
     let offset = 0;
 
-    console.log('ReportsStateCodec.dec data', convertToReadableFormat(data));
+    // console.log('ReportsStateCodec.dec data', convertToReadableFormat(data));
 
     function read<T>(codec: Codec<T>): T {
       const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));
@@ -61,10 +60,9 @@ export const ReportsStateCodec: Codec<ReportsState> = [
     const prev_validators   = read(ValidatorsInfoCodec);
     const entropy           = read(EntropyBufferCodec);
     const offenders         = read(OffendersMarkCodec);
-    const recent_blocks     = read(DiscriminatorCodec(BlockItemCodec));
+    const recent_blocks     = read(RecentBlocksCodec);
     const auth_pools        = read(AuthPoolsCodec);
     const accounts          = read(ServicesCodec);
-
     const cores_statistics    = read(CoresStatisticsCodec);
     const services_statistics = read(ServicesStatisticsCodec);
 

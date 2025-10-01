@@ -7,23 +7,23 @@ export const BlockItemCodec: Codec<BlockItem> = [
   // ENCODER
   (beta: BlockItem): Uint8Array => {
     const encHeaderHash = new Uint8Array(beta.header_hash);
-    const encMMR = MMRCodec.enc(beta.mmr);
+    const encBeefyRoot = new Uint8Array(beta.beefy_root);
     const encStateRoot = new Uint8Array(beta.state_root);
     const encReported = WorkPackagesCodec.enc(beta.reported);
 
     const totalSize = 
       encHeaderHash.length +
-      encMMR.length +
+      encBeefyRoot.length +
       encStateRoot.length +
-      encReported.length;
+      encReported.length; 
 
     const out = new Uint8Array(totalSize);
     let offset = 0;
 
     out.set(encHeaderHash, offset);   offset += encHeaderHash.length;
-    out.set(encMMR, offset);         offset += encMMR.length;
-    out.set(encStateRoot, offset);   offset += encStateRoot.length;
-    out.set(encReported, offset);
+    out.set(encBeefyRoot, offset);    offset += encBeefyRoot.length;
+    out.set(encStateRoot, offset);    offset += encStateRoot.length;
+    out.set(encReported, offset);     offset += encReported.length;
 
     return out;
   },
@@ -46,12 +46,12 @@ export const BlockItemCodec: Codec<BlockItem> = [
     const header_hash = uint8.slice(offset, offset + 32);
     offset += 32;
 
-    // b) Decode MMR
-    const { value: mmr, bytesUsed: mmrBytesUsed } = decodeWithBytesUsed(
-      MMRCodec,
-      uint8.slice(offset)
-    );
-    offset += mmrBytesUsed;
+    // b) Decode beefy_root
+    if (offset + 32 > uint8.length) {
+      throw new Error("BlockItemCodec: not enough data for beefy_root");
+    }
+    const beefy_root = uint8.slice(offset, offset + 32);
+    offset += 32;
 
     // c) Decode state_root
     if (offset + 32 > uint8.length) {
@@ -69,8 +69,8 @@ export const BlockItemCodec: Codec<BlockItem> = [
 
     return {
       header_hash,
-      mmr,
       state_root,
+      beefy_root,
       reported,
     };
   },

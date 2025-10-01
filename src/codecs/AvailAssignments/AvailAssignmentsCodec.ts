@@ -46,6 +46,8 @@ export const AvailAssignmentsCodec: Codec<AvailAssignmentsArray> = [
     const assignments: AvailAssignmentsArray = [];
     let offset = 0;
 
+    console.log("decoding avail assignments, total bytes:", uint8.length);
+
     for (let i = 0; i < CORES_COUNT; i++) {
       const slice = uint8.slice(offset);
       const { value: item, bytesUsed } = decodeWithBytesUsed(AvailAssignmentsItemCodec, slice);
@@ -53,7 +55,7 @@ export const AvailAssignmentsCodec: Codec<AvailAssignmentsArray> = [
       offset += bytesUsed;
     }
 
-    // console.log("avail assignments: ", assignments);
+    console.log("avail assignments: ", assignments);
 
     // check for leftover
     if (offset < uint8.length) {

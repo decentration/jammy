@@ -1,5 +1,5 @@
 import { Codec } from "scale-ts";
-import { decodeWithBytesUsed, DiscriminatorCodec } from "./index";
+import { decodeWithBytesUsed, DiscriminatorCodec, encodeProtocolInt } from "./index";
 import { Bytes, u32 } from "scale-ts";
 import { Context } from "../types/types";
 
@@ -28,10 +28,12 @@ export const ContextCodec: Codec<Context> = [
     offset += 32;
 
     // slot => 4 bytes
-    const dv = new DataView(out.buffer, offset, 4);
-    dv.setUint32(0, ctx.lookup_anchor_slot, true);
-    offset += 4;
 
+    // instead of above we need to encodeProtocolInt for lookup_anchor_slot
+    const encLookupAnchorSlot = encodeProtocolInt(ctx.lookup_anchor_slot);
+    out.set(encLookupAnchorSlot, offset);
+    offset += 4;
+    
     const encPre = DiscriminatorCodec(Bytes(32)).enc(ctx.prerequisites);
     const combined = new Uint8Array(out.length + encPre.length);
     combined.set(out, 0);

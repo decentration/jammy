@@ -1,7 +1,7 @@
 import { Codec } from "scale-ts";
-import { ServiceItem } from "../../types";
 import { ServiceItemCodec } from "./ServiceItemCodec";
 import { DiscriminatorCodec } from "../../../../codecs";
+import { ServiceItem } from "../../../types";
 
 // Services is an array of ServiceItem
 export const ServicesCodec: Codec<ServiceItem[]> =

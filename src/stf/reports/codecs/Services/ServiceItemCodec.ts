@@ -1,7 +1,7 @@
 import { Codec, u32 } from "scale-ts";
-import { ServiceItem } from "../../types";
 import { ServiceInfoCodec } from "./ServiceInfoCodec";
 import { concatAll, toUint8Array, decodeWithBytesUsed} from "../../../../codecs/utils";
+import { ServiceInfoData, ServiceItem } from "../../../types";
 
 /**
  *   id => 4 bytes (u32)
@@ -10,12 +10,12 @@ import { concatAll, toUint8Array, decodeWithBytesUsed} from "../../../../codecs/
  */
 export const ServiceItemCodec: Codec<ServiceItem> = [
   // ENCODER
-  (data: ServiceItem): Uint8Array => {
+  (info: ServiceItem): Uint8Array => {
     // id => u32
-    const encId = u32.enc(data.id);
+    const encId = u32.enc(info.id);
 
     // data => see ServiceInfoCodec
-    const encInfo = ServiceInfoCodec.enc(data.data);
+    const encInfo = ServiceDataCodec.enc(info.data);
 
     return concatAll(encId, encInfo);
   },
@@ -31,8 +31,8 @@ export const ServiceItemCodec: Codec<ServiceItem> = [
       return value;
     }
 
-    const id = Number(read(u32));
-    const data = read(ServiceInfoCodec);
+    const id = read(u32);
+    const data = read(ServiceDataCodec);
 
     return { id, data };
   },
@@ -40,3 +40,30 @@ export const ServiceItemCodec: Codec<ServiceItem> = [
 
 ServiceItemCodec.enc = ServiceItemCodec[0];
 ServiceItemCodec.dec = ServiceItemCodec[1];
+
+
+export const ServiceDataCodec: Codec<ServiceInfoData> = [
+  // ENCODER
+  (data: ServiceInfoData): Uint8Array => {
+    const encService = ServiceInfoCodec.enc(data.service);
+   return encService;
+  },
+  // DECODER
+  (input: ArrayBuffer | Uint8Array | string): ServiceInfoData => {
+    const uint8 = toUint8Array(input);
+    let offset = 0;
+
+    function readAndOffset<T>(codec: Codec<T>): T {
+      const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));
+      offset += bytesUsed;
+      return value;
+    }
+
+    const service = readAndOffset(ServiceInfoCodec);
+
+    return { service };
+
+  }
+] as unknown as Codec<ServiceInfoData>;
+ServiceDataCodec.enc = ServiceDataCodec[0];
+ServiceDataCodec.dec = ServiceDataCodec[1];

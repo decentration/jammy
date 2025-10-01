@@ -1,6 +1,6 @@
 
 import { arrayEqual, convertToReadableFormat, toHex } from "../../utils";
-import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT, MAX_WORK_SIZE, ROTATION_PERIOD, TOTAL_ACCUMULATE_GAS, TIMEOUT, EPOCH_LENGTH, VALIDATORS_PER_CORE } from "../../consts";
+import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT, MAX_WORK_SIZE, ROTATION_PERIOD, TOTAL_ACCUMULATE_GAS, TIMEOUT, EPOCH_LENGTH, VALIDATORS_PER_CORE, LOOKUP_ANCHOR_MAX_AGE } from "../../consts";
 import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, finalizeReporters, findExportsRoot, inRecentBlocksOrNew } from "./helpers";
 import { Ed25519Public, SegmentItem } from "../../types/types";
 import { verifyReportSignature } from "./verifyReportSignature";
@@ -69,6 +69,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
   let entropy = preState.entropy;
   let baseCurr: number[] = [];
   let basePrev: number[] = [];
+
   if ( isPrevRotationInSameEpoch(input.slot, ROTATION_PERIOD, EPOCH_LENGTH) ) {
 
     // same epoch we use entropy[2] seed
@@ -85,6 +86,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
  
   console.log("basePrev", convertToReadableFormat(basePrev));
 
+  const history = postState.recent_blocks.history;
   baseCurr = getPermutationSeed(
     entropy[2],
     preState.curr_validators.length,
@@ -108,8 +110,8 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     CORES_COUNT
   );
 
-  console.log("rotatedCurr", convertToReadableFormat(rotatedCurr));
-  console.log("rotatedPrev", convertToReadableFormat(rotatedPrev));
+  // console.log("rotatedCurr", convertToReadableFormat(rotatedCurr));
+  // console.log("rotatedPrev", convertToReadableFormat(rotatedPrev));
 
 
   if (!input.guarantees || input.guarantees.length === 0) {
@@ -153,7 +155,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     // i) For each prerequisite p => if p not in newPackages or chain => fail
     for (const prereqHashRaw of guarantee.report.context.prerequisites) {
       const prereqHash = toHex(prereqHashRaw);
-      if (!inRecentBlocksOrNew(prereqHash, postState.recent_blocks, newPackages)) {
+      if (!inRecentBlocksOrNew(prereqHash, postState.recent_blocks.history, newPackages)) {
         return { output: { err: ErrorCode.DEPENDENCY_MISSING }, postState: preState };
       }
     }
@@ -162,11 +164,11 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     for (const seg of guarantee.report.segment_root_lookup) {
       const segWph = toHex(seg.work_package_hash);
 
-      if (!inRecentBlocksOrNew(segWph, postState.recent_blocks, newPackages)) {
+      if (!inRecentBlocksOrNew(segWph, history, newPackages)) {
         return { output: { err: ErrorCode.SEGMENT_ROOT_LOOKUP_INVALID }, postState: preState };
       }
       // also compare the exportsRoot
-      const known = findExportsRoot(segWph, postState.recent_blocks, newPackages);
+      const known = findExportsRoot(segWph, history, newPackages);
       if (!known || !arrayEqual(known, toBytes(seg.segment_tree_root))) {
         return { output: { err: ErrorCode.SEGMENT_ROOT_LOOKUP_INVALID }, postState: preState };
       }
@@ -193,7 +195,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     }
 
     // ii) check if it’s in recent blocks => DUPLICATE_PACKAGE
-    if (alreadyInRecentBlocks(pkgHashBytes, postState.recent_blocks)) {
+    if (alreadyInRecentBlocks(pkgHashBytes, history)) {
       return { output: { err: ErrorCode.DUPLICATE_PACKAGE }, postState: preState };
     }
 
@@ -215,12 +217,31 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
     //4) check anchor not recent => (11.33) context.anchor
     // we need to check the `recent_blocks` if `anchor` being the `header_hash` sits in it.
     const anchor = report.context.anchor;
-    const pool = postState.recent_blocks;
+    const pool = postState.recent_blocks.history;
     const anchorIdx = pool.findIndex(b => arrayEqual(b.header_hash, anchor));
 
     if (anchorIdx < 0 || anchorIdx > MAX_BLOCKS_HISTORY ) {
       return { output: { err: ErrorCode.ANCHOR_NOT_RECENT }, postState: preState };
     } 
+
+    // 4b) lookup-anchor recency and existence (eq. 11.34 & 11.35)
+    const lookupHash = report.context.lookup_anchor;
+    const lookupSlot = report.context.lookup_anchor_slot;
+
+    if (!lookupHash || lookupSlot === undefined || lookupSlot === null) {
+      return { output: { err: ErrorCode.LOOKUP_ANCHOR_NOT_RECENT }, postState: preState };
+    }
+
+    // recency: xt >= HT − L  =>  input.slot - lookupSlot <= L
+    if (input.slot - lookupSlot > LOOKUP_ANCHOR_MAX_AGE) {
+      return { output: { err: ErrorCode.LOOKUP_ANCHOR_NOT_RECENT }, postState: preState };
+    }
+
+    const hasLuHeader =history.some(b => arrayEqual(b.header_hash, lookupHash));
+
+    if (!hasLuHeader) {
+      return { output: { err: ErrorCode.LOOKUP_ANCHOR_NOT_RECENT }, postState: preState };
+    }
 
     // 5)  check if reports are in ascending order and unique => (11.24) and (11.23)
     // NOT_SORTED_OR_UNIQUE_GUARANTORS
@@ -294,7 +315,7 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
       if (item.accumulate_gas < service.min_item_gas) {
         return { output: { err: ErrorCode.SERVICE_ITEM_GAS_TOO_LOW }, postState: preState };
       }
-      totalGas += item.accumulate_gas;
+      totalGas += Number(item.accumulate_gas); // TODO, fix this for full bigint range. If we make total gas 0n then it fails on conformance vectors. 
 
       // iv) 11.30 => if totalGas > GA => WORK_REPORT_GAS_TOO_HIGH
       if (totalGas > TOTAL_ACCUMULATE_GAS) {
@@ -311,16 +332,17 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
       // console.log("item.code_hash line 261", item.code_hash, service.code_hash);
       // vi) 
-      const foundBlock = postState.recent_blocks[anchorIdx];
+      const foundBlock = history[anchorIdx];      
       // check that state is equal to the anchor id in the block
       if (!arrayEqual(report.context.state_root, foundBlock.state_root)) {
         return { output: { err: ErrorCode.BAD_STATE_ROOT }, postState: preState };
       }
 
-      const computedBeefy = superPeaks(foundBlock.mmr.peaks);
+      
+      const expectedBeefy = foundBlock.beefy_root;;
 
       // vii)
-      if (!arrayEqual(report.context.beefy_root, computedBeefy)) { // TODO
+      if (!arrayEqual(report.context.beefy_root, expectedBeefy)) {
         return {
           output: { err: ErrorCode.BAD_BEEFY_MMR_ROOT }, 
           postState: preState
@@ -355,6 +377,16 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
         }
         set = "curr";
         pubEdKey = postState.curr_validators[validator_index].ed25519;
+
+        const offendersHex = new Set(postState.offenders.map(toHex));
+
+        const pubEdKeyHex = (typeof pubEdKey === "string" || pubEdKey instanceof String)
+          ? pubEdKey.toLowerCase()
+          : toHex(pubEdKey);
+
+        if (offendersHex.has(pubEdKeyHex)) {
+          return { output: { err: ErrorCode.BANNED_VALIDATOR }, postState: preState };
+        }
 
         // check assigned core in currPerm
         const reportCoreIndex = report.core_index

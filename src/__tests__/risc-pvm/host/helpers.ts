@@ -10,14 +10,14 @@ export function makeOpcodeBitmask(code: Uint8Array, opcodeOffsets: number[]): Ui
 }
 
 export const le64 = (x: bigint) => [
-  Number(x & 0xFFn),
-  Number((x>>8n)&0xFFn),
-  Number((x>>16n)&0xFFn),
-  Number((x>>24n)&0xFFn),
-  Number((x>>32n)&0xFFn),
-  Number((x>>40n)&0xFFn),
-  Number((x>>48n)&0xFFn),
-  Number((x>>56n)&0xFFn),
+  (x & 0xFFn),
+  ((x>>8n)&0xFFn),
+  ((x>>16n)&0xFFn),
+  ((x>>24n)&0xFFn),
+  ((x>>32n)&0xFFn),
+  ((x>>40n)&0xFFn),
+  ((x>>48n)&0xFFn),
+  ((x>>56n)&0xFFn),
 ];
 
 export const le32 = (x: number) => [x&0xFF,(x>>>8)&0xFF,(x>>>16)&0xFF,(x>>>24)&0xFF];

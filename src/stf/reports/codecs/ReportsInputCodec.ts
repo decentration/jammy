@@ -18,10 +18,12 @@ export const ReportsInputCodec: Codec<ReportsInput> = [
     // 3) known packages is just an array of 32 byte hashes with a prefix using discriminator code
     const encKnownPackages = DiscriminatorCodec(OpaqueHashCodec).enc(input.known_packages);
 
-    const result = concatAll(encGuarantees, slotBuf, encKnownPackages);
-    console.log("ReportsInputCodec: enc", convertToReadableFormat(result));
     // 3) concat
-    return concatAll(encGuarantees, slotBuf, encKnownPackages);
+    return concatAll(
+      encGuarantees, 
+      slotBuf, 
+      encKnownPackages
+    );
   },
 
   // --- DECODER ---
@@ -31,25 +33,42 @@ export const ReportsInputCodec: Codec<ReportsInput> = [
     let offset = 0;
 
     // a) decode the guarantees (DiscriminatorCodec)
-    const { value: guarantees, bytesUsed: usedGuarantees } = decodeWithBytesUsed(
-      DiscriminatorCodec(GuaranteeCodec),
-      uint8.slice(offset)
-    );
-    offset += usedGuarantees;
+    {
+      const slice = uint8.slice(offset);
+      const { value, bytesUsed: usedGuarantees } = decodeWithBytesUsed(
+        DiscriminatorCodec(GuaranteeCodec),
+        slice
+      );
+      offset += usedGuarantees;
+      var guarantees = value;
+    }
 
     // b) decode slot 4 bytes
-    if (offset + 4 > uint8.length) {
-      throw new Error("ReportsInputCodec: not enough data for slot (need 4 bytes)");
+    {
+      if (offset + 4 > uint8.length) {
+        throw new Error("ReportsInputCodec: not enough data for slot (need 4 bytes)");
+      }
+      const slice = uint8.slice(offset);
+
+      const value = new DataView(slice.buffer, slice.byteOffset, 4).getUint32(0, true);
+      offset += 4;
+      var slot = value;
     }
-    const slot = new DataView(uint8.buffer, uint8.byteOffset + offset, 4).getUint32(0, true);
-    offset += 4;
+
+    console.log("ReportsInputCodec dec offset after slot", offset, "total", uint8.length);
 
     // c) decode known packages (DiscriminatorCodec)
-    const { value: known_packages, bytesUsed: usedKnownPackages } = decodeWithBytesUsed(
-      DiscriminatorCodec(OpaqueHashCodec),
-      uint8.slice(offset)
-    );
-    offset += usedKnownPackages;
+    { 
+      const slice = uint8.slice(offset);
+
+      const { value, bytesUsed: usedKnownPackages } = decodeWithBytesUsed(
+        DiscriminatorCodec(OpaqueHashCodec),
+        slice
+      );
+      offset += usedKnownPackages;
+      console.log("known packages offset", offset, "total", uint8.length);
+      var known_packages = value;
+    }
     // d) check if we have read all the data
 
     return { guarantees, slot, known_packages };

@@ -8,8 +8,6 @@ export const GuaranteeCodec: Codec<Guarantee> = [
     (guar: Guarantee) => {
       // 1) encode the `report`
       const encodedReport = ReportCodec.enc(guar.report);
-
-    //   console.log('encodedReport:', encodedReport);
   
       // 2) encode the `slot` (4 bytes)
       const slotBuf = new Uint8Array(4);
@@ -24,12 +22,8 @@ export const GuaranteeCodec: Codec<Guarantee> = [
       );
       let offset = 0;
   
-      out.set(encodedReport, offset);
-      offset += encodedReport.length;
-  
-      out.set(slotBuf, offset);
-      offset += slotBuf.length;
-  
+      out.set(encodedReport, offset);   offset += encodedReport.length;
+      out.set(slotBuf, offset);         offset += slotBuf.length;
       out.set(encodedSigs, offset);
   
       return out;

@@ -1,21 +1,20 @@
-import { Codec, u64} from "scale-ts";
-import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec"; 
+import { Codec } from "scale-ts";
 import { RefineLoad } from "../types"; 
 import { concatAll, toUint8Array } from "./utils"; 
+import { decodeProtocolIntBig, decodeProtocolIntNumber, encodeProtocolInt } from "./IntegerCodec2";
 
 export const RefineLoadCodec: Codec<RefineLoad> = [
   // ENCODER 
   (r: RefineLoad): Uint8Array => {
     console.log("RefineLoadCodec: enc", r);
 
-  //   RefineLoad ::= SEQUENCE {
-  //     gas-used U64,
-  //     imports U16,
-  //     extrinsic-count U16,
-  //     extrinsic-size U32,
-  //     exports U16
-  // }
-
+    //   RefineLoad ::= SEQUENCE {
+    //     gas-used U64,
+    //     imports U16,
+    //     extrinsic-count U16,
+    //     extrinsic-size U32,
+    //     exports U16
+    // }
 
     const encGasUsed        = encodeProtocolInt(r.gas_used);
     const encImports        = encodeProtocolInt(r.imports);
@@ -38,16 +37,22 @@ export const RefineLoadCodec: Codec<RefineLoad> = [
     let offset = 0;
 
     function readProtocolInt(): number {
-      const { value, bytesRead } = decodeProtocolInt(uint8.slice(offset));
+      const { value, bytesRead } = decodeProtocolIntNumber(uint8.slice(offset));
       offset += bytesRead;
       return value;
     }
 
-    const gas_used        = readProtocolInt();
+    function readProtocolIntBig(): bigint {
+      const { value, bytesRead } = decodeProtocolIntBig(uint8.slice(offset));
+      offset += bytesRead;
+      return value;
+    }
+
+    const gas_used        = readProtocolIntBig();
     const imports         = readProtocolInt();
     const extrinsic_count = readProtocolInt();
     const extrinsic_size  = readProtocolInt();
-    const exports        = readProtocolInt();
+    const exports         = readProtocolInt();
 
     return {
         gas_used,

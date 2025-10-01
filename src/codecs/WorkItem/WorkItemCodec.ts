@@ -117,18 +117,16 @@ export const WorkItemCodec: Codec<WorkItem> = [
     if (offset + 8 > uint8.length) {
       throw new Error("WorkItemCodec: not enough bytes for refine_gas_limit");
     }
-    const refine_gas_limit = Number(
-      new DataView(uint8.buffer, uint8.byteOffset + offset, 8).getBigUint64(0, true)
-    );
+    const refine_gas_limit = 
+      new DataView(uint8.buffer, uint8.byteOffset + offset, 8).getBigUint64(0, true);
     offset += 8;
 
     // 5) accumulate_gas_limit => 8 bytes
     if (offset + 8 > uint8.length) {
       throw new Error("WorkItemCodec: not enough bytes for accumulate_gas_limit");
     }
-    const accumulate_gas_limit = Number(
-      new DataView(uint8.buffer, uint8.byteOffset + offset, 8).getBigUint64(0, true)
-    );
+    const accumulate_gas_limit =
+      new DataView(uint8.buffer, uint8.byteOffset + offset, 8).getBigUint64(0, true);
     offset += 8;
 
     // 6) import_segments => DiscriminatorCodec(ImportSpecCodec)

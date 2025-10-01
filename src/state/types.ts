@@ -16,7 +16,7 @@ export interface State {
   judgements: DisputesRecords;                      // ψ
   entropyPool: Entropy[];                    // η
   validatorQueue: ValidatorInfo[];              // ι
-  currentValidators: ValidatorInfo[];        // κ
+  curr_validators: ValidatorInfo[];        // κ
   archivedValidators: ValidatorInfo[];      // λ
   pendingReports: PendingReports;                    // ρ
   timeslotIndex: number;                // τ

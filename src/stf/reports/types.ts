@@ -1,8 +1,6 @@
-import { AvailAssignment, Ed25519Public, Guarantee, SegmentItem, ServicesStatisticsMapEntry } from "../../types/types";
+import { AvailAssignment, CoresActivityRecord, Ed25519Public, Guarantee, SegmentItem, ServicesStatisticsMapEntry } from "../../types/types";
 import { WorkReportHash } from "../accumulate/types";
-import { ValidatorInfo } from "../types";
-import { BlockItem } from "../types";
-import { Struct, u16, u32, u64 } from "scale-ts";
+import { BetaState, ServiceItem, ValidatorInfo } from "../types";
 
 export interface ReportsInput { 
     guarantees: Guarantee[], 
@@ -10,16 +8,10 @@ export interface ReportsInput {
     known_packages:  WorkReportHash[],
 }
 
-
-
-
-
-
 export type ReportsOutput = 
 { err: ErrorCode } | { ok: OkData } | null;
 
 export type Entropy = Uint8Array;
-
 
 export interface ReportsState { 
     avail_assignments: (AvailAssignment | null)[],
@@ -27,7 +19,7 @@ export interface ReportsState {
     prev_validators: ValidatorInfo[],
     entropy: Entropy[],
     offenders: Ed25519Public[],
-    recent_blocks: BlockItem[],
+    recent_blocks: BetaState,
     auth_pools: Uint8Array[][],
     accounts: ServiceItem[],
     cores_statistics: CoresActivityRecord[],
@@ -65,7 +57,9 @@ export enum ErrorCode {
     TOO_MANY_DEPENDENCIES = "too_many_dependencies",
     SEGMENT_ROOT_LOOKUP_INVALID = "segment_root_lookup_invalid",
     BAD_SIGNATURE = "bad_signature",
-    WORK_REPORT_TOO_BIG = "work_report_too_big"
+    WORK_REPORT_TOO_BIG = "work_report_too_big",
+    BANNED_VALIDATOR = "banned_validator",
+    LOOKUP_ANCHOR_NOT_RECENT = "lookup_anchor_not_recent"
   }
 
   export const REPORTS_ERROR_CODES: ErrorCode[] = [
@@ -91,25 +85,22 @@ export enum ErrorCode {
     ErrorCode.TOO_MANY_DEPENDENCIES,
     ErrorCode.SEGMENT_ROOT_LOOKUP_INVALID,
     ErrorCode.BAD_SIGNATURE,
-    ErrorCode.WORK_REPORT_TOO_BIG
+    ErrorCode.WORK_REPORT_TOO_BIG,
+    ErrorCode.LOOKUP_ANCHOR_NOT_RECENT
   ];
 
 
-  export interface ServiceInfo {
-    service: {
-    code_hash: Uint8Array; // 32 bytes
-    balance: number;       // u64
-    min_item_gas: number;   // u32
-    min_memo_gas: number;   // u32
-    bytes: number;         // u64
-    items: number; 
-    }        // u32
-  }
+  // export interface ServiceInfo {
+  //   service: {
+  //   code_hash: Uint8Array; // 32 bytes
+  //   balance: number;       // u64
+  //   min_item_gas: number;   // u32
+  //   min_memo_gas: number;   // u32
+  //   bytes: number;         // u64
+  //   items: number; 
+  //   }        // u32
+  // }
 
-  export interface ServiceItem {
-    id: number;  // u32
-    data: ServiceInfo;
-  }
 
 
   // CoreActivityRecord ::= SEQUENCE {
@@ -132,16 +123,7 @@ export enum ErrorCode {
   //   -- Number of validators which formed super-majority for assurance.
   //   popularity      U16
   // }
-  export interface CoresActivityRecord {
-    gas_used: number,
-    imports: number,
-    extrinsic_count: number,
-    extrinsic_size: number,
-    exports: number, 
-    bundle_size: number,
-    da_load: number,
-    popularity: number
-  }
+
 
   // export const CoreActivityRecordCodec = Struct({
   //   gas_used: u64,

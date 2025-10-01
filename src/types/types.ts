@@ -38,7 +38,7 @@ export type EpochMarkValidators = {
 
 export interface Validators {
   public_key: BandersnatchPublic; // 32 bytes
-  stake: number; // u64
+  stake: bigint; // u64
 }
 // export interface EpochMark {
 //   entropy: Uint8Array; // η1'
@@ -111,7 +111,7 @@ export const AssuranceCodec = Struct({
 // exports U16
 
 export interface RefineLoad {
-  gas_used: number; // u64
+  gas_used: bigint; // u64
   imports: number; // u16
   extrinsic_count: number; // u16
   extrinsic_size: number; // u32
@@ -123,16 +123,28 @@ export interface Result {
   service_id: number; // 
   code_hash: Uint8Array; // Bytes(32)
   payload_hash: Uint8Array; // Bytes(32)
-  accumulate_gas: number; // u64
+  accumulate_gas: Gas; // u64
   result: ResultValue;
   refine_load: RefineLoad;
 }
 
 // the result value is an enum with variants.
 export type ResultValue =
-| { ok: Uint8Array }
-| { panic: null }
-| { placeholder: null }
+  | { ok: Uint8Array }       // [0] ByteSequence
+  | { out_of_gas: null }     // [1] NULL
+  | { panic: null }          // [2] NULL
+  | { bad_exports: null }    // [3] NULL
+  | { bad_code: null }       // [4] NULL
+  | { code_oversize: null }; // [5] NULL
+
+export const TAG = {
+  ok: 0x00,
+  out_of_gas: 0x01,
+  panic: 0x02,
+  bad_exports: 0x03,
+  bad_code: 0x04,
+  code_oversize: 0x05,
+} as const;
 
 export interface PackageSpec {
   hash: Uint8Array; // Bytes(32)
@@ -173,10 +185,11 @@ export interface Report {
   context: Context;
   core_index: number; // u32
   authorizer_hash: Uint8Array; // Bytes(32)
+  auth_gas_used: Gas; // u64
   auth_output: Uint8Array;
   segment_root_lookup: SegmentItem[]; // Array of Bytes(32)
   results: Result[];
-  auth_gas_used: number; // u64
+  
 }
 
 export interface Signature {
@@ -275,7 +288,7 @@ export const ReportedPackageCodec = Struct({
   segment_tree_root: Bytes(32),
 });
 
-export type Gas = number; // u64 
+export type Gas = bigint; // u64 
                          
 export interface ImportSpec {
   tree_root: Uint8Array;  // 32 bytes
@@ -291,8 +304,8 @@ export interface WorkItem {
   service: number;                // u32
   code_hash: Uint8Array;          // 32 bytes
   payload: Uint8Array;            // single-byte-len-encoded
-  refine_gas_limit: number;       // u64
-  accumulate_gas_limit: number;   // u64
+  refine_gas_limit: Gas;       // u64
+  accumulate_gas_limit: Gas;   // u64
   import_segments: ImportSpec[];  // single-byte-len array
   extrinsic: ExtrinsicSpec[];     // single-byte-len array
   export_count: number;           // u16
@@ -323,26 +336,26 @@ export interface AvailAssignment {
 
 
   export interface CoresActivityRecord {
-    gas_used: number,
-    imports: number,
-    extrinsic_count: number,
-    extrinsic_size: number,
-    exports: number, 
-    bundle_size: number,
-    da_load: number,
-    popularity: number
+    da_load: number, // u32
+    popularity: number /// u16 
+    imports: number, // u16
+    extrinsic_count: number, // u16
+    extrinsic_size: number, //u16
+    exports: number, // u16
+    bundle_size: number, // u32
+    gas_used: Gas // u64,
   }
 
-  export const CoreActivityRecordCodec = Struct({
-    gas_used: u64,
-    imports: u16,
-    extrinsic_count: u16,
-    extrinsic_size: u32,
-    exports: u16,
-    bundle_size: u32,
-    da_load: u32,
-    popularity: u16
-  })
+  // export const CoreActivityRecordCodec = Struct({
+  //   da_load: u32,
+  //   popularity: u16,
+  //   imports: u16,
+  //   extrinsic_count: u16,
+  //   extrinsic_size: u32,
+  //   exports: u16,
+  //   bundle_size: u32,
+  //   gas_used: u64,
+  // })
 
 
 
