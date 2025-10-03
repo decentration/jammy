@@ -391,15 +391,15 @@ export interface ServiceActivityRecord {
   provided_count: number, 
   provided_size: number, 
   refinement_count: number,
-  refinement_gas_used: number, 
+  refinement_gas_used: Gas, 
   imports: number,
   extrinsic_count: number,
   extrinsic_size: number, 
   exports: number, 
   accumulate_count: number,
-  accumulate_gas_used: number,
-  on_transfers_count: number, 
-  on_transfers_gas_used: number
+  accumulate_gas_used: Gas,
+  // on_transfers_count: number, 
+  // on_transfers_gas_used: number
 }
 
 

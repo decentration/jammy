@@ -3,6 +3,7 @@ import { ServiceActivityRecord } from "../types";
 import { decodeProtocolInt, encodeProtocolInt } from "./IntegerCodec";
 import { concatAll, decodeWithBytesUsed, toUint8Array } from "./utils";
 import { convertToReadableFormat } from "../utils";
+import { decodeProtocolIntBig } from "./IntegerCodec2";
 
 export const ServiceActivityRecordCodec: Codec<ServiceActivityRecord> = [
   // ENCODER
@@ -20,9 +21,9 @@ export const ServiceActivityRecordCodec: Codec<ServiceActivityRecord> = [
     const accumulateCount     = encodeProtocolInt(record.accumulate_count);
     // const accumulateGasUsed   = encodeProtocolInt(record.accumulate_gas_used);
     const accumulateGasUsed   = encodeProtocolInt(record.accumulate_gas_used);
-    const onTransfersCount    = encodeProtocolInt(record.on_transfers_count);
+    // const onTransfersCount    = encodeProtocolInt(record.on_transfers_count);
     // const onTransfersGasUsed  = encodeProtocolInt(record.on_transfers_gas_used);
-    const onTransfersGasUsed  = encodeProtocolInt(record.on_transfers_gas_used);
+
 
 
     return concatAll(
@@ -36,8 +37,8 @@ export const ServiceActivityRecordCodec: Codec<ServiceActivityRecord> = [
       exports,
       accumulateCount,
       accumulateGasUsed,
-      onTransfersCount,
-      onTransfersGasUsed
+      // onTransfersCount,
+      // onTransfersGasUsed
     );
   },
 
@@ -51,6 +52,14 @@ export const ServiceActivityRecordCodec: Codec<ServiceActivityRecord> = [
       offset += bytesRead;
       return value;
     }
+
+    function readProtocolIntBig(): bigint {
+      const { value, bytesRead } = decodeProtocolIntBig(uint8.slice(offset));
+      offset += bytesRead;
+      return value;
+    }
+
+
 
     function read<T>(codec: Codec<T>): T {
       const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));
@@ -75,15 +84,15 @@ export const ServiceActivityRecordCodec: Codec<ServiceActivityRecord> = [
     const provided_count = readProtocolInt();
     const provided_size = readProtocolInt();
     const refinement_count = readProtocolInt();
-    const refinement_gas_used = readProtocolInt();
+    const refinement_gas_used = readProtocolIntBig();
     const imports_ = readProtocolInt();
     const extrinsic_count = readProtocolInt();
     const extrinsic_size = readProtocolInt();
     const exports_ = readProtocolInt();
     const accumulate_count = readProtocolInt();
-    const accumulate_gas_used = readProtocolInt();
-    const on_transfers_count = readProtocolInt();
-    const on_transfers_gas_used = readProtocolInt();
+    const accumulate_gas_used = readProtocolIntBig();
+    // const on_transfers_count = readProtocolInt();
+    // const on_transfers_gas_used = readProtocolInt();
 
     const record: ServiceActivityRecord = {
       provided_count,
@@ -96,8 +105,8 @@ export const ServiceActivityRecordCodec: Codec<ServiceActivityRecord> = [
       exports: exports_,
       accumulate_count,
       accumulate_gas_used,
-      on_transfers_count,
-      on_transfers_gas_used,
+      // on_transfers_count,
+      // on_transfers_gas_used,
     };
 
     return {
