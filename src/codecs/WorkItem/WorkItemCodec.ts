@@ -27,9 +27,6 @@ export const WorkItemCodec: Codec<WorkItem> = [
     // 2) code_hash => 32 bytes
     const codeHashBuf = Bytes(32).enc(wi.code_hash);
 
-    // 3) payload => SingleByteLen
-    const payloadBuf = VarLenBytesCodec.enc(wi.payload);
-
     // 4) refine_gas_limit => 8 bytes
     const refineBuf = new Uint8Array(8);
     new DataView(refineBuf.buffer).setBigUint64(0, BigInt(wi.refine_gas_limit), true);
@@ -38,15 +35,19 @@ export const WorkItemCodec: Codec<WorkItem> = [
     const accumBuf = new Uint8Array(8);
     new DataView(accumBuf.buffer).setBigUint64(0, BigInt(wi.accumulate_gas_limit), true);
 
-    // 6) import_segments => DiscriminatorCodec(ImportSpecCodec)
-    const encImport = DiscriminatorCodec(ImportSpecCodec).enc(wi.import_segments);
-
-    // 7) extrinsic => DiscriminatorCodec(ExtrinsicSpecCodec)
-    const encExtrinsic = DiscriminatorCodec(ExtrinsicSpecCodec).enc(wi.extrinsic);
-
-    // 8) export_count => u16
+    // 6) export_count => u16
     const exportCountBuf = new Uint8Array(2);
     new DataView(exportCountBuf.buffer).setUint16(0, wi.export_count, true);
+
+    // 3) payload => SingleByteLen
+    const payloadBuf = VarLenBytesCodec.enc(wi.payload);
+
+    // 7) import_segments => DiscriminatorCodec(ImportSpecCodec)
+    const encImport = DiscriminatorCodec(ImportSpecCodec).enc(wi.import_segments);
+
+    // 8) extrinsic => DiscriminatorCodec(ExtrinsicSpecCodec)
+    const encExtrinsic = DiscriminatorCodec(ExtrinsicSpecCodec).enc(wi.extrinsic);
+
 
     // Concatenate
     const totalSize =

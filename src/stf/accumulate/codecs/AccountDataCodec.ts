@@ -1,47 +1,49 @@
-import { Codec, Bytes, u32, u64 } from "scale-ts";
+import { Codec } from "scale-ts";
 import { VarLenBytesCodec, toUint8Array, decodeWithBytesUsed, DiscriminatorCodec, encodeProtocolInt, decodeProtocolInt, concatAll } from "../../../codecs";
-import { AccountData, PreimageItem } from "../types";
+import { AccountData, StorageMap, StorageMapEntry } from "../types";
 import { ServiceInfoCodec } from "../../reports/codecs/Services/ServiceInfoCodec";
 import { ServiceDataCodec } from "../../reports/codecs/Services/ServiceItemCodec";
+import { PreimagesStatusCodec } from "./PreimagesStatusCodec";
+import { PreimagesBlobCodec } from "./PreimagesBlobCodec";
 
-// export interface PreimageItem {
-//     hash: OpaqueHash, // 32 bytes
-//     blob: Uint8Array, // many bytes nt a number
-
-
-// } 
-export const PreimageItemCodec: Codec<PreimageItem> = [
+// StorageMapEntry ::= SEQUENCE {
+//   -- Storage key (unhashed, as managed by the service code)
+//   key ByteSequence,
+//   -- Storage value
+//   value ByteSequence
+// }
+export const StorageMapEntryCodec: Codec<StorageMapEntry> = [
   // ENCODER
-  (data: PreimageItem): Uint8Array => {
-    const encHash = Bytes(32).enc(data.hash);
-    const encBlob = VarLenBytesCodec.enc(data.blob);
+  (entry: StorageMapEntry): Uint8Array => {
+    const encKey = VarLenBytesCodec.enc(entry.key);
+    const encVal = VarLenBytesCodec.enc(entry.value);
+    return concatAll(encKey, encVal);
+  },
 
-    return concatAll(encHash, encBlob);
-  }
   // DECODER
-  , (input: ArrayBuffer | Uint8Array | string): PreimageItem => {
-    const uint8 = toUint8Array(input);
-    let offset = 0;
+  (data: ArrayBuffer | Uint8Array | string): StorageMapEntry => {
+    const uint8 =
+      data instanceof Uint8Array
+        ? data
+        : typeof data === "string"
+        ? new TextEncoder().encode(data)
+        : new Uint8Array(data);
 
-    function read<T>(codec: Codec<T>): T {
+    let offset = 0;
+    const read = <T,>(codec: Codec<T>): T => {
       const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));
       offset += bytesUsed;
       return value;
-    }
+    };
 
-    // const blob = read(VarLenBytesCodec);
+    const key = read(VarLenBytesCodec);
+    const value = read(VarLenBytesCodec);
 
-    const hash = read(Bytes(32));
-    const blob = read(VarLenBytesCodec);  
-    return { hash, blob };
+    return { key, value };
   },
-] as unknown as Codec<PreimageItem>;
-
-PreimageItemCodec.enc = PreimageItemCodec[0];
-PreimageItemCodec.dec = PreimageItemCodec[1];
-  
-export const PreimagesCodec = DiscriminatorCodec(PreimageItemCodec);
-
+] as unknown as Codec<StorageMapEntry>;
+StorageMapEntryCodec.enc = StorageMapEntryCodec[0];
+StorageMapEntryCodec.dec = StorageMapEntryCodec[1];
 
 
 export const AccountDataCodec: Codec<AccountData> = [
@@ -50,9 +52,11 @@ export const AccountDataCodec: Codec<AccountData> = [
 (data: AccountData): Uint8Array => {
 console.log("AccountDataCodec: enc", data);
   const encService = ServiceDataCodec.enc(data);
-  const encPreimages = PreimagesCodec.enc(data.preimages);
+  const encStorage = StorageMapCodec.enc(data.storage);
+  const encPreimagesBlob = PreimagesBlobCodec.enc(data.preimages_blob);
+  const encPreimagesStatus = PreimagesStatusCodec.enc(data.preimages_status);
 
-  return concatAll(encService, encPreimages);
+  return concatAll(encService, encStorage, encPreimagesBlob, encPreimagesStatus);
 },
 
 // DECODER
@@ -67,9 +71,11 @@ console.log("AccountDataCodec: enc", data);
   }
 
   const service = readAndOffset(ServiceInfoCodec);
-  const preimages = readAndOffset(PreimagesCodec);
+  const storage = readAndOffset(StorageMapCodec);
+  const preimages_blob = readAndOffset(PreimagesBlobCodec);
+  const preimages_status = readAndOffset(PreimagesStatusCodec);
 
-  return { service, preimages };
+  return { service, storage, preimages_blob, preimages_status };
 
 },
 ] as unknown as Codec<AccountData>;
@@ -77,3 +83,5 @@ console.log("AccountDataCodec: enc", data);
 AccountDataCodec.enc = AccountDataCodec[0];
 AccountDataCodec.dec = AccountDataCodec[1];
   
+// a discriminator codec for StorageMapEntryCodec
+export const StorageMapCodec: Codec<StorageMap> = DiscriminatorCodec<StorageMapEntry>(StorageMapEntryCodec);

@@ -1,4 +1,6 @@
+import { coerceU64 } from "../../../codecs";
 import { CORES_COUNT, EPOCH_LENGTH, TOTAL_ACCUMULATE_GAS, TOTAL_GAS_FOR_ALL_ACCUMULATION } from "../../../consts";
+import { Gas } from "../../../types/types";
 import { toHex } from "../../../utils";
 import { AccumulateEphemeral, AccumulateState, ReadyRecord } from "../types";
 // import { pvmAccumulate } from "../ffi/pvm_ffi/pvm_ffi"; 
@@ -9,7 +11,7 @@ import { AccumulateEphemeral, AccumulateState, ReadyRecord } from "../types";
  *  */
 export function computeBlockGasLimit(
     state: AccumulateState,
-  ): number {
+  ): Gas {
     // TODO:
     // 12.20 block budgeting 
     // let g = max(GT , GA ⋅ C + ∑x∈V(χg )(x))
@@ -29,20 +31,21 @@ export function computeBlockGasLimit(
     
 
 
-    let blockGasLimit = TOTAL_GAS_FOR_ALL_ACCUMULATION // GT
+    let blockGasLimit: Gas = TOTAL_GAS_FOR_ALL_ACCUMULATION // GT
     // Add all the privileges, C (concurrency), etc.
 
     // sum always accumulate gas
-    let sumAlwaysAccGas = 0;
+    let sumAlwaysAccGas = 0n;
     for (const entry of state.privileges.always_acc) {
-       sumAlwaysAccGas += entry.gas;
+       sumAlwaysAccGas += coerceU64(entry.gas);
     }
 
-    const candidate = TOTAL_ACCUMULATE_GAS * CORES_COUNT + sumAlwaysAccGas
+    const candidate: Gas = TOTAL_ACCUMULATE_GAS * coerceU64(CORES_COUNT) + sumAlwaysAccGas
 
-    blockGasLimit = Math.max(TOTAL_GAS_FOR_ALL_ACCUMULATION, candidate );
+    const gt: Gas = TOTAL_GAS_FOR_ALL_ACCUMULATION;
+    
+    return candidate > gt ? candidate : gt;
 
-    return blockGasLimit;
   }
 
 export async function accumulateSingleService(
@@ -50,7 +53,7 @@ export async function accumulateSingleService(
   slot: number,                    // Current slot from eq. (12.19) if needed
   serviceId: number,
   serviceItems: any[],            // Typically the results relevant to this service
-  blockGasLimit: number
+  blockGasLimit: Gas
 ): Promise<AccumulateEphemeral> {
 
   // 1) Retrieve the service codeHash / other relevant info from chain state
@@ -115,7 +118,7 @@ async function pvmAccumulatePlaceholder(
   serviceId: number,
   codeHash: Uint8Array,
   items: any[],
-  gasLimit: number,
+  gasLimit: Gas,
 ): Promise<AccumulateEphemeral> {
   // TODO: Real code would call the PVM FFI, which we have started. 
   // but we just return a dummy ephemeral object
@@ -125,7 +128,7 @@ async function pvmAccumulatePlaceholder(
     codeUpgrades: [],
     selfTerminated: false,
     commitmentHash: undefined,
-    actualGasUsed: 0
+    actualGasUsed: 0n
   };
 }
 
@@ -225,11 +228,11 @@ export function rotateAccumulated(
 }
 
 
-export function gasBookeeping(acceptedReports: ReadyRecord[], blockGasLimit: number) {
+export function gasBookeeping(acceptedReports: ReadyRecord[], blockGasLimit: bigint) {
   // 1) gas bookkeeping: reduce the gas limit by the sum of all gas used in the accepted reports
      const gasUsed = acceptedReports.reduce(
-       (sum , r) => sum + r.report.results.reduce((s, x) => s + (x.accumulate_gas ?? 0), 0)
-     , 0);
+       (sum , r) => sum + r.report.results.reduce((s, x) => s + (coerceU64(x.accumulate_gas) ?? 0n), 0n)
+     , 0n);
      blockGasLimit -= gasUsed;
 
 }

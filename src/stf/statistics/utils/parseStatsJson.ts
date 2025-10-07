@@ -1,7 +1,6 @@
 import { hexStringToBytes } from "../../../codecs";
-import { Context, ExtrinsicData, PackageSpec, RefineLoad, Report, Result, ResultValue, ServiceActivityRecord, ServicesStatisticsMapEntry } from "../../../types/types";
+import { Context, CoresActivityRecord, ExtrinsicData, PackageSpec, RefineLoad, Report, Result, ResultValue, ServiceActivityRecord, ServicesStatisticsMapEntry } from "../../../types/types";
 import { parseReportJson } from "../../../utils/parsers";
-import { CoresActivityRecord } from "../../reports/types";
 import { ValidatorInfo } from "../../types";
 import { Statistics, StatsExtrinsic } from "../types";
 import { StatsInput } from "../types";
@@ -109,11 +108,11 @@ function parseCoresRecordJson(json: any): CoresActivityRecord {
 }
 
 function parseStatisticsJson(json: any): Statistics {
-  const vals_current = (json.vals_current || []).map(parsePerformanceRecordJson);
+  const vals_curr = (json.vals_current || []).map(parsePerformanceRecordJson);
   const vals_last = (json.vals_last || []).map(parsePerformanceRecordJson);
   const cores = (json.cores || []).map(parseCoresRecordJson);
   const services = (json.services || []).map(parseServicesRecordJson);
-  return { vals_current, vals_last, cores, services };
+  return { vals_curr, vals_last, cores, services };
 }
 
 function parseValidatorDataJson(json: any): ValidatorInfo {
@@ -145,8 +144,6 @@ function parseServiceActivityRecord(json: any): ServiceActivityRecord {
     exports: json.exports, 
     accumulate_count: json.accumulate_count,
     accumulate_gas_used: json.accumulate_gas_used,
-    on_transfers_count: json.on_transfers_count, 
-    on_transfers_gas_used: json.on_transfers_gas_used
   }
 
 }

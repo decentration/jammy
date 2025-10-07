@@ -32,15 +32,15 @@ export interface StatsStf {
   }
 
   export interface FlatStatsState {
-    vals_curr_stats: PerformanceRecord[];
-    vals_last_stats: PerformanceRecord[];
+    vals_curr: PerformanceRecord[];
+    vals_last: PerformanceRecord[];
     slot: number;
     curr_validators: any[];
   };
   
   export interface Statistics {
-    vals_curr_stats: PerformanceRecord[];
-    vals_last_stats: PerformanceRecord[];
+    vals_curr: PerformanceRecord[];
+    vals_last: PerformanceRecord[];
     cores: CoresActivityRecord[];
     services: ServicesStatisticsMapEntry[];
   }

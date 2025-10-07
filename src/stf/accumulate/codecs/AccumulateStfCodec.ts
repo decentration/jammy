@@ -19,6 +19,8 @@ export const AccumulateStfCodec: Codec<AccumulateStf> = [
         const encInput     = AccumulateInputCodec.enc(stf.input); 
         const encPreState  = AccumulateStateCodec.enc(stf.pre_state);
         const encOutput    = AccumulateOutputCodec.enc(stf.output);
+
+        //  console.log("AccumulateStfCodec: enc post_state", stf.post_state);
         const encPostState = AccumulateStateCodec.enc(stf.post_state);
 
         return concatAll(

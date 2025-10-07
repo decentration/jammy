@@ -1,10 +1,11 @@
 import { Bytes, Codec, u32 } from "scale-ts";
 import { AccumulateState} from "../types"; 
-import { concatAll, decodeWithBytesUsed } from "../../../codecs";
+import { concatAll, decodeWithBytesUsed, ServicesStatisticsCodec, ServicesStatisticsMapEntryCodec } from "../../../codecs";
 import { ReadyQueueCodec } from "./ReadyQueueCodec";
 import { PrivilegesCodec } from "./PrivilegesCodec";
 import { AccountsCodec } from "./AccountsCodec";
 import { AccumulatedQueueCodec } from "./AccumulatedQueueCodec";
+import { StatisticsCodec } from "../../statistics/codecs/StatisticsCodec";
 
 // export interface AccumulateState { 
 //     slot: number,
@@ -27,6 +28,7 @@ export const AccumulateStateCodec: Codec<AccumulateState> = [
     const encReadyQueue = ReadyQueueCodec.enc(state.ready_queue);
     const encAccumulated = AccumulatedQueueCodec.enc(state.accumulated);
     const encPrivileges = PrivilegesCodec.enc(state.privileges);
+    const encStatistics = ServicesStatisticsCodec.enc(state.statistics);
     const encAccounts = AccountsCodec.enc(state.accounts);
 
 
@@ -37,6 +39,7 @@ export const AccumulateStateCodec: Codec<AccumulateState> = [
       encReadyQueue,
       encAccumulated,
       encPrivileges,
+      encStatistics,
       encAccounts
     );
   },
@@ -63,6 +66,7 @@ export const AccumulateStateCodec: Codec<AccumulateState> = [
     const ready_queue = read(ReadyQueueCodec);
     const accumulated = read(AccumulatedQueueCodec);
     const privileges = read(PrivilegesCodec);
+    const servicesStatistics = read(ServicesStatisticsCodec)
     const accountItems = read(AccountsCodec);
   
 
@@ -72,6 +76,7 @@ export const AccumulateStateCodec: Codec<AccumulateState> = [
       ready_queue,
       accumulated,
       privileges,
+      statistics: servicesStatistics,
       accounts: accountItems,
     };
   },

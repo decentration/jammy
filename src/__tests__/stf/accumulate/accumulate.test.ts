@@ -1,7 +1,7 @@
 import path from "path";
 import { AccumulateStf } from "../../../stf/accumulate/types"; 
 import { AccumulateStfCodec } from "../../../stf/accumulate/codecs/AccumulateStfCodec"
-import { createCodecTestSuite, TestMode } from "../../utils/createCodecTestSuite";
+import { createCodecTestSuite } from "../../utils/createCodecTestSuite";
 import { parseAccumulateStfJson } from "../../../stf/accumulate/utils/parsers/parseAccumulateStfJson";
 
 import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
@@ -35,7 +35,7 @@ const testFiles = [
     "enqueue_and_unlock_with_sr_lookup-1"
 ];
 
-  const testVectorsDir = path.join(JAM_TEST_VECTORS, "accumulate", CHAIN_TYPE);
+  const testVectorsDir = path.join(JAM_TEST_VECTORS, "stf/accumulate", CHAIN_TYPE);
   const outDir = path.resolve(__dirname, "../../output/stf/accumulate");
 
   createCodecTestSuite<AccumulateStf>(
@@ -44,7 +44,7 @@ const testFiles = [
     testVectorsDir,          // Path to test vectors, name of file only, without the file type 
     outDir,                  // Output directory for debug
     testFiles,               // The array of test file names
-    parseAccumulateStfJson,  // The function to parse JSON
+    // parseAccumulateStfJson,  // The function to parse JSON
   );
 
 

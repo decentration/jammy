@@ -7,9 +7,9 @@ export const StatisticsCodec: Codec<Statistics> = [
   // ENCODER
   (stats: Statistics): Uint8Array => {
     // 1) Ensure length is exactly the known count
-    if (stats.vals_current.length !== VALIDATOR_COUNT) {
+    if (stats.vals_curr.length !== VALIDATOR_COUNT) {
       throw new Error(
-        `StatisticsCodec: 'current' must have length=${VALIDATOR_COUNT}, got=${stats.vals_current.length}`
+        `StatisticsCodec: 'current' must have length=${VALIDATOR_COUNT}, got=${stats.vals_curr.length}`
       );
     }
     if (stats.vals_last.length !== VALIDATOR_COUNT) {
@@ -20,7 +20,7 @@ export const StatisticsCodec: Codec<Statistics> = [
 
 
     // 2) Encode each PerformanceRecord in current and last
-    const encodedValsCurrent = stats.vals_current.map((x) => PerformanceRecordCodec.enc(x));
+    const encodedValsCurrent = stats.vals_curr.map((x) => PerformanceRecordCodec.enc(x));
     const encodedValsLast = stats.vals_last.map((x) => PerformanceRecordCodec.enc(x));
     const encodedCores = CoresStatisticsCodec.enc(stats.cores);
     const encodedServices = ServicesStatisticsCodec.enc(stats.services);
@@ -40,14 +40,14 @@ export const StatisticsCodec: Codec<Statistics> = [
       : new Uint8Array(data);
 
     let offset = 0;
-    const vals_current: PerformanceRecord[] = [];
+    const vals_curr: PerformanceRecord[] = [];
 
-    // decode VALIDATOR_COUNT items for vals_current
+    // decode VALIDATOR_COUNT items for vals_curr
     for (let i = 0; i < VALIDATOR_COUNT; i++) {
       const slice = uint8.slice(offset);
       const { value: perf, bytesUsed } = decodeWithBytesUsed(PerformanceRecordCodec, slice);
       // console.log("perf and bytesUsed:", perf, bytesUsed);
-      vals_current.push(perf);
+      vals_curr.push(perf);
       offset += bytesUsed;
     }
 
@@ -67,7 +67,7 @@ export const StatisticsCodec: Codec<Statistics> = [
     offset += services.length;
     
 
-    return { vals_current, vals_last, cores, services };
+    return { vals_curr, vals_last, cores, services };
   },
 ] as unknown as Codec<Statistics>;
 

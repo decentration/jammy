@@ -11,7 +11,6 @@ export const ServicesStatisticsMapEntryCodec: Codec<ServicesStatisticsMapEntry> 
   // ---------- ENCODER ----------
   (entry: ServicesStatisticsMapEntry): Uint8Array => {
     const idEncoded = u32.enc(entry.id);
-    console.log("ServicesStatisticsMapEntryCodec: enc", idEncoded);
     const recordEncoded = ServiceActivityRecordCodec.enc(entry.record);
     return concatAll(idEncoded, recordEncoded);
   },
@@ -21,26 +20,18 @@ export const ServicesStatisticsMapEntryCodec: Codec<ServicesStatisticsMapEntry> 
     const uint8 = toUint8Array(data);
     let offset = 0;
 
-    // function readProtocolInt(): number {
-    //   const { value, bytesRead } = u32.dec(uint8.slice(offset));
-    //   offset += bytesRead;
+    // function read<T>(codec: Codec<T>): T {
+    //   const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));
+    //   offset += bytesUsed;
     //   return value;
     // }
 
-    function read<T>(codec: Codec<T>): T {
-      const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));
-      offset += bytesUsed;
-      return value;
-    }
-
     // 1) Decode service id
-    const id = read(u32);
+    const id = u32.dec(uint8.slice(0, 4));
 
     // 2) Decode record
-    const { value: record, bytesUsed } = decodeWithBytesUsed(
-        ServiceActivityRecordCodec,
-        uint8.slice(offset));
-    offset += bytesUsed;
+    const record = ServiceActivityRecordCodec.dec(uint8.slice(4));
+
 
     const mapEntry: ServicesStatisticsMapEntry = {
       id,

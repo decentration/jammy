@@ -1,7 +1,8 @@
-import { Codec, u32 } from "scale-ts";
-import { concatAll, decodeProtocolInt, decodeWithBytesUsed, DiscriminatorCodec, encodeProtocolInt } from "../../../codecs";
+import { Codec, u32, u64 } from "scale-ts";
+import { coerceU64, concatAll, decodeProtocolInt, decodeWithBytesUsed, DiscriminatorCodec, encodeProtocolInt } from "../../../codecs";
 import { AlwaysAccumulateMapEntry, Privileges } from "../types";
 import { decodeProtocolIntBig } from "../../../codecs/IntegerCodec2";
+import { AssignArrayCodec } from "./AssignArrayCodec";
 
 
  const AlwaysAccumulateMapEntryCodec: Codec<AlwaysAccumulateMapEntry> = [
@@ -9,7 +10,7 @@ import { decodeProtocolIntBig } from "../../../codecs/IntegerCodec2";
   (entry: AlwaysAccumulateMapEntry): Uint8Array => {
  
     const encId = u32.enc(entry.id);
-    const encGas = encodeProtocolInt(entry.gas);
+    const encGas = u64.enc(coerceU64(entry.gas));
 
     return concatAll(encId, encGas);
   },
@@ -31,9 +32,7 @@ import { decodeProtocolIntBig } from "../../../codecs/IntegerCodec2";
     }
 
     const id = read(u32);
-
-    const { value: gas, bytesRead: gasUsed } = decodeProtocolIntBig(uint8.slice(offset));
-    offset += gasUsed;
+    const gas = read(u64);
   
 
     return {
@@ -51,11 +50,12 @@ AlwaysAccumulateMapEntryCodec.dec = AlwaysAccumulateMapEntryCodec[1];
   (privilege: Privileges): Uint8Array => {
  
     const encBless = u32.enc(privilege.bless);
-    const encAssign = u32.enc(privilege.assign);
+    const encAssign = AssignArrayCodec.enc(privilege.assign);    
     const encDesignate = u32.enc(privilege.designate);
+    const encRegister = u32.enc(privilege.register);
     const encAlwaysAcc = DiscriminatorCodec(AlwaysAccumulateMapEntryCodec).enc(privilege.always_acc);
 
-    return concatAll(encBless, encAssign, encDesignate, encAlwaysAcc);
+    return concatAll(encBless, encAssign, encDesignate, encRegister, encAlwaysAcc);
   },
   // DECODER
   (data: ArrayBuffer | Uint8Array | string): Privileges => {
@@ -75,14 +75,16 @@ AlwaysAccumulateMapEntryCodec.dec = AlwaysAccumulateMapEntryCodec[1];
     }
 
     const bless = read(u32);
-    const assign = read(u32);
+    const assign = read(AssignArrayCodec);
     const designate = read(u32);
+    const register = read(u32);
     const always_acc = read(DiscriminatorCodec(AlwaysAccumulateMapEntryCodec));
 
     return {
       bless,
       assign,
       designate,
+      register,
       always_acc,
     };
   },

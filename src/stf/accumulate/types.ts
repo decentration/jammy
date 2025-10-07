@@ -1,10 +1,10 @@
 import { Bytes, Codec, u32 } from "scale-ts";
-import { OpaqueHash, Report } from "../../types";
+import { Gas, OpaqueHash, Report, ServicesStatisticsMapEntry } from "../../types";
 import { Entropy } from "../reports/types";
 import { ServiceInfo } from "../types";
+import { Statistics } from "../statistics/types";
 
 export type ServiceId = number; // u32
-export type Gas = bigint; // u64    
 export type AccountId = number; // u32
 export type WorkPackageHash = OpaqueHash; 
 export type WorkReportHash = OpaqueHash;
@@ -21,19 +21,24 @@ export interface AccumulateInput {
 
 export type AccumulateOutput =  { ok: OpaqueHash | null };
 
+export type ServicesStatistics = ServicesStatisticsMapEntry[];
+
 export interface AccumulateState { 
     slot: number,
     entropy: Entropy, // 32 bytes
     ready_queue: ReadyQueue,
     accumulated: AccumulatedQueue,
     privileges: Privileges,
+    statistics: ServicesStatistics,
     accounts: Accounts,
 }
 
+export type AssignArray = ServiceId[]; // must be of fixed size cores count. 
 export interface Privileges {
     bless: ServiceId,
-    assign: ServiceId,
+    assign: AssignArray,
     designate: ServiceId,
+    register: ServiceId, // TODO add to accumulate pipeline logic
     always_acc: AlwaysAccumulateMapEntry[], 
 }
 
@@ -83,17 +88,41 @@ export interface AccountItem {
     data: AccountData;
 }
 
+
+// StorageMapEntry ::= SEQUENCE {
+//     -- Storage key (unhashed, as managed by the service code)
+//     key ByteSequence,
+//     -- Storage value
+//     value ByteSequence
+// }
+
+export type StorageMap = StorageMapEntry[];
+export interface StorageMapEntry {
+    key: Uint8Array,
+    value: Uint8Array,
+}
 export interface AccountData {
     service: ServiceInfo,
-    preimages: Preimages,
+    storage: StorageMap, // TODO apply to accumulate pipeline logic 
+    preimages_blob: PreimagesBlob, // TODO apply to accumulate pipeline logic 
+    preimages_status: PreimagesStatus, // TODO apply to accumulate pipeline logic 
 }
 
-export type Preimages =  PreimageItem[]; 
+export type PreimagesBlob =  PreimagesBlobItem[]; 
 
-export interface PreimageItem {
+export interface PreimagesBlobItem {
     hash: OpaqueHash,
     blob: Uint8Array,
 } 
+
+export type PreimagesStatus = PreimagesStatusItem[];
+
+export interface PreimagesStatusItem {
+    hash: OpaqueHash,
+    status: number[],  // sequence of u32s TimeSlots between 0 and 3
+}
+
+
 
 
 

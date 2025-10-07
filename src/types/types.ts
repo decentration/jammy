@@ -34,6 +34,8 @@ export type EpochMarkValidators = {
   ed25519: Ed25519Public;
 }; // 64 bytes
 
+export type Gas = bigint; // u64 
+
 
 
 export interface Validators {
@@ -288,7 +290,6 @@ export const ReportedPackageCodec = Struct({
   segment_tree_root: Bytes(32),
 });
 
-export type Gas = bigint; // u64 
                          
 export interface ImportSpec {
   tree_root: Uint8Array;  // 32 bytes
@@ -317,14 +318,17 @@ export interface Authorizer {
 }
 
 export interface WorkPackage {
+  auth_code_host: ServiceId;     // u32 -- Service ID hosting the authorization code
+  auth_code_hash: Uint8Array; // 32 bytes  -- Hash of the authorizer's code
+  context: Context;
   authorization: Uint8Array;  // single-byte-len encoded
-  auth_code_host: number;     // u32
-  authorizer: Authorizer;
-  context: Context;          
-  items: WorkItem[];          // single-byte-len array (size 1..4)
+  authorizer_config: Authorizer;
+  items: WorkItem[];          // single-byte-len array (size 1..16)
 }
 
 export type AuthorizerHash = Uint8Array;
+export type AuthPool = AuthorizerHash[];
+export type AuthPools = AuthPool[];
 
 export const AuthorizerHashCodec = Bytes(32);
 
@@ -399,7 +403,7 @@ export interface ServiceActivityRecord {
   accumulate_count: number,
   accumulate_gas_used: Gas,
   // on_transfers_count: number, 
-  // on_transfers_gas_used: number
+  // on_transfers_gas_used: Gas
 }
 
 

@@ -3,10 +3,11 @@ import { AuthPoolCodec } from "./AuthPoolCodec";
 import { decodeWithBytesUsed } from "..";
 import { toUint8Array, concatAll } from "..";
 import { CORES_COUNT } from "../../consts";
+import { AuthPools } from "../../types";
 
-export const AuthPoolsCodec: Codec<Uint8Array[][]> = [
+export const AuthPoolsCodec: Codec<AuthPools> = [
   // ENCODER
-  (pools: Uint8Array[][]): Uint8Array => {
+  (pools: AuthPools): Uint8Array => {
     if (pools.length !== CORES_COUNT) {
       throw new Error(`AuthPools must have length=CORES_COUNT, got ${pools.length}`);
     }
@@ -16,7 +17,7 @@ export const AuthPoolsCodec: Codec<Uint8Array[][]> = [
   },
 
   // DECODER
-  (data: ArrayBuffer | Uint8Array | string): Uint8Array[][] => {
+  (data: ArrayBuffer | Uint8Array | string): AuthPools => {
     const uint8 = toUint8Array(data);
 
     // decode the 1st pool
@@ -33,7 +34,7 @@ export const AuthPoolsCodec: Codec<Uint8Array[][]> = [
     }
     return [p0, p1];
   },
-] as unknown as Codec<Uint8Array[][]>;
+] as unknown as Codec<AuthPools>;
 
 AuthPoolsCodec.enc = AuthPoolsCodec[0];
 AuthPoolsCodec.dec = AuthPoolsCodec[1];

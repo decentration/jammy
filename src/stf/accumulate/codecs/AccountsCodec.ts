@@ -6,7 +6,7 @@ import { AccountDataCodec } from "./AccountDataCodec";
 export const AccountItemCodec: Codec<AccountItem> = [
   // ENCODER
   (data: AccountItem): Uint8Array => {
-console.log("AccountItemCodec: enc", data);
+    // console.log("AccountItemCodec: enc", data);
     const encId = AccountIdCodec.enc(data.id);
     const encData = AccountDataCodec.enc(data.data);
 
@@ -35,7 +35,6 @@ console.log("AccountItemCodec: enc", data);
 
 AccountItemCodec.enc = AccountItemCodec[0];
 AccountItemCodec.dec = AccountItemCodec[1];
-
 
 export const AccountsCodec = DiscriminatorCodec(AccountItemCodec);
 

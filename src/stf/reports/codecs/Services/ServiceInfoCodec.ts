@@ -1,9 +1,10 @@
-import { Codec, Bytes, u64, u32 } from "scale-ts";
+import { Codec, Bytes, u64, u32, u8 } from "scale-ts";
 import { toUint8Array, concatAll, coerceU64 } from "../../../../codecs/utils";
 import { OpaqueHashCodec } from "../../../../types";
 import { ServiceInfo } from "../../../types";
 
 // export interface ServiceInfo {
+// version: number;  // u8
 //   code_hash: Uint8Array; // 32 bytes
 //   balance: number;       // u64
 //   min_item_gas: number;   // u32
@@ -27,6 +28,7 @@ export const ServiceInfoCodec: Codec<ServiceInfo> = [
     // ENCODE
     (service: ServiceInfo): Uint8Array => {
 
+        const encVersion = u8.enc(service.version); // TODO apply newly added version to pipeline
         const encHash = OpaqueHashCodec.enc(service.code_hash);
         const encBalance =       u64.enc(coerceU64(service.balance));
         const encMinItemGas =    u64.enc(coerceU64(service.min_item_gas));
@@ -40,6 +42,7 @@ export const ServiceInfoCodec: Codec<ServiceInfo> = [
   
     // concat
     return concatAll(
+      encVersion,
       encHash, 
       encBalance,
       encMinItemGas, 
@@ -59,6 +62,8 @@ export const ServiceInfoCodec: Codec<ServiceInfo> = [
       let off = 0;
   
       const read = (n: number) => { const s = u.slice(off, off + n); off += n; return s; };
+
+      const version = u8.dec(read(1));
       const code_hash = Bytes(32).dec(read(32));
   
       const balance                 = u64.dec(read(8));
@@ -73,6 +78,7 @@ export const ServiceInfoCodec: Codec<ServiceInfo> = [
      
                 
         return {
+          version,
           code_hash,
           balance,
           min_item_gas,

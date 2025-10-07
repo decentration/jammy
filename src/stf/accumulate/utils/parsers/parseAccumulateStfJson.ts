@@ -48,6 +48,7 @@ function parseAccumulateStateJson(json: any): AccumulateState {
     ready_queue: parseReadyQueueJson(json.ready_queue || []),
     accumulated: parseAccumulatedQueueJson(json.accumulated || []),
     privileges: parsePrivilegesObject(json.privileges || []),
+    statistics: json.statistics || {},
     accounts: parseAccountItemsJson(json.accounts || []),
   };
 }
@@ -85,6 +86,7 @@ function parsePrivilegesObject(obj: any): Privileges {
       bless: obj.bless || 0,
       assign: obj.assign || 0,
       designate: obj.designate || 0,
+      register: obj.register || 0,
       always_acc: parseAlwaysAccumulateMapEntryJson(obj.always_acc || []),
     };
   }
@@ -116,17 +118,21 @@ function parseServiceInfoJson(obj: any): AccountData {
     }
   return {
     service: {
+      version: 0,
       code_hash: hexStringToBytes(obj.service.code_hash || "0x"),
       balance: obj.service.balance || 0,
       min_item_gas: obj.service.min_item_gas || 0,
       min_memo_gas: obj.service.min_memo_gas || 0,
       bytes: obj.service.bytes || 0,
       items: obj.service.items || 0,
+      deposit_offset: 0n,
+      creation_slot: 0,
+      last_accumulation_slot: 0,
+      parent_service: 0,
+    
     },
-    preimages: (obj.preimages || []).map((p: any) => ({
-        hash: hexStringToBytes(p.hash || "0x"),
-        blob: hexStringToBytes(p.blob || "0x"),
-
-    })),
+    storage: obj.storage || {},
+    preimages_blob: obj.preimages_blob || new Uint8Array(),
+    preimages_status: obj.preimages_status || [],
   };
 }
