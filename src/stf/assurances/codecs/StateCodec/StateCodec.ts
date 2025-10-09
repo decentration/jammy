@@ -52,7 +52,7 @@ export const StateCodec: Codec<AssuranceState> = [
     );
     offset += bytesUsedValidators;
 
-    console.log("state data: ", Buffer.from(uint8).toString("hex"));
+    // console.log("state data: ", Buffer.from(uint8).toString("hex"));
     // Check for leftover data
     if (offset < uint8.length) {
       console.warn(

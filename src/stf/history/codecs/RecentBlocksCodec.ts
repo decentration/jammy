@@ -2,12 +2,13 @@ import { Codec } from "scale-ts";
 import { DiscriminatorCodec, MMRCodec, decodeWithBytesUsed } from "../../../codecs";
 import { concatAll, toUint8Array } from "../../../codecs/utils";
 import { BlockItemCodec } from "../../../codecs";
-import { BetaState } from "../../types";
+import { BlockItem, RecentBlocks } from "../../types";
+import { MAX_BLOCKS_HISTORY } from "../../../consts";
 
 
-export const RecentBlocksCodec: Codec<BetaState> = [
-  (rb: BetaState) => {
-    const encHistory = DiscriminatorCodec(BlockItemCodec).enc(rb.history);
+export const RecentBlocksCodec: Codec<RecentBlocks> = [
+  (rb: RecentBlocks) => {
+    const encHistory = DiscriminatorCodec(BlockItemCodec, { maxSize: MAX_BLOCKS_HISTORY}).enc(rb.history);
     const encMMR     = MMRCodec.enc(rb.mmr);
     return concatAll(encHistory, encMMR);
   },
@@ -23,7 +24,9 @@ export const RecentBlocksCodec: Codec<BetaState> = [
 
     return { history, mmr};
   },
-] as unknown as Codec<BetaState>;
+] as unknown as Codec<RecentBlocks>;
 
 RecentBlocksCodec.enc = RecentBlocksCodec[0];
 RecentBlocksCodec.dec = RecentBlocksCodec[1];
+
+// export const BetaCodec = DiscriminatorCodec(RecentBlocksCodec);

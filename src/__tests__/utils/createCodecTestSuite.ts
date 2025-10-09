@@ -49,7 +49,6 @@ export function createCodecTestSuite<T>(
         
         // 4) Encode with the provided codec
         const encoded = codec.enc(inputObj);
-
         // 5) Decode again
         const decoded = codec.dec(encoded);
 

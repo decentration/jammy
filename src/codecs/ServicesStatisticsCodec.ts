@@ -12,35 +12,23 @@ export const ServicesStatisticsMapEntryCodec: Codec<ServicesStatisticsMapEntry> 
   (entry: ServicesStatisticsMapEntry): Uint8Array => {
     const idEncoded = u32.enc(entry.id);
     const recordEncoded = ServiceActivityRecordCodec.enc(entry.record);
+
     return concatAll(idEncoded, recordEncoded);
   },
 
   // ---------- DECODER ----------
   (data: ArrayBuffer | Uint8Array | string) => {
     const uint8 = toUint8Array(data);
-    let offset = 0;
 
-    // function read<T>(codec: Codec<T>): T {
-    //   const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));
-    //   offset += bytesUsed;
-    //   return value;
-    // }
-
+    console.log('ServicesStatisticsMapEntryCodec.dec data', uint8);
     // 1) Decode service id
-    const id = u32.dec(uint8.slice(0, 4));
+    const id = u32.dec(uint8.subarray(0, 4));
 
     // 2) Decode record
-    const record = ServiceActivityRecordCodec.dec(uint8.slice(4));
+    const { value: record } = decodeWithBytesUsed(ServiceActivityRecordCodec, uint8.subarray(4));
+    
+    return { id, record }
 
-
-    const mapEntry: ServicesStatisticsMapEntry = {
-      id,
-      record,
-    };
-
-    return {
-      ...mapEntry
-    };
   },
 ] as unknown as Codec<ServicesStatisticsMapEntry>;
 

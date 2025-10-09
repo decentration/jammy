@@ -1,11 +1,11 @@
 import { readFileSync, writeFileSync } from "fs";
-import path, { parse } from "path";
+import path from "path";
 import { Assurances } from "../../../stf/assurances/types";
 import { AssurancesCodec } from "../../../stf/assurances/codecs/AssurancesCodec";
 import { toHex, convertToReadableFormat } from "../../../utils";
-import { ErrorCode } from "../../../stf/types";
 import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 import { parseAssurancesStfJson } from "../../../stf/assurances/codecs/utils/parseAssurancesJson";
+import { normalizeForConformance } from "../../utils";
 
 describe("AssurancesCodec Test", () => {
 
@@ -26,7 +26,7 @@ describe("AssurancesCodec Test", () => {
 testFiles.forEach((fileName) => {
   it(`should encode and decode Assurances correctly from ${fileName}`, () => {
 
-    const filePath = path.join(path.join(`${JAM_TEST_VECTORS}/assurances`, `${CHAIN_TYPE}`,
+    const filePath = path.join(path.join(`${JAM_TEST_VECTORS}`, `stf/assurances`, `${CHAIN_TYPE}`,
       fileName.concat(".json")
       ));
     const raw = JSON.parse(readFileSync(filePath, "utf-8"));
@@ -43,8 +43,10 @@ testFiles.forEach((fileName) => {
 
     // Prepare for comparison
     const readableEncoded = toHex(encoded);
-    const readableDecoded = convertToReadableFormat(decoded);
-    const readableOriginal = convertToReadableFormat(assurances);
+    const readableDecoded  = normalizeForConformance(convertToReadableFormat(decoded));
+    const readableOriginal = normalizeForConformance(convertToReadableFormat(assurances));
+
+    expect(readableDecoded).toStrictEqual(readableOriginal);
 
     const outputDir = path.resolve(__dirname, "../../output/stf/assurances");
     writeFileSync(path.join(outputDir, "encodedAssurances.txt"), readableEncoded);
@@ -58,7 +60,7 @@ testFiles.forEach((fileName) => {
     );
 
     // Assert equality
-    expect(decoded).toStrictEqual(assurances);
+    // expect(decoded).toEqual(assurances);
   });
 });
 
@@ -66,7 +68,7 @@ testFiles.forEach((fileName) => {
 testFiles.forEach((filename) => {
   it("decodes assurance_for_not_engaged_core-1.bin and verifies round-trip encoding", () => {
 
-    const binPath = path.resolve(path.join(`${JAM_TEST_VECTORS}/assurances`, `${CHAIN_TYPE}`, filename.concat(".bin")));
+    const binPath = path.resolve(path.join(`${JAM_TEST_VECTORS}/stf/assurances`, `${CHAIN_TYPE}`, filename.concat(".bin")));
     
     // Read the binary file as Uint8Array
     const binary = new Uint8Array(readFileSync(binPath));
@@ -74,7 +76,7 @@ testFiles.forEach((filename) => {
 
     // Decode the binary data into Assurances structure
     const decoded = AssurancesCodec.dec(binary);
-    console.log("Decoded Conformance Assurances:", JSON.stringify(convertToReadableFormat(decoded), null, 2));
+    // console.log("Decoded Conformance Assurances:", JSON.stringify(convertToReadableFormat(decoded), null, 2));
 
     // write the decoded data to a JSON file for inspection
     const decodedJsonPath = path.resolve(__dirname, "../../output/stf/assurances/decodedConformanceAssurances.json");

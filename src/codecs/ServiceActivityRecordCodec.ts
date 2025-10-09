@@ -1,7 +1,7 @@
 import { Codec, u16, u32, u64 } from "scale-ts";
 import { ServiceActivityRecord } from "../types";
 import { coerceU64, concatAll, toUint8Array } from "./utils";
-import { decodeProtocolIntBig, decodeProtocolIntNumber, encodeProtocolInt } from "./IntegerCodec2";
+import { decodeProtocolInt, decodeProtocolIntBig, decodeProtocolIntNumber, encodeProtocolInt } from "./IntegerCodec2";
 
 export const ServiceActivityRecordCodec: Codec<ServiceActivityRecord> = [
   // ENCODER
@@ -48,7 +48,6 @@ export const ServiceActivityRecordCodec: Codec<ServiceActivityRecord> = [
       return value;
     }
 
-    const read = (n: number) => { const s = uint8.slice(offset, offset + n); offset += n; return s; };
 
     const provided_count      = readProtocolInt();
     const provided_size       = readProtocolInt();

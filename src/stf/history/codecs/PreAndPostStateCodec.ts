@@ -1,22 +1,21 @@
 import { Codec } from 'scale-ts';
-import { BlockItem } from '../../types'; 
-import { BlockItemCodec } from '../../../codecs/BlockItemCodec';
-import { DiscriminatorCodec, decodeWithBytesUsed } from '../../../codecs';
+import { BlockItem, HistoryState, RecentBlocks } from '../../types'; 
+import { BlockItemCodec, DiscriminatorCodec, decodeWithBytesUsed } from '../../../codecs';
+import { RecentBlocksCodec } from './RecentBlocksCodec';
 
-/**
- * PreAndPostState represents structures like:
- * { beta: BlockItem[] }
- */
-export const PreAndPostStateCodec: Codec<{ beta: BlockItem[] }> = [
+
+export type Beta = { beta: BlockItem[] };
+
+export const PreAndPostStateCodec: Codec<HistoryState> = [
   // ENCODER
-  (state: { beta: BlockItem[] }): Uint8Array => {
-    const encBeta = DiscriminatorCodec(BlockItemCodec).enc(state.beta);
+  (state: HistoryState): Uint8Array => {
+    const encBeta = RecentBlocksCodec.enc(state.beta);
 
     return encBeta;
   },
 
   // DECODER
-  (data: ArrayBuffer | Uint8Array | string): { beta: BlockItem[] } => {
+  (data: ArrayBuffer | Uint8Array | string): HistoryState => {
     const uint8 =
       data instanceof Uint8Array
         ? data
@@ -25,13 +24,15 @@ export const PreAndPostStateCodec: Codec<{ beta: BlockItem[] }> = [
         : new Uint8Array(data);
 
     const { value: beta, bytesUsed } = decodeWithBytesUsed(
-      DiscriminatorCodec(BlockItemCodec),
+      RecentBlocksCodec,
       uint8
     );
 
     return { beta };
   },
-] as unknown as Codec<{ beta: BlockItem[] }>;
+] as unknown as Codec<HistoryState>;
 
 PreAndPostStateCodec.enc = PreAndPostStateCodec[0];
 PreAndPostStateCodec.dec = PreAndPostStateCodec[1];
+
+

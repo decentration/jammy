@@ -1,13 +1,11 @@
 import { Codec } from "scale-ts";
 import { RefineLoad } from "../types"; 
-import { concatAll, toUint8Array } from "./utils"; 
+import { coerceU64, concatAll, toUint8Array } from "./utils"; 
 import { decodeProtocolIntBig, decodeProtocolIntNumber, encodeProtocolInt } from "./IntegerCodec2";
 
 export const RefineLoadCodec: Codec<RefineLoad> = [
   // ENCODER 
   (r: RefineLoad): Uint8Array => {
-    console.log("RefineLoadCodec: enc", r);
-
     //   RefineLoad ::= SEQUENCE {
     //     gas-used U64,
     //     imports U16,
@@ -16,7 +14,7 @@ export const RefineLoadCodec: Codec<RefineLoad> = [
     //     exports U16
     // }
 
-    const encGasUsed        = encodeProtocolInt(r.gas_used);
+    const encGasUsed        = encodeProtocolInt(coerceU64(r.gas_used));
     const encImports        = encodeProtocolInt(r.imports);
     const encExtrinsicCount = encodeProtocolInt(r.extrinsic_count);
     const encExtrinsicSize  = encodeProtocolInt(r.extrinsic_size);

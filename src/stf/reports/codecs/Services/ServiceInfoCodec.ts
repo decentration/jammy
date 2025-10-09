@@ -28,8 +28,8 @@ export const ServiceInfoCodec: Codec<ServiceInfo> = [
     // ENCODE
     (service: ServiceInfo): Uint8Array => {
 
-        const encVersion = u8.enc(service.version); // TODO apply newly added version to pipeline
-        const encHash = OpaqueHashCodec.enc(service.code_hash);
+        const encVersion =       u8.enc(service.version); // TODO apply newly added version to pipeline
+        const encHash =          OpaqueHashCodec.enc(service.code_hash);
         const encBalance =       u64.enc(coerceU64(service.balance));
         const encMinItemGas =    u64.enc(coerceU64(service.min_item_gas));
         const encMinMemoGas =    u64.enc(coerceU64(service.min_memo_gas));

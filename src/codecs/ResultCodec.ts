@@ -22,7 +22,6 @@ export const ResultCodec: Codec<Result> = [
 
     // 4) encode accumulate_gas (u64 -> 8 bytes LE)
     const encAccumulateGas = u64.enc(coerceU64(r.accumulate_gas)); 
-    // const encAccumulateGas = u64.(r.accumulate_gas);
 
     // 5) encode result (ResultValueCodec)
     const encResult = ResultValueCodec.enc(r.result);
@@ -82,7 +81,7 @@ export const ResultCodec: Codec<Result> = [
     // const { value: accumulate_gas, bytesRead: gasUsed } = decodeProtocolInt( uint8.slice(offset));
     // offset += gasUsed;
 
-    console.log('going in to reusult value', convertToReadableFormat(uint8.slice(offset)), ' bytes left:', uint8.length - offset, ' offset=', offset);
+    // console.log('going in to reusult value', convertToReadableFormat(uint8.slice(offset)), ' bytes left:', uint8.length - offset, ' offset=', offset);
     // 5) decode result
     const { value: result, bytesUsed: resultUsed } = decodeWithBytesUsed(ResultValueCodec, uint8.slice(offset));
     offset += resultUsed;

@@ -13,24 +13,27 @@ export interface HistoryInput {
   work_packages: WorkPackage[];
 }
 
+export type Bytes32 = Uint8Array;
+
 export type MMRPeak = Uint8Array | null; // Bytes(32) | null    
 export interface MMR {
   peaks: MMRPeak[]; // array of Bytes(32)
 }
 
 export interface BlockItem {
-    header_hash: Uint8Array; 
-    beefy_root: Uint8Array; 
-    state_root: Uint8Array; 
+    header_hash: Bytes32; 
+    beefy_root: Bytes32; 
+    state_root: Bytes32; 
     reported: WorkPackage[]; 
 }
 
 export interface HistoryState {
-  beta: BetaState                // { peaks: (Uint8Array|null)[] }
+  beta: RecentBlocks               // { peaks: (Uint8Array|null)[] }
 }
 
-export interface BetaState {
-  history: BlockItem[];
+export type BlocksHistory = BlockItem[];
+export interface RecentBlocks {
+  history: BlocksHistory;
   mmr: MMR;                // { peaks: (Uint8Array|null)[] }
 }
 
@@ -109,6 +112,7 @@ export interface ServiceItem {
 
 
 export interface ServiceInfo {
+  version: number;    // u8
   code_hash: Uint8Array; // 32 bytes
   balance: bigint;       // u64
   min_item_gas: bigint;   // u32

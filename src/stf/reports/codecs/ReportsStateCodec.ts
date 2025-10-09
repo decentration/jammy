@@ -1,11 +1,11 @@
-import { Codec, Bytes } from "scale-ts";
-import { AuthPoolsCodec, DiscriminatorCodec, decodeWithBytesUsed, AvailAssignmentsCodec, ValidatorsInfoCodec, EntropyBufferCodec, BlockItemCodec, OffendersMarkCodec, CoresStatisticsCodec } from "../../../codecs";
+import { Codec } from "scale-ts";
+import { AuthPoolsCodec, decodeWithBytesUsed, AvailAssignmentsCodec, ValidatorsInfoCodec, EntropyBufferCodec, BlockItemCodec, OffendersMarkCodec, CoresStatisticsCodec } from "../../../codecs";
 import { toUint8Array, concatAll } from "../../../codecs/utils";
 import { ReportsState } from "../types";
 import { ServicesCodec } from "./Services/ServicesCodec";
 import { ServicesStatisticsCodec } from "../../../codecs/ServicesStatisticsCodec";
 import { convertToReadableFormat } from "../../../utils";
-import { RecentBlocksCodec } from "./RecentBlocksCodec";
+import { RecentBlocksCodec } from "../../history/codecs/RecentBlocksCodec";
 
 export const ReportsStateCodec: Codec<ReportsState> = [
   // --- ENCODER ---
@@ -35,7 +35,6 @@ export const ReportsStateCodec: Codec<ReportsState> = [
 
     );
 
-    console.log('ReportsStateCodec.enc result', convertToReadableFormat(result)); 
 
     return result;
   },
@@ -50,7 +49,7 @@ export const ReportsStateCodec: Codec<ReportsState> = [
 
     function read<T>(codec: Codec<T>): T {
       const { value, bytesUsed } = decodeWithBytesUsed(codec, uint8.slice(offset));
-      console.log('read', value, bytesUsed);
+      // console.log('read', value, bytesUsed);
       offset += bytesUsed;
       return value;
     }

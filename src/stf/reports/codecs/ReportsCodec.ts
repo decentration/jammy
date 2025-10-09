@@ -5,6 +5,7 @@ import { ReportsStateCodec } from "./ReportsStateCodec";
 import { OutputCodec } from "./OutputCodec";
 import { decodeWithBytesUsed } from "../../../codecs";
 import { toUint8Array } from "../../../codecs";
+import { convertToReadableFormat } from "../../../utils";
 
 export const ReportsCodec: Codec<Reports> = [
   // ------------------
@@ -23,8 +24,8 @@ export const ReportsCodec: Codec<Reports> = [
     // d) encode post_state
     const encPostState = ReportsStateCodec.enc(reports.post_state);
 
-    console.log('LEN input/pre/output/post:',
-      encInput.length, encPreState.length, encOutput.length, encPostState.length);
+    console.log('ReportsCodec.enc result', convertToReadableFormat(reports)); 
+
 
     // e) concat
     const totalSize =

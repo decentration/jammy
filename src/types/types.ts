@@ -113,7 +113,7 @@ export const AssuranceCodec = Struct({
 // exports U16
 
 export interface RefineLoad {
-  gas_used: bigint; // u64
+  gas_used: Gas; // u64
   imports: number; // u16
   extrinsic_count: number; // u16
   extrinsic_size: number; // u32

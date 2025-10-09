@@ -1,5 +1,6 @@
 import { Codec, Encoder, Decoder } from "scale-ts"
 import { encodeProtocolInt, decodeProtocolInt } from "./IntegerCodec"
+import { decodeWithBytesUsed } from "./utils";
 
 /**
  * DiscriminatorCodec: Creates a compatible codec for a sequence of items,
@@ -73,10 +74,9 @@ export function DiscriminatorCodec<T>(
     for (let i = 0; i < length; i++) {
       // console.log('discriminator codec in:', Buffer.from(uint8Data).toString('hex'));
       // Decode item from slice
-      const item = itemCodec.dec(uint8Data.slice(offset))
-
-      const reencoded = itemCodec.enc(item)
-      offset += reencoded.length
+      const { value: item, bytesUsed } = decodeWithBytesUsed(itemCodec, uint8Data.slice(offset));
+      // items.push(item);
+      offset += bytesUsed;
 
       if (offset > uint8Data.length) {
         throw new Error(`DiscriminatorCodec: out-of-bounds decoding item #${i}`)

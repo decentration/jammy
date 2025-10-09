@@ -23,7 +23,7 @@ export const ContextCodec: Codec<Context> = [
 
     // console.log("beefy_root", Buffer.from(ctx.beefy_root).toString("hex"));
     offset += 32;
-    console.log("lookup_anchor", ctx.lookup_anchor);
+    // console.log("lookup_anchor", ctx.lookup_anchor);
     out.set(ctx.lookup_anchor, offset);
     offset += 32;
 

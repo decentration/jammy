@@ -5,7 +5,7 @@ import { ResultCodec } from "./ResultCodec";
 import { DiscriminatorCodec } from "./DiscriminatorCodec";
 import { SegmentItemCodec } from "./SegmentItemCodec";
 import { ContextCodec } from "./ContextCodec";
-import { VarLenBytesCodec, decodeWithBytesUsed } from "./index";
+import { VarLenBytesCodec, coerceU64, decodeWithBytesUsed } from "./index";
 import { Bytes, Vector } from "scale-ts";
 import { convertToReadableFormat } from "../utils";
 import { decodeProtocolIntBig, decodeProtocolIntNumber, encodeProtocolInt } from "./IntegerCodec2";
@@ -39,7 +39,7 @@ export const ReportCodec: Codec<Report> = [
     // console.log("encAuthHash", Buffer.from(encAuthHash).toString("hex"));
 
     // 5) newly added auth-gas-used (u64)
-    const encAuthGasUsed = encodeProtocolInt(report.auth_gas_used);
+    const encAuthGasUsed = encodeProtocolInt(coerceU64(report.auth_gas_used));
 
     // 6) encode auth_output with VarLenBytesCodec
     const encAuthOutput = VarLenBytesCodec.enc(report.auth_output);

@@ -55,14 +55,14 @@ export const AvailAssignmentsCodec: Codec<AvailAssignmentsArray> = [
       offset += bytesUsed;
     }
 
-    console.log("avail assignments: ", assignments);
+    // console.log("avail assignments: ", assignments);
 
     // check for leftover
-    if (offset < uint8.length) {
-      console.warn(
-        `AvailAssignmentsCodec.dec: leftover bytes after decoding ${CORES_COUNT} items`
-      );
-    }
+    // if (offset < uint8.length) {
+    //   console.warn(
+    //     `AvailAssignmentsCodec.dec: leftover bytes after decoding ${CORES_COUNT} items`
+    //   );
+    // }
 
     return assignments;
   },
