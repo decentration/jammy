@@ -1,3 +1,4 @@
+import { Gas } from "../../types";
 import { InnerMachineState } from "./host/innerMem/types";
 import { InstructionAddressTypes } from "./instructions/opcodes";
 
@@ -22,7 +23,7 @@ export type InterpreterState = {
   code: Uint8Array;            // Code to execute (ϲ), typically an ArrayBuffer-backed typed array
   opcodeMaskBits: boolean[];   // Opcode mask bits (ϳ), array of booleans indicating which opcodes are enabled
   pc: number;                  // Program counter (ı)
-  gas: number;                 // Gas remaining (ϱ)
+  gas: Gas;                 // Gas remaining (ϱ)
   registers: bigint[];         // General-purpose registers (φ), array of 13 registers as per spec
   memory: Uint8Array;          // RAM (μ), typically an ArrayBuffer-backed typed array
   exit?: ExitReason;     // reason why the interpreter stopped

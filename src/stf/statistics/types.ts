@@ -26,16 +26,15 @@ export interface StatsStf {
   export type StatsOutput = null;
   
   export interface StatsState {
-    statistics: Statistics;
+    vals_curr_stats: PerformanceRecord[];
+    vals_last_stats: PerformanceRecord[];
     slot: number;               // TimeSlot = u32
     curr_validators: ValidatorInfo[];
   }
 
   export interface FlatStatsState {
-    vals_curr: PerformanceRecord[];
-    vals_last: PerformanceRecord[];
-    slot: number;
-    curr_validators: any[];
+    vals_curr_stats: PerformanceRecord[];
+    vals_last_stats: PerformanceRecord[];
   };
   
   export interface Statistics {

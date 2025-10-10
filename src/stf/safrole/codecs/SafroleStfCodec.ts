@@ -5,6 +5,7 @@ import { SafroleStateCodec } from "./SafroleStateCodec";
 import { SafroleOutputCodec } from "./SafroleOutputCodec";
 import { decodeWithBytesUsed } from "../../../codecs";
 import { concatAll, toUint8Array } from "../../../codecs/utils";
+import { toHex } from "../../../utils";
 
 export const SafroleStfCodec: Codec<SafroleStf> = [
   // ENCODER
@@ -14,7 +15,9 @@ export const SafroleStfCodec: Codec<SafroleStf> = [
     const encOutput = SafroleOutputCodec.enc(testCase.output);
     const encPostState = SafroleStateCodec.enc(testCase.post_state);
 
-    return concatAll(encInput, encPreState, encOutput, encPostState);
+    const concat = concatAll(encInput, encPreState, encOutput, encPostState);
+
+    return concat;
   },
 
   // DECODER

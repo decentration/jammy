@@ -3,6 +3,7 @@ import { OkData } from "../types";
 import { decodeWithBytesUsed } from "../../../codecs";
 import { EpochMarkCodec } from "../../../codecs/EpochMarkCodec";
 import { TicketsAccumulatorCodec } from "./TicketsAccumulatorCodec";
+import { TicketsMarkCodec } from "./TicketsMarkCodec";
 
 // the OkData shape: { epoch_mark: EpochMark|null, tickets_mark: TicketsMark[]|null }
 
@@ -28,7 +29,7 @@ export const OkDataCodec: Codec<OkData> = [
       ticketsEnc = new Uint8Array();
     } else {
       ticketsTag = new Uint8Array([0x01]);
-      ticketsEnc = TicketsAccumulatorCodec.enc(okData.tickets_mark);
+      ticketsEnc = TicketsMarkCodec.enc(okData.tickets_mark);
     }
 
     // Combine
@@ -80,7 +81,7 @@ export const OkDataCodec: Codec<OkData> = [
     let tickets_mark = null;
     if (ticketsByte === 0x01) {
       const slice = uint8.slice(offset);
-      const { value, bytesUsed } = decodeWithBytesUsed(TicketsAccumulatorCodec, slice);
+      const { value, bytesUsed } = decodeWithBytesUsed(TicketsMarkCodec, slice);
       tickets_mark = value;
       offset += bytesUsed;
     } else if (ticketsByte !== 0x00) {

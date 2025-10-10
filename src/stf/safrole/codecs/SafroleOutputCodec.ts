@@ -18,13 +18,13 @@ export const SafroleOutputCodec: Codec<SafroleOutput> = [
   (out: SafroleOutput): Uint8Array => {
     // If it's an "err"
     if ("err" in out) {
-          const errStr = out.err as ErrorCode;
-          const errByte = errorCodeToByte.get(errStr);
-          if (errByte === undefined) {
-            throw new Error(`OutputCodec.enc: unknown error code='${errStr}'`);
-          }
-          return new Uint8Array([0x01, errByte]);
-        }
+      const errStr = out.err as ErrorCode;
+      const errByte = errorCodeToByte.get(errStr);
+      if (errByte === undefined) {
+        throw new Error(`OutputCodec.enc: unknown error code='${errStr}'`);
+      }
+      return new Uint8Array([0x01, errByte]);
+    }
 
     // Otherwise must be "ok"
     // 0x00 => "ok" tag

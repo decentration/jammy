@@ -9,6 +9,8 @@ export interface TicketBody {
   attempt: number;
 }
 
+export const TICKET_BYTES = 33;
+
 export const TicketBodyCodec: Codec<TicketBody> = [
   // ENCODER
   (tb: TicketBody): Uint8Array => {
@@ -16,7 +18,7 @@ export const TicketBodyCodec: Codec<TicketBody> = [
       throw new Error(`TicketBodyCodec: ID must be 32 bytes`);
     }
     // attempt is 1 byte
-    const out = new Uint8Array(33);
+    const out = new Uint8Array(TICKET_BYTES);
     out.set(tb.id, 0);
     out[32] = tb.attempt & 0xff;
     return out;
@@ -25,7 +27,7 @@ export const TicketBodyCodec: Codec<TicketBody> = [
   (data: ArrayBuffer | Uint8Array | string): TicketBody => {
     const uint8 = toUint8Array(data);
    // Check total size
-   if (uint8.length < 33) {
+   if (uint8.length < TICKET_BYTES) {
     throw new Error(`TicketBodyCodec: expected >=33 bytes, got ${uint8.length}`);
   }
 

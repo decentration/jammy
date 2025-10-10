@@ -2,7 +2,7 @@ import { Codec } from 'scale-ts';
 import { ExtrinsicData, TicketCodec, AssuranceCodec } from '../../types/types';
 import { GuaranteeCodec, DisputeCodec, PreimageCodec } from '../../codecs';
 import { DiscriminatorCodec, decodeWithBytesUsed } from '../../codecs';
-import { CORES_COUNT, MAX_TICKET_PER_BLOCK } from '../../consts';
+import { CORES_COUNT, MAX_TICKET_PER_BLOCK, VALIDATOR_COUNT } from '../../consts';
 
 export const ExtrinsicDataCodec: Codec<ExtrinsicData> = [
   // 1) ENCODER
@@ -17,7 +17,7 @@ export const ExtrinsicDataCodec: Codec<ExtrinsicData> = [
     const encGuarantees = DiscriminatorCodec(GuaranteeCodec, { maxSize: CORES_COUNT }).enc(data.guarantees);
 
     // d) encode assurances
-    const encAssurances = DiscriminatorCodec(AssuranceCodec).enc(data.assurances);
+    const encAssurances = DiscriminatorCodec(AssuranceCodec, { maxSize: VALIDATOR_COUNT }).enc(data.assurances);
 
     // e) encode disputes (single object)
     const encDisputes = DisputeCodec.enc(data.disputes);

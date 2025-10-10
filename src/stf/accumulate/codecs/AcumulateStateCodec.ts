@@ -5,7 +5,6 @@ import { ReadyQueueCodec } from "./ReadyQueueCodec";
 import { PrivilegesCodec } from "./PrivilegesCodec";
 import { AccountsCodec } from "./AccountsCodec";
 import { AccumulatedQueueCodec } from "./AccumulatedQueueCodec";
-import { StatisticsCodec } from "../../statistics/codecs/StatisticsCodec";
 
 // export interface AccumulateState { 
 //     slot: number,

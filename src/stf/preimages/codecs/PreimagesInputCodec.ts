@@ -1,17 +1,20 @@
 import { Codec } from "scale-ts";
 import { decodeWithBytesUsed } from "../../../codecs";
-import { concatAll, toUint8Array } from "../../../codecs/utils";
+import { concatAll, deepConvertHexToBytes, toBytes, toUint8Array } from "../../../codecs/utils";
 import { u32 } from "scale-ts";
 import { PreimagesInput } from "../types";
 import { PreimagesExtrinsicCodec } from "./PreimageCodec";
+import { cons } from "fp-ts/lib/ReadonlyNonEmptyArray";
 
 
 export const PreimagesInputCodec: Codec<PreimagesInput> = [
   // ENCODER
   (inp: PreimagesInput): Uint8Array => {
+  
+    const encExt = PreimagesExtrinsicCodec.enc(inp.preimages);
     const slotEnc = u32.enc(inp.slot);
-    const extEnc = PreimagesExtrinsicCodec.enc(inp.preimages);
-    return concatAll(extEnc, slotEnc);
+
+    return concatAll(encExt, slotEnc);
   },
 
   // DECODER

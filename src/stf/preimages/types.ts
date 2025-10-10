@@ -1,3 +1,4 @@
+import { ServicesStatistics } from "../accumulate/types";
 
 
 
@@ -35,6 +36,7 @@ export interface AccountsMapEntry {
 
 export interface PreimagesState {
   accounts: AccountsMapEntry[];
+  statistics: ServicesStatistics;
 }
 
 export interface PreimagesInput {
