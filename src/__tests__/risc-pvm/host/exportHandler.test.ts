@@ -32,7 +32,7 @@ describe("ΩE export handler", () => {
     mem.set([1,2,3,4,5,6,7,8], DEST);
 
     const env = makeHostEnv({now: 0n, capBytes: Infinity, expOff: 0,  expSegs: []});
-    const st  = runBlob(makeBlob(makeCode(DEST)),100,{ env, memInit:mem });
+    const st  = runBlob(makeBlob(makeCode(DEST)),100n,{ env, memInit:mem });
 
     expect(st.registers[7]).toBe(1n);
     expect(env.exportSegments?.length).toBe(1);
@@ -44,7 +44,7 @@ describe("ΩE export handler", () => {
   it("unmapped memory: no segment, r7==ptr, Panic", () => {
     const mem = new Uint8Array(1<<20); // UNMAPPED not covered
     const env = makeHostEnv({now: 0n, capBytes: Infinity, expOff: 0,  expSegs: []});
-    const st  = runBlob(makeBlob(makeCode(UNMAPPED)),100,{ env, memInit:mem });
+    const st  = runBlob(makeBlob(makeCode(UNMAPPED)),100n,{ env, memInit:mem });
 
     expect(st.registers[7]).toBe(BigInt(UNMAPPED));   // unchanged
     expect(env.exportSegments?.length).toBe(0);
@@ -59,7 +59,7 @@ describe("ΩE export handler", () => {
     const env = makeHostEnv({now: 0n, capBytes: Infinity, expOff: 0,  expSegs: filled});
 
 
-    const st = runBlob(makeBlob(makeCode(DEST)),100,{ env, memInit:mem });
+    const st = runBlob(makeBlob(makeCode(DEST)),100n,{ env, memInit:mem });
 
     expect(st.registers[7]).toBe(FULL);
     expect(env.exportSegments!.length).toBe(WX);

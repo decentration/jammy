@@ -7,7 +7,7 @@ import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
 
 const HEAP = 0x18000;
-const GAS  = 100;
+const GAS  = 100n;
 
 function codeBless(m = 1, a = 2, v = 3, o = HEAP, n = 2): Uint8Array {
   return Uint8Array.of(

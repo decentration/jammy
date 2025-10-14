@@ -5,7 +5,7 @@ import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { makeOpcodeBitmask } from "./helpers";
 
-const GAS = 200;
+const GAS = 200n;
 
 function mkCode(n=0,p=16,c=2,r=1) {
   return Uint8Array.of(

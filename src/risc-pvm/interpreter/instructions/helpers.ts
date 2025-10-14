@@ -26,7 +26,7 @@ export function writeBytes(
   if (addr < PAGE_SIZE) return panicLowMemory(s);
   // console.log("writeBytes", { addr, buf, s });
 
-  const badPage = checkAccess(s.context!.pageTable, addr, buf.length, true);
+  const badPage = checkAccess(s.context!.pageTable, addr, buf.length, true); // context!. means 
   console.log("[mem] after checkAccess, and badPage is this:", badPage);
   if (badPage !== undefined) {
     const pg = badPage >>> 16; 

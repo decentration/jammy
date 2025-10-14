@@ -32,7 +32,7 @@ describe("storeIndU32 page fault behaviour", () => {
     //  page 0-1 : code (RO)
     //  page 2   : code (RO) <- target 0x20000
     //  heap     : 0x30000-0x38000 (RW)
-    const state = runBlob(blob, 200, {
+    const state = runBlob(blob, 200n, {
       memSize:   0x40000, // 0x40000 = 256 KiB = 4 pages of 64 KiB
       heapStart: 0x30000, // = 192 KiB heap start = 3rd page
       heapEnd:   0x38000, // 224 KiB heap end = 3rd page end

@@ -50,7 +50,7 @@ describe("ΩW write handler", () => {
     const env = makeHostEnv({ initAcc: makeAcc(CUR) });
     env.putService(CUR, mkService(0n, 1000n)); 
     
-    const st = runBlob(blob, 100, { env, memInit: mem });
+    const st = runBlob(blob, 100n, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(NONE);
     const stagedXs = env.acc.allocator.env.deltas.get(CUR) as ServiceAccount;
@@ -75,7 +75,7 @@ describe("ΩW write handler", () => {
     env.putService(CUR, mkService(0n, 0n));
 
 
-    const st   = runBlob(makeBlob(code, bitmask), 100, { env, memInit: mem });
+    const st   = runBlob(makeBlob(code, bitmask), 100n, { env, memInit: mem });
 
     expect(st.exit?.type).toBe(ExitReasonType.Panic);  
         expect(env.acc.allocator.env.deltas.has(CUR)).toBe(false);
@@ -90,7 +90,7 @@ describe("ΩW write handler", () => {
     const env = makeHostEnv({ initAcc: makeAcc(CUR) });
 
     env.putService(CUR, mkService(0n, 10n, 20n, { threshold: 30n }));
-    const st   = runBlob(makeBlob(code, bitmask), 100, { env, memInit: mem });
+    const st   = runBlob(makeBlob(code, bitmask), 100n, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(FULL);
     const staged = env.acc.allocator.env.deltas.get(CUR) as ServiceAccount | undefined;
@@ -116,7 +116,7 @@ describe("ΩW write handler", () => {
     //       jumpEntries:[Uint8Array.of(0)],bitmaskBits: bitmask }
     //   );
   
-    const st = runBlob(blob, 100, { env, memInit: mem });
+    const st = runBlob(blob, 100n, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(FULL); // FULL branch
     expect(env.acc.allocator.env.deltas.has(CUR)).toBe(false); // stagin should not occur

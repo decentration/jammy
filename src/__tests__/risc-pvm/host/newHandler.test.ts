@@ -8,7 +8,7 @@ import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
 
 const HEAP = 0x18000;
-const GAS  = 100;
+const GAS  = 100n;
 const CODE_HASH = new Uint8Array(32).fill(0xAA);
 
 
@@ -94,7 +94,7 @@ describe("ΩN newHandler (0.7.1) of gp", () => {
     const env = mkEnvWithPayer(xs, 100n);
 
     const blob = makeBlob(mkCode(HEAP, 7, 11,22, 0, 0)); // l,g,m,f,i
-    const st = runBlob(blob, Number(GAS), { env, memInit: mem });
+    const st = runBlob(blob, GAS, { env, memInit: mem });
 
     const newId = st.registers[7];
     expect(newId >= RING_START).toBe(true);

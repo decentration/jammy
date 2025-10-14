@@ -8,7 +8,7 @@ import { InnerMachineState, MachineEntry } from "../../../risc-pvm/interpreter/h
 
 const HEAP    = 0x18000;   // inner‑VM blob lives here
 const BAD_PTR = 0x0020;    // unmapped (low) address
-const INITIAL_GAS = 100; 
+const INITIAL_GAS = 100n; 
 
 // inner blob trap  
 const innerInstr   = Uint8Array.of(

@@ -4,7 +4,7 @@ import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 
-const GAS = 100;
+const GAS = 100n;
 
 function code(r7: number, r8 = 0) {
   return Uint8Array.of(

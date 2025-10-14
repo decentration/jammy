@@ -18,7 +18,7 @@ export interface RunBlobOpts {
   memInit?: Uint8Array;  // initial memory state 
 }
 
-export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts = {}) {
+export function runBlob(blob: Uint8Array, initialGas: bigint, opts: RunBlobOpts = {}) {
   // console.log("runBlob", { blob, initialGas, opts });
   const { jumpTable, jumpEntryLength, jumpEntries, instructionData, opcodeBitmask } = deblob(blob);
   // console.log("runBlob bitmask bits, bitmask" ,{ opcodeBitmask});
@@ -68,7 +68,7 @@ export function runBlob(blob: Uint8Array, initialGas: number, opts: RunBlobOpts 
   
 
   // Execution loop
-  while (state.exit?.type === ExitReasonType.Continue && state.gas > 0) {
+  while (state.exit?.type === ExitReasonType.Continue && state.gas > 0n) {
     state = executeSingleStep(state);
 
     // console.log("here is state after step");

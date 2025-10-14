@@ -8,7 +8,7 @@ import { nextIdInRing } from "../../../risc-pvm/interpreter/host/helpers";
 import { AccEnv } from "../../../risc-pvm/interpreter/host/types";
 
 const HEAP = 0x18000;
-const GAS  = 100;
+const GAS  = 100n;
 
 // program for ΩN new: r7=o, r8=l, r9=g, r10=m, ecalli 9, trap
 function mkCode(off=HEAP, label=1, g=1000, m=2000): Uint8Array {

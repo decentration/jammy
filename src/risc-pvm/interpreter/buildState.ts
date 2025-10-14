@@ -8,7 +8,7 @@ import { prettyState } from "./utils/debug";
 export function buildState(opts: {
   code?: Uint8Array;
   bitmask?: Uint8Array;
-  initialGas?: number;
+  initialGas?: bigint;
   blob?: Uint8Array;
   registers?: bigint[];
   heapStart?: number;
@@ -49,7 +49,7 @@ export function buildState(opts: {
     code: instructionData,
     opcodeMaskBits,
     pc: 0,
-    gas: opts.initialGas ?? 10_000,
+    gas: opts.initialGas ?? 10_000n,
     registers: opts.registers ?? defaultRegisters,    
     memory: new Uint8Array(2 ** 18),
     exit: { type: ExitReasonType.Continue },

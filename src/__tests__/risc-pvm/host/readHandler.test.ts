@@ -106,7 +106,7 @@ describe("ΩR read handler", () => {
    
     env.putService(xsId, xsAcct);
 
-    const st = runBlob(blob, 100, { env, memInit: mem });
+    const st = runBlob(blob, 100n, { env, memInit: mem });
 
     console.log("Registers after run:", st.registers);
     expect(st.registers[7]).toBe(BigInt(VALUE.length));  // vLength
@@ -122,7 +122,7 @@ describe("ΩR read handler", () => {
     mem.set([0x66,0x6f,0x6f], KEY_ADDR);
 
     const env = makeHostEnv();  // empty storage
-    const st = runBlob(blob, 100, { env, memInit: mem });
+    const st = runBlob(blob, 100n, { env, memInit: mem });
     console.log(st.registers);
     expect(st.registers[7]).toBe(NONE);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
@@ -147,7 +147,7 @@ describe("ΩR read handler", () => {
     const bitmask = Uint8Array.of(0b0000_0001, 0b1000_0010, 0b0010_0000, 0b0000_1000, 0b1000_0010, 0b0000_0010);
 
     const blob  = makeBlob(updatedCode, bitmask);
-    const st  = runBlob(blob, 100, { env, memInit: mem });
+    const st  = runBlob(blob, 100n, { env, memInit: mem });
     console.log("Registers after run:", st.registers);
   
     expect(st.registers[7]).toBe(NONE);
@@ -163,7 +163,7 @@ describe("ΩR read handler", () => {
   
     const mem = new Uint8Array(1 << 20);
     const env = makeHostEnv();
-    const st  = runBlob(badBlob, 100, { env, memInit: mem });
+    const st  = runBlob(badBlob, 100n, { env, memInit: mem });
   
     expect(st.registers[7]).toBe(NONE);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
@@ -195,7 +195,7 @@ describe("ΩR read handler", () => {
     const store = new Map<string, Uint8Array>().set("102,111,111", VAL); // "foo" key in storage
     const env   = makeHostEnv({ now: 0n, storage: store }); // vectors={}, now=0, storage=store
   
-    const st = runBlob(blob, 100, { env, memInit: mem });
+    const st = runBlob(blob, 100n, { env, memInit: mem });
   
     expect(st.registers[7]).toBe(NONE); // dest not writable
     expect(st.exit?.type).toBe(ExitReasonType.Panic);  // trap executes last

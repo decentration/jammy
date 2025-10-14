@@ -6,7 +6,7 @@ import { HASH_BYTES, OK } from "../../../risc-pvm/interpreter/host/consts";
 import { makeBlob } from "./helpers";
 
 const HEAP = 0x18000;
-const GAS  = 100;
+const GAS  = 100n;
 
 function prog(off = HEAP): Uint8Array {
   return Uint8Array.of(

@@ -30,7 +30,7 @@ describe("ΩD designate handler", () => {
     const env = makeHostEnv({
       initAcc: { allocator: { index: 0n, env: { deltas: new Map<bigint, any>(), currentServiceId: SVC_ID } }, session: {} }
     });    
-    const st  = runBlob(mkBlob(code()), 100, { env, memInit: mem });
+    const st  = runBlob(mkBlob(code()), 100n, { env, memInit: mem });
 
     const expected = decodeDesignationsVector(payload)!;
 
@@ -48,7 +48,7 @@ describe("ΩD designate handler", () => {
     // a pointer that forces readBytes past the end of mem
     const nearEnd = (1 << 20) - (PAYLOAD_BYTES - 1); // one byte short -> OOB
   
-    const st = runBlob(mkBlob(code(nearEnd)), 100, {
+    const st = runBlob(mkBlob(code(nearEnd)), 100n, {
       env: makeHostEnv({ initAcc: { allocator: { index: 0n, env: { deltas: new Map<bigint, any>(), currentServiceId: SVC_ID } }, session: {} } }),
       memInit: mem,
     });

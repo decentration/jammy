@@ -9,7 +9,7 @@ import { AccumulateContext, ServiceAccount } from "../../../risc-pvm/interpreter
 import { makeOpcodeBitmask } from './helpers'
 
 const HEAP = 0x18000;
-const GAS  = 100;
+const GAS  = 100n;
 
 function mkCode(o=HEAP, g=123n, m=456n) {
     return Uint8Array.of(
@@ -91,7 +91,7 @@ it("upgrade then info reflects new c,g,m", () => {
   const env = makeHostEnv({initAcc: mkHostEnvCode(CUR)});
 
   const blob = mkBlob(mkCode(HEAP, 777n, 888n));
-  const st1 = runBlob(blob, 100, { env, memInit: mem });
+  const st1 = runBlob(blob, 100n, { env, memInit: mem });
   expect(st1.registers[7]).toBe(OK);
 
   const infoProg = Uint8Array.of(
@@ -116,7 +116,7 @@ it("upgrade then info reflects new c,g,m", () => {
     bitmaskBits: infoMask
   });
  
-  const st2 = runBlob(blob2, 100, { env, memInit: mem });
+  const st2 = runBlob(blob2, 100n, { env, memInit: mem });
 
   expect(st2.registers[7]).toBe(BigInt(INFO_BYTES));  // spot check tg/tm in output (bytes 32+16..)
   const out = st2.memory.slice(HEAP, HEAP+64);

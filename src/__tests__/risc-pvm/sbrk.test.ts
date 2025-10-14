@@ -48,7 +48,7 @@ describe("sbrkHandler – heap allocation", () => {
     const blob  = buildSbrkBlob(0x20); // request 32 bytes in extra heap space (0b00100000)
     const state = runBlob(
         blob, 
-        500, // gas
+        500n, // gas
     {
       heapStart: HEAP_START,
       heapEnd:   HEAP_END,
@@ -66,7 +66,7 @@ describe("sbrkHandler – heap allocation", () => {
   it("panics on heap overflow", () => {
     const oversize = HEAP_END - HEAP_START + 4; // 4 bytes too many
     const blob  = buildSbrkBlob(oversize);
-    const state = runBlob(blob, 500, {
+    const state = runBlob(blob, 500n, {
       heapStart: HEAP_START,
       heapEnd:   HEAP_END,
       memSize:   MEM_SIZE,

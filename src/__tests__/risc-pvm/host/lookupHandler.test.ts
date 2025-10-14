@@ -42,7 +42,7 @@ describe("ΩL lookup handler", () => {
     // Make xs exist so getMergedXs(env) is truthy.
     env.putService(XS_ID, mkService(0n, 0n));
 
-    const st = runBlob(blob(), 100, { env, memInit: mem });
+    const st = runBlob(blob(), 100n, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(BigInt(VALUE.length));
     expect(st.memory.slice(DEST_ADDR, DEST_ADDR+VALUE.length)).toEqual(VALUE);
@@ -54,7 +54,7 @@ describe("ΩL lookup handler", () => {
     mem.set(new Uint8Array(32).fill(1), HASH_ADDR);
 
     const env = makeHostEnv();
-    const st  = runBlob(blob(), 100, { env, memInit: mem });
+    const st  = runBlob(blob(), 100n, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(NONE);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
@@ -63,7 +63,7 @@ describe("ΩL lookup handler", () => {
   it("hash bytes unmapped -> Panic", () => {
     const mem = new Uint8Array(1<<20);  // HASH_ADDR empty
     const env = makeHostEnv();
-    const st  = runBlob(blob(), 100, { env, memInit: mem });
+    const st  = runBlob(blob(), 100n, { env, memInit: mem });
 
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
@@ -74,7 +74,7 @@ describe("ΩL lookup handler", () => {
     const mem = new Uint8Array(1<<20);
     mem.set(new Uint8Array(32).fill(1), HASH_ADDR);
 
-    const st = runBlob(blob(bad), 100, { env: makeHostEnv(), memInit: mem });
+    const st = runBlob(blob(bad), 100n, { env: makeHostEnv(), memInit: mem });
 
     expect(st.registers[7]).toBe(NONE);
   });
@@ -89,7 +89,7 @@ describe("ΩL lookup handler", () => {
     const mem = new Uint8Array(1<<20);
     mem.set(new Uint8Array(32).fill(2), HASH_ADDR);
 
-    const st = runBlob(blob(bad), 100, { env: makeHostEnv(), memInit: mem });
+    const st = runBlob(blob(bad), 100n, { env: makeHostEnv(), memInit: mem });
 
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });

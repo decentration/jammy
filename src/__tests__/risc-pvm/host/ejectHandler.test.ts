@@ -11,7 +11,7 @@ import { ledgerPut } from "../../../risc-pvm/interpreter/host/handlers/accumulat
 const HEAP = 0x18000;
 const NOW  = 1_000_000n;  // t
 const BIG_ENOUGH_MEM = 1 << 20;
-const GAS  = 100_000;
+const GAS  = 100_000n;
 const EJECT_DELAY = BigInt(D); // D = 19,200
 
 function prog(d: bigint, o: number): Uint8Array {
@@ -80,7 +80,7 @@ describe("ΩJ eject handler", () => {
     const mem  = new Uint8Array(1 << 20); 
     mem.set(h, HEAP);
   
-    const st = runBlob(blob, 100_000, { env, memInit: mem });
+    const st = runBlob(blob, GAS, { env, memInit: mem });
   
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
     expect(st.registers[7]).toBe(OK);
@@ -102,7 +102,7 @@ describe("ΩJ eject handler", () => {
     if (!xe.designationEntries) xe.designationEntries = new Map<bigint, DesignationEntry>();
 
     const bitmask = Uint8Array.of(0b0000_0001, 0b0000_0100, 0b0000_0101);
-    const st = runBlob(makeBlob(prog(1n, 0x20), bitmask), 100_000, { env, memInit: new Uint8Array(BIG_ENOUGH_MEM) },);
+    const st = runBlob(makeBlob(prog(1n, 0x20), bitmask), GAS, { env, memInit: new Uint8Array(BIG_ENOUGH_MEM) },);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
@@ -128,13 +128,13 @@ describe("ΩJ eject handler", () => {
 
     // case 1: d == xs -> WHO
     const mem1 = new Uint8Array(BIG_ENOUGH_MEM); mem1.set(H1, HEAP);
-    const st1 = runBlob(makeBlob(prog(xsId, HEAP), bitmask), 100_000, { env, memInit: mem1 });
+    const st1 = runBlob(makeBlob(prog(xsId, HEAP), bitmask), GAS, { env, memInit: mem1 });
     expect(st1.registers[7]).toBe(WHO);
 
     // case 2: entry missing -> WHO
     const dId = 0xBBBn;
     const mem2 = new Uint8Array(BIG_ENOUGH_MEM); mem2.set(H1, HEAP);
-    const st2 = runBlob(makeBlob(prog(dId, HEAP), bitmask), 100_000, { env, memInit: mem2 });
+    const st2 = runBlob(makeBlob(prog(dId, HEAP), bitmask), GAS, { env, memInit: mem2 });
     expect(st2.registers[7]).toBe(WHO);
 
     // case 3: dc != E32(xs) -> WHO
@@ -144,7 +144,7 @@ describe("ΩJ eject handler", () => {
     (env.acc.allocator.env as any).designationEntries.set(dId, entry);
 
     const mem3 = new Uint8Array(BIG_ENOUGH_MEM); mem3.set(H1, HEAP); // memory has H1, entry has H2 => mismatch
-    const st3 = runBlob(makeBlob(prog(dId, HEAP), bitmask), 100_000, { env, memInit: mem3 });
+    const st3 = runBlob(makeBlob(prog(dId, HEAP), bitmask), GAS, { env, memInit: mem3 });
     expect(st3.registers[7]).toBe(WHO);
   });
 
@@ -180,7 +180,7 @@ describe("ΩJ eject handler", () => {
     const mem = new Uint8Array(1 << 20);
     mem.set(H, HEAP);
 
-    const st = runBlob(makeBlob(prog(dId, HEAP), bitmask), 100_000, { env, memInit: mem });
+    const st = runBlob(makeBlob(prog(dId, HEAP), bitmask), GAS, { env, memInit: mem });
 
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
     expect(st.registers[7]).toBe(HUH);

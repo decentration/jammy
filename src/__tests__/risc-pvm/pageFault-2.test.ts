@@ -42,7 +42,7 @@ describe("memory-protection tests", () => {
     );
     const bitmask = Uint8Array.of(0b01000001, 0b00000010);
 
-    const s = runBlob(blob(code, bitmask), 100, memOpts);
+    const s = runBlob(blob(code, bitmask), 100n, memOpts);
     console.log("memory-protection test 1 state", s);
     expect(s.exit?.type  ).toBe(ExitReasonType.PageFault);
     expect(s.exit?.detail).toBe(0x4);        // page-4
@@ -61,7 +61,7 @@ describe("memory-protection tests", () => {
     );
     const bitmask = Uint8Array.of(0b01000001, 0b00010000);
 
-    const s = runBlob(blob(code, bitmask), 200, memOpts);
+    const s = runBlob(blob(code, bitmask), 200n, memOpts);
     expect(s.exit?.type  ).toBe(ExitReasonType.PageFault);
     expect(s.exit?.detail).toBe(0x2);
   });
@@ -78,7 +78,7 @@ describe("memory-protection tests", () => {
     const bitmask = Uint8Array.of(0b01000001, 0b10010000
     );
 
-    const s = runBlob(blob(code, bitmask), 50, memOpts);
+    const s = runBlob(blob(code, bitmask), 50n, memOpts);
     expect(s.exit?.type).toBe(ExitReasonType.Panic); // trap
     expect(s.memory[0x30004]).toBe(0xAA);
   });
@@ -94,7 +94,7 @@ describe("memory-protection tests", () => {
     );
     const bitmask = Uint8Array.of(0b01000001, 0b10010000);
 
-    const s = runBlob(blob(code, bitmask), 50, memOpts);
+    const s = runBlob(blob(code, bitmask), 50n, memOpts);
     expect(s.exit?.type).toBe(ExitReasonType.Panic);
   });
 
@@ -114,7 +114,7 @@ describe("memory-protection tests", () => {
 
       const bitmask = Uint8Array.of(0b0100_0001, 0b0000_0001);
 
-      const s = runBlob(blob(code, bitmask), 100, memOpts);
+      const s = runBlob(blob(code, bitmask), 100n, memOpts);
       expect(s.exit?.type).toBe(ExitReasonType.Panic);        // trap
       expect(s.context!.heapPointer).toBe(memOpts.heapEnd);   // grew to limit
   });
@@ -140,7 +140,7 @@ describe("memory-protection tests", () => {
         0b0000_0001,                 // index 8
       );
       
-    const s = runBlob(blob(code, bitmask), 100, memOpts);
+    const s = runBlob(blob(code, bitmask), 100n, memOpts);
     expect(s.exit?.type ).toBe(ExitReasonType.Panic); // overflow branch
     expect(s.exit?.detail).toBe("heap overflow");
   });

@@ -10,7 +10,7 @@ import { ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
 import { hash } from "../../../utils/crypto";
 
 const HEAP = 0x18000;
-const GAS  = 100_000;
+const GAS  = 100_000n;
 const XS_ID = 0xaaaa_aaaa_aaaa_aaaAn;
 
 function prog(s: bigint, o: number, z: number): Uint8Array {

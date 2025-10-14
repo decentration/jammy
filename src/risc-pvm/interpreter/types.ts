@@ -52,7 +52,7 @@ export interface OpcodeDefinition {
   opcode: number;
   name: string;
   addressType: InstructionAddressTypes;
-  gasCost: number;
+  gasCost: Gas;
   execute: ExecutionHandler;
 }
 
@@ -61,7 +61,7 @@ export interface OpcodeDefinition {
 export type InnerRunResult = {
   exit: ExitReasonType;          // ε
   nextIc: number;                // ı'
-  gasRemaining: bigint;          // ϱ'
+  gasRemaining: Gas;          // ϱ'
   regs: BigUint64Array;          // φ' (length 13)
   u: InnerMachineState;          // μ' memory (engine-defined)
   hostId?: bigint;               // h
@@ -71,7 +71,7 @@ export type InnerRunResult = {
 export type RunInnerMachineFn = (
   p: Uint8Array, // blob
   ic: number, // instruction counrer
-  gas: bigint, // gas
+  gas: Gas, // gas
   regs: BigUint64Array, // registers
   u: InnerMachineState // (u') memory
 ) => InnerRunResult;

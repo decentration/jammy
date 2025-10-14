@@ -8,7 +8,7 @@ import { makeBlob, mkService, tuple } from "./helpers";
 import type { ServiceAccount } from "../../../risc-pvm/interpreter/host/types";
 
 const HEAP = 0x18000;
-const GAS  = 100_000;
+const GAS  = 100_000n;
 
 function prog(o: number, z: number): Uint8Array {
   return Uint8Array.of(

@@ -1,7 +1,7 @@
 import { toBytes } from "../../codecs";
 import { Report } from "../../types/types";
-import { State as AssurancesState } from "./types";
 import { TIMESLOT_DELAY_PERIOD } from "../../consts";
+import { AssuranceState } from "./types";
 
 export function areSortedAndUniqueByValidatorIndex(assurances: {
     validator_index: number;
@@ -17,7 +17,7 @@ export function areSortedAndUniqueByValidatorIndex(assurances: {
 
 
   export function handleStaleAssignments(
-    postState: AssurancesState,
+    postState: AssuranceState,
     currentSlot: number,
   ): void {
     for (let c = 0; c <= postState.avail_assignments.length; c++) {
@@ -25,7 +25,7 @@ export function areSortedAndUniqueByValidatorIndex(assurances: {
       if (!assignment) continue;
   
       if (currentSlot >= assignment.timeout + TIMESLOT_DELAY_PERIOD) {
-        console.log("Stale assignment", { c, currentSlot, assignment });
+        // console.log("Stale assignment", { c, currentSlot, assignment });
         // This is stale => eq. 11.17 => remove it => push to reported
         // reported.push(assignment.report);
         postState.avail_assignments[c] = null;
@@ -40,7 +40,7 @@ export function areSortedAndUniqueByValidatorIndex(assurances: {
  *  2) if count > floor(2/3 * validatorCount) => remove => push report => reported
  */
 export function finalizeTwoThirds(
-  postState: AssurancesState,
+  postState: AssuranceState,
   assurances: { bitfield: Uint8Array; validator_index: number }[],
   reported: Report[]
 ) {

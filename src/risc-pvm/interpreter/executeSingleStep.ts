@@ -1,6 +1,5 @@
 import { decodeInstruction } from "./instructions/decodeInstruction";
 import { instructionHandlers } from "./instructions/instructionHandlers";
-import { skip } from "./utils/skip";
 import { ExitReasonType, InterpreterState } from "./types";
 
 
@@ -14,7 +13,7 @@ import { ExitReasonType, InterpreterState } from "./types";
  */
 export function executeSingleStep(state: InterpreterState): InterpreterState {
 
-    if (state.gas <= 0) {
+    if (state.gas <= 0n) {
       return {
         ...state,
         exit: { type: ExitReasonType.OutOfGas }
@@ -37,7 +36,7 @@ export function executeSingleStep(state: InterpreterState): InterpreterState {
   
     const newState = handler(state, instr.operands ?? []);
 
-    if (newState.gas <= 0) {
+    if (newState.gas <= 0n) {
       return {
         ...newState,
         exit: { type: ExitReasonType.OutOfGas }

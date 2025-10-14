@@ -8,7 +8,7 @@ import { makeAcc, mkService, makeBlob, tuple } from "./helpers";
 
 
 const HEAP = 0x18000;
-const GAS  = 100_000;
+const GAS  = 100_000n;
 const FORGET_DELAY =BigInt(D);
 
 

@@ -8,7 +8,7 @@ import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
 
 const HEAP = 0x18000; // where we place the 112‑byte blob
-const GAS  = 100;
+const GAS  = 100n;
 
 function code(r7: number, r8 = 0) {
   return Uint8Array.of(

@@ -7,6 +7,7 @@ import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
 
+const GAS = 100n;
 // Helper that builds a tiny program:  r10<-sel ; ecalli 18 ; trap
 const HEAP_START = 0x10000;  
 function makeCode(sel: number, dest= HEAP_START): Uint8Array {
@@ -41,7 +42,7 @@ describe("ΩY fetch handler", () => {
     const env   = makeHostEnv();
     const code = makeCode(FetchSel.Config);
     const blob  = makeBlob(code, bitmask);
-    const st    = runBlob(blob, 100, { env, memInit: new Uint8Array(1<<20) });
+    const st    = runBlob(blob, GAS, { env, memInit: new Uint8Array(1<<20) });
     const cfg   = buildFetchConfigVector();
 
     expect(st.registers[7]).toBe(BigInt(cfg.length));
@@ -53,7 +54,7 @@ describe("ΩY fetch handler", () => {
     const env = makeHostEnv();
     const code = makeCode(FetchSel.Config);
     const blob = makeBlob(code, bitmask);
-    const st = runBlob(blob, 100, { env });
+    const st = runBlob(blob, GAS, { env });
   
     const cfg = buildFetchConfigVector();
     expect(st.registers[7]).toBe(BigInt(cfg.length));
@@ -65,7 +66,7 @@ describe("ΩY fetch handler", () => {
     const env = makeHostEnv();
     const code = makeCode(FetchSel.Config);
     const blob = makeBlob(code, bitmask);
-    const st = runBlob(blob, 100, { env });
+    const st = runBlob(blob, GAS, { env });
 
     const cfg = buildFetchConfigVector();
     expect(st.registers[7]).toBe(BigInt(cfg.length));
@@ -82,7 +83,7 @@ describe("ΩY fetch handler", () => {
 
     console.log("selector=", 7, "mapsTo=", fetchVecSelectorMap[7]);
     console.log("env vectors keys=", Object.keys((env as any).vectors ?? {}));
-    const st = runBlob(blob, 100, { env });
+    const st = runBlob(blob, GAS, { env });
 
     console.log("st", st);
 
@@ -95,7 +96,7 @@ describe("ΩY fetch handler", () => {
   it("vector missing -> r7=NONE", () => {
     const env   = makeHostEnv();  // empty
     const blob  = makeBlob(makeCode(FetchSel.ProgSerialized), bitmask);
-    const st = runBlob(blob, 50, {env});
+    const st = runBlob(blob, 50n, {env});
 
     console.log("st", st);
     expect(st.registers[7]).toBe(NONE);
@@ -104,7 +105,7 @@ describe("ΩY fetch handler", () => {
   it("unknown selector → r7=NONE", () => {
     const env  = makeHostEnv();
     const blob = makeBlob(makeCode(99), bitmask); // 99 is not a valid selector
-    const st = runBlob(blob, 50, {env});
+    const st = runBlob(blob, 50n, {env});
 
     expect(st.registers[7]).toBe(NONE);
   });
@@ -114,13 +115,13 @@ describe("ΩY fetch handler", () => {
     const env  = makeHostEnv({ vectors: {programBlob: vec }});
     const UNMAPPED = 0x00000;
     const blob = makeBlob(makeCode(FetchSel.ProgSerialized, UNMAPPED), bitmask);
-    const st   = runBlob(blob, 100, { env });
+    const st   = runBlob(blob, GAS, { env });
 
 
     // loop through and check that the memory is still zero
     expect(Array.from(st.memory.slice(UNMAPPED, UNMAPPED + vec.length)).every(b => b === 0)).toBe(true);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
-    expect(st.gas).toBe(100 - 10 -1 -1 -1 );   
+    expect(st.gas).toBe(100n - 10n -1n -1n -1n );   
   });
 
 });

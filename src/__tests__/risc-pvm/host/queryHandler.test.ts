@@ -8,7 +8,7 @@ import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
 import { makeBlob, makeOpcodeBitmask, mkService, tuple } from "./helpers";
 
 const HEAP = 0x18000;  // where we place the 32 byte hash h
-const GAS  = 100_000;
+const GAS  = 100_000n;
 
 function prog(o: number, z: number): Uint8Array {
   // r7=o (hash ptr), r8=z (index), ecalli 22 (ΩQ), trap

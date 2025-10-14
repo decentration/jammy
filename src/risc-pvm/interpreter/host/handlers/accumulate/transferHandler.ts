@@ -17,8 +17,8 @@ export const transferHandler: HostCallHandler = (s, _id, env) => {
   if (BigInt(s.gas) < gasLim) {
     return { state: { ...s, exit: { type: ExitReasonType.OutOfGas } }, ok: true };
   }
-  // safe: Number(gasLim) ≤ s.gas ≤ 2^53-1
-  let sCharged = { ...s, gas: s.gas - Number(gasLim) };
+
+  let sCharged = { ...s, gas: BigInt(s.gas) - gasLim };
 
   const { bytes: memo, state: sAfterRead } = readBytes(sCharged, off, WT);
   if (!memo) {

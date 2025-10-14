@@ -40,7 +40,7 @@ describe("ΩH historical_lookup handler", () => {
 
     const imgs  = new Map<string,Uint8Array>().set(Buffer.from(HASH).toString("hex"), VALUE);    const env   = makeHostEnv({now: 0n,capBytes: Infinity,preImage: imgs});
 
-    const st = runBlob(blob(), 100, { env, memInit: mem });
+    const st = runBlob(blob(), 100n, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(BigInt(VALUE.length));
     expect(st.memory.slice(DEST_ADDR, DEST_ADDR + VALUE.length)).toEqual(VALUE);
@@ -52,14 +52,14 @@ describe("ΩH historical_lookup handler", () => {
     const mem  = new Uint8Array(1<<20);
     mem.set(HASH, HASH_ADDR);
 
-    const st = runBlob(blob(), 100, { env: makeHostEnv(), memInit: mem });
+    const st = runBlob(blob(), 100n, { env: makeHostEnv(), memInit: mem });
 
     expect(st.registers[7]).toBe(NONE);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
   it("hash bytes unmapped -> Panic", () => {
-    const st = runBlob(blob(), 100, { env: makeHostEnv(), memInit: new Uint8Array(1<<20) });
+    const st = runBlob(blob(), 100n, { env: makeHostEnv(), memInit: new Uint8Array(1<<20) });
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
@@ -68,7 +68,7 @@ describe("ΩH historical_lookup handler", () => {
     const mem = new Uint8Array(1<<20);
     mem.set(new Uint8Array(32).fill(2), HASH_ADDR);
 
-    const st = runBlob(blob(bad), 100, { env: makeHostEnv(), memInit: mem });
+    const st = runBlob(blob(bad), 100n, { env: makeHostEnv(), memInit: mem });
 
     expect(st.registers[7]).toBe(WHO);
   });
@@ -84,7 +84,7 @@ describe("ΩH historical_lookup handler", () => {
     const mem = new Uint8Array(1<<20);
     mem.set(new Uint8Array(32).fill(3), HASH_ADDR);
 
-    const st = runBlob(blob(bad), 100, { env: makeHostEnv(), memInit: mem });
+    const st = runBlob(blob(bad), 100n, { env: makeHostEnv(), memInit: mem });
 
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });

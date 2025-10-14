@@ -5,8 +5,6 @@ import { executeSingleStep } from "../../../risc-pvm/interpreter/executeSingleSt
 import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
 import { ExitReasonType, InterpreterState } from "../../../risc-pvm/interpreter/types";
 import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
-import { encodeProtocolInt } from "../../../codecs";
-import { Bytes } from "scale-ts";
 import { prettyState } from "../../../risc-pvm/interpreter/utils/debug";
 import { nextPc } from "../../../risc-pvm/interpreter/instructions/instructionHandlers";
 import { toLE, writeBytes } from "../../../risc-pvm/interpreter/instructions/helpers";
@@ -43,7 +41,7 @@ describe("Instruction execution tests", () => {
 
     expect(state1.exit?.type).toBe(ExitReasonType.Panic);
     expect(state1.pc).toBe(0);
-    expect(state1.gas).toBe(state0.gas - 1);
+    expect(state1.gas).toBe(state0.gas - 1n);
   });
 
   // 2) FALLTHROUGH
@@ -55,7 +53,7 @@ describe("Instruction execution tests", () => {
 
     expect(state1.exit).toEqual({ type: ExitReasonType.Continue});  // Should NOT exit
     expect(state1.pc).toBe(1);            // Advance PC by 1
-    expect(state1.gas).toBe(state0.gas - 1);
+    expect(state1.gas).toBe(state0.gas - 1n);
   });
 
  // 3) ECALLI
@@ -68,7 +66,7 @@ describe("Instruction execution tests", () => {
     expect(state1.exit?.type).toBe(ExitReasonType.HostCall);
     expect(state1.exit?.id).toBe(5n);
     expect(state1.pc).toBe(2);
-    expect(state1.gas).toBe(state0.gas - 10);
+    expect(state1.gas).toBe(state0.gas - 10n);
   });
 
   // 4) LOAD_IMM_64
@@ -85,7 +83,7 @@ describe("Instruction execution tests", () => {
 
     expect(state1.registers[2]).toBe(0x0102030405060708n);
     expect(state1.pc).toBe(10);
-    expect(state1.gas).toBe(state0.gas - 1);
+    expect(state1.gas).toBe(state0.gas - 1n);
     expect(state1.exit).toEqual({type: ExitReasonType.Continue});
   });
 
@@ -112,7 +110,7 @@ describe("Instruction execution tests", () => {
       );
 
       const mask = Uint8Array.of(0b0100_0001);
-      const vm = runBlob(wrap(code, mask), 50, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 50n, MEM_OPTS);
  
       expect(vm.memory[HEAP_ADDR]).toBe(0xAB);
       expect(vm.exit?.type).toBe(ExitReasonType.Panic);   // trap after write
@@ -128,7 +126,7 @@ describe("Instruction execution tests", () => {
       );
 
       const mask = Uint8Array.of(0b1000_0001);
-      const vm = runBlob(wrap(code, mask), 50, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 50n, MEM_OPTS);
 
       console.log("vm memory slice", vm.memory.slice(HEAP_ADDR -10, HEAP_ADDR + 20));
   
@@ -146,7 +144,7 @@ describe("Instruction execution tests", () => {
       );
 
       const mask = Uint8Array.of(0b0000_0001, 0b0000_0010);
-      const vm = runBlob(wrap(code, mask), 60, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 60n, MEM_OPTS);
   
       expect(vm.memory.slice(HEAP_ADDR, HEAP_ADDR + 4))
         .toEqual(Uint8Array.of(0xEF, 0xBE, 0xAD, 0xDE));
@@ -163,7 +161,7 @@ describe("Instruction execution tests", () => {
       );
 
       const mask = Uint8Array.of(0b0000_0001, 0b0010_0000);
-      const vm = runBlob(wrap(code, mask), 80, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 80n, MEM_OPTS);
   
       expect(vm.memory.slice(HEAP_ADDR, HEAP_ADDR + 8))
         .toEqual(Uint8Array.of(0x88,0x77,0x66,0x55,0x44,0x33,0x22,0x11));
@@ -182,7 +180,7 @@ describe("Instruction execution tests", () => {
       );
 
       const mask = Uint8Array.of(0b0000_0001, 0b0000_0001);
-      const vm = runBlob(wrap(code, mask), 50, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 50n, MEM_OPTS);
   
       console.log("Page Fault state", prettyState(vm));
       expect(vm.exit?.type  ).toBe(ExitReasonType.PageFault);
@@ -434,7 +432,7 @@ describe("Instruction execution tests", () => {
         0b0000_0001 
       );
       
-      const vm = runBlob(wrap(code, mask), 120, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 120n, MEM_OPTS);
 
       // console.log("State after load_u8 execution:", vm);
       expect(vm.memory[0x30010]).toBe(0x7F);
@@ -455,7 +453,7 @@ describe("Instruction execution tests", () => {
         0b0000_1000,
         0b0000_0001 
       );  
-      const vm = runBlob(wrap(code, mask), 120, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 120n, MEM_OPTS);
       console.log("VM memory base:", vm, vm.memory[BASE]);
       expect(vm.registers[1]).toBe(-1n);
     });
@@ -472,7 +470,7 @@ describe("Instruction execution tests", () => {
         0b0000_1000,
         0b0000_0001 
       );  
-      const vm = runBlob(wrap(code, mask), 130, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 130n, MEM_OPTS);
       expect(vm.registers[1]).toBe(0xBEEFn);
     });
   
@@ -488,7 +486,7 @@ describe("Instruction execution tests", () => {
         0b0000_1000,
         0b0000_0001 
       );  
-      const vm = runBlob(wrap(code, mask), 130, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 130n, MEM_OPTS);
       expect(vm.registers[1]).toBe(-32768n);
     });
   
@@ -504,7 +502,7 @@ describe("Instruction execution tests", () => {
         0b0000_1000,
         0b0000_0001 
       );  
-      const vm = runBlob(wrap(code, mask), 140, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 140n, MEM_OPTS);
       expect(vm.registers[1]).toBe(0x12345678n);
     });
   
@@ -520,7 +518,7 @@ describe("Instruction execution tests", () => {
         0b0000_1000,
         0b0000_0001 
       );  
-      const vm = runBlob(wrap(code, mask), 140, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 140n, MEM_OPTS);
       expect(vm.registers[1]).toBe(-2147483648n);
     });
   
@@ -540,7 +538,7 @@ describe("Instruction execution tests", () => {
         0b0010_0001,
         0b0000_0100
       );  
-      const vm = runBlob(wrap(code, mask), 200, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 200n, MEM_OPTS);
 
       console.log("VM memory base:", vm, vm.memory[BASE]);
       expect(vm.registers[1]).toBe(0x1122334455667788n);
@@ -560,7 +558,7 @@ describe("Instruction execution tests", () => {
         0b0100_0001,
         0b0000_1000
       );    
-      const vm = runBlob(wrap(code, mask), 90, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 90n, MEM_OPTS);
       console.log("VM memory base:", vm, vm.memory[BASE]);
       expect(vm.memory[0x30010]).toBe(0xAA);
     });
@@ -573,7 +571,7 @@ describe("Instruction execution tests", () => {
       );
       const mask = Uint8Array.of(0b0100_0001, 0b0000_1000);
   
-      const vm = runBlob(wrap(code, mask), 90, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 90n, MEM_OPTS);
       expect(Array.from(vm.memory.slice(BASE, BASE+2)))
         .toEqual([0xEF,0xBE]);
     });
@@ -586,7 +584,7 @@ describe("Instruction execution tests", () => {
       );
       const mask = Uint8Array.of(0b0100_0001, 0b0000_1000);
   
-      const vm = runBlob(wrap(code, mask), 100, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 100n, MEM_OPTS);
       expect(vm.memory.slice(BASE, BASE+4))
         .toEqual(Uint8Array.of(0xEF,0xBE,0xAD,0xDE));
     });
@@ -600,7 +598,7 @@ describe("Instruction execution tests", () => {
       );
       const mask = Uint8Array.of(0b0000_0001, 0b1000_0100);
   
-      const vm = runBlob(wrap(code, mask), 160, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 160n, MEM_OPTS);
       expect(vm.memory.slice(BASE, BASE+8))
         .toEqual(Uint8Array.of(0x88,0x77,0x66,0x55,0x44,0x33,0x22,0x11));
     });
@@ -613,7 +611,7 @@ describe("Instruction execution tests", () => {
       );
       const mask = Uint8Array.of(0b0100_0001, 0b0000_1000);
   
-      const vm = runBlob(wrap(code, mask), 100, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 100n, MEM_OPTS);
       expect(vm.exit?.type  ).toBe(ExitReasonType.PageFault);
       expect(vm.exit?.detail).toBe(1);
     });
@@ -634,7 +632,7 @@ describe("Instruction execution tests", () => {
         Opcodes.trap
       );
       const mask = Uint8Array.of(0b0010_0001, 0b0000_0010);
-      const vm   = runBlob(wrap(code, mask), 60, MEM_OPTS);
+      const vm   = runBlob(wrap(code, mask), 60n, MEM_OPTS);
 
       console.log("VM memory base:", vm, vm.memory[BASE2]);
       // lets log a range of memory 
@@ -1134,7 +1132,7 @@ describe("Instruction execution tests", () => {
 
       // Heap is page 3 (0x30000‥0x37FFF) and is RW
       const final = runBlob(wrap(PROG, MASK), 
-        500, // gas 
+        500n, // gas 
         {
           memSize  : 0x40000, // 256 KiB -> 4 pages
           heapStart: 0x30000, // page 3
@@ -1157,7 +1155,7 @@ describe("Instruction execution tests", () => {
 
       const mask = Uint8Array.of(0b01000001, 0b10010000);
 
-      const vm = runBlob(wrap(code, mask), 500, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 500n, MEM_OPTS);
 
       expect(vm.memory[BASE + 2]).toBe(0xEF);
       expect(vm.memory[BASE + 3]).toBe(0xBE);
@@ -1174,7 +1172,7 @@ describe("Instruction execution tests", () => {
       );
       const mask = Uint8Array.of(0b01000001, 0b10010000);
 
-      const vm = runBlob(wrap(code, mask), 500, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 500n, MEM_OPTS);
 
       expect(vm.memory.subarray(BASE, BASE + 4)).toEqual(
         Uint8Array.of(0xEF, 0xBE, 0xAD, 0xDE)
@@ -1194,7 +1192,7 @@ describe("Instruction execution tests", () => {
 
       const mask = Uint8Array.of(0b00000001, 0b00000100, 0b00001001); 
 
-      const vm = runBlob(wrap(code, mask), 700, MEM_OPTS);
+      const vm = runBlob(wrap(code, mask), 700n, MEM_OPTS);
 
       expect(vm.memory.slice(BASE + 8, BASE + 16)).toEqual(
         Uint8Array.of(0x88,0x77,0x66,0x55,0x44,0x33,0x22,0x11)
@@ -1239,7 +1237,7 @@ describe("Instruction execution tests", () => {
         
         const vm = runBlob(
           wrap(PROG, MASK), 
-          400, //gas
+          400n, //gas
           MEM_OPTS
         );
         console.log(vm);
@@ -1260,7 +1258,7 @@ describe("Instruction execution tests", () => {
         );
         const MASK = Uint8Array.of(0b0100_0001, 0b1001_0000, 0b0000_0100); 
     
-        const vm = runBlob(wrap(CODE, MASK), 400, MEM_OPTS);
+        const vm = runBlob(wrap(CODE, MASK), 400n, MEM_OPTS);
         expect(vm.registers[2]).toBe(-1n);
         expect(vm.exit?.type).toBe(ExitReasonType.Panic);
       });
@@ -1275,7 +1273,7 @@ describe("Instruction execution tests", () => {
         );
         const MASK = Uint8Array.of(0b0100_0001, 0b1001_0000, 0b0000_0100); 
     
-        const vm = runBlob(wrap(CODE, MASK), 400, MEM_OPTS);
+        const vm = runBlob(wrap(CODE, MASK), 400n, MEM_OPTS);
         expect(vm.registers[2]).toBe(0xBEEFn);
       });
     
@@ -1289,7 +1287,7 @@ describe("Instruction execution tests", () => {
         );
         const MASK = Uint8Array.of(0b0100_0001, 0b1001_0000, 0b0000_0100); 
     
-        const vm = runBlob(wrap(CODE, MASK), 400, MEM_OPTS);
+        const vm = runBlob(wrap(CODE, MASK), 400n, MEM_OPTS);
         expect(vm.registers[2]).toBe(-32768n);
       });
     
@@ -1303,7 +1301,7 @@ describe("Instruction execution tests", () => {
         );
         const MASK = Uint8Array.of(0b0100_0001, 0b1001_0000, 0b0000_0100); 
     
-        const vm = runBlob(wrap(CODE, MASK), 400, MEM_OPTS);
+        const vm = runBlob(wrap(CODE, MASK), 400n, MEM_OPTS);
         expect(vm.registers[2]).toBe(0x12345678n);
       });
     
@@ -1317,7 +1315,7 @@ describe("Instruction execution tests", () => {
         );
         const MASK = Uint8Array.of(0b0100_0001, 0b1001_0000, 0b0000_0100); 
     
-        const vm = runBlob(wrap(CODE, MASK), 400, MEM_OPTS);
+        const vm = runBlob(wrap(CODE, MASK), 400n, MEM_OPTS);
         expect(vm.registers[2]).toBe(-2147483648n);
       });
     
@@ -1334,7 +1332,7 @@ describe("Instruction execution tests", () => {
 
         const MASK = Uint8Array.of(0b00000001, 0b00000100, 0b01001001);
     
-        const vm = runBlob(wrap(CODE, MASK), 800, MEM_OPTS);
+        const vm = runBlob(wrap(CODE, MASK), 800n, MEM_OPTS);
         expect(vm.registers[2]).toBe(0x0123456789ABCDEFn);
         expect(vm.exit?.type).toBe(ExitReasonType.Panic);
       });
@@ -2401,7 +2399,7 @@ describe("Instruction execution tests", () => {
       regs[1] = 0xFFFF_FFFF_FFFF_FFFFn; // rA
       regs[2] = 0xFFFF_FFFF_FFFF_FFFFn; // rB
       const s1 = executeSingleStep(buildState({ code, bitmask, registers: regs }));
-      const product = regs[1] * regs[2];
+      const product: bigint = BigInt(regs[1]) * BigInt(regs[2]);
       const expected = (product >> 64n) & 0xFFFF_FFFF_FFFF_FFFFn; // upper 64 bits unsigned
       expect(s1.registers[3]).toBe(expected);
     });

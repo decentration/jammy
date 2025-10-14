@@ -8,7 +8,7 @@ import { MachineEntry } from "../../../risc-pvm/interpreter/host/innerMem/types"
 
 const SRC        = 0x1A000; // 
 const BAD_ADDR   = 0x0020;
-const GAS        = 100;
+const GAS        = 100n;
 
 // n is the machine id, 
 // s is the source address, 

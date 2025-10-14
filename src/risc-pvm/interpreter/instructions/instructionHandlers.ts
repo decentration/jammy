@@ -22,7 +22,7 @@ export function nextPc(state: InterpreterState): number {
 
 const branchHandler = (
   condition: (registerValue: bigint, immediateValue: bigint) => boolean,
-  gasCost: number = GAS_COST_JUMP
+  gasCost: bigint = GAS_COST_JUMP
 ): ExecutionHandler => {
   return (state, [rA, imm, offset]) => {
     // console.log("Branch Handler called with operands:", { rA, imm, offset });
@@ -73,7 +73,7 @@ export const ecalliHandler: ExecutionHandler = (s, [imm]) => ({
   exit : { type: ExitReasonType.HostCall, id: BigInt(imm) },  // immediate passed
 });
 
-export const loadImm64Handler: ExecutionHandler = (s, [rA, imm]) => {
+export const loadImm64Handler: ExecutionHandler = (s, [rA, imm]) => { // s is state, r
   const registers = s.registers.slice();
   registers[rA] = imm as bigint;
   return {
@@ -145,7 +145,7 @@ const loadImmHandler: ExecutionHandler = (state, [rA, imm]) => {
     ...state,
     registers,
     pc: nextPc(state),
-    gas: state.gas - 1,
+    gas: state.gas - 1n,
     exit: { type: ExitReasonType.Continue },
   };
 };
@@ -200,7 +200,7 @@ const store = (bytes: 1 | 2 | 4 | 8 ): ExecutionHandler =>
 
     const data = toLE(val, bytes);
     const s1 = writeBytes(s, a, data);
-console.log("Store handler:", { rA, imm, a, bytes, val, data });
+    console.log("Store handler:", { rA, imm, a, bytes, val, data });
     if (s1.exit?.type === ExitReasonType.PageFault) return s1;
     console.log("Store handler after writeBytes:", s1);
 
@@ -267,7 +267,7 @@ const loadImmJumpHandler: ExecutionHandler = (state, [rA, immX, offset]) => {
     ...state,
     registers,
     pc,
-    gas: state.gas - 1,
+    gas: state.gas - 1n,
     exit: { type: exitReason },  
   };
 };
@@ -685,14 +685,14 @@ const loadImmJumpIndHandler: ExecutionHandler = (state, [rA, rB, immX, immY]) =>
     ...state,
     registers,
     pc,
-    gas: state.gas - 1,
+    gas: state.gas - 1n,
     exit: { type: exitReason },  
   };
 };
 
 const threeRegOp = ( 
   fn: (a: bigint, b: bigint) => bigint,
-  gas: number = GAS_PER_INSTRUCTION): ExecutionHandler =>
+  gas = GAS_PER_INSTRUCTION): ExecutionHandler =>
   (s, [rA, rB, rD]) => {
     const regs = s.registers.slice();
     regs[rD] = fn(regs[rA], regs[rB]);

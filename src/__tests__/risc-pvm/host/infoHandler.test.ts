@@ -63,7 +63,7 @@ describe("ΩI info handler", () => {
     });
     env.acc.allocator.env.deltas.set(cur, sa);
     env.encodeInfo = encodeInfoHelper;
-    const st = runBlob(blob, 100,{ env, memInit:new Uint8Array(1<<20) });
+    const st = runBlob(blob, 100n,{ env, memInit:new Uint8Array(1<<20) });
 
     expect(st.registers[7]).toBe(BigInt(INFO_BYTES));
     expect(st.memory.slice(DEST, DEST + INFO_BYTES)).toEqual(encodeInfoHelper(sa));
@@ -71,14 +71,14 @@ describe("ΩI info handler", () => {
   });
 
   it("no info -> r7=NONE", () => {
-    const st = runBlob(blob,100,{ env:makeHostEnv(), memInit:new Uint8Array(1<<20) });
+    const st = runBlob(blob,100n,{ env:makeHostEnv(), memInit:new Uint8Array(1<<20) });
     expect(st.registers[7]).toBe(NONE);
   });
 
   it("unknown service -> r7=WHO", () => {
     const env = makeHostEnv();    
     env.encodeInfo = encodeInfoHelper;
-    const st = runBlob(blob, 100, { env, memInit: new Uint8Array(1<<20) });
+    const st = runBlob(blob, 100n, { env, memInit: new Uint8Array(1<<20) });
     expect(st.registers[7]).toBe(NONE); 
     // nothing written check
     expect(st.memory.slice(DEST, DEST + INFO_BYTES)).toEqual(new Uint8Array(INFO_BYTES));
@@ -102,7 +102,7 @@ describe("ΩI info handler", () => {
 
     env.acc.allocator.env.deltas.set(id, sa);
 
-    const st = runBlob(blob, 100, { env, memInit: new Uint8Array(1 << 20) });
+    const st = runBlob(blob, 100n, { env, memInit: new Uint8Array(1 << 20) });
 
     expect(st.registers[7]).toBe(BigInt(INFO_BYTES));
     expect(st.memory.slice(DEST, DEST + INFO_BYTES)).toEqual(encodeInfoHelper(sa));
@@ -112,7 +112,7 @@ describe("ΩI info handler", () => {
     const bad = Uint8Array.from(prog); bad[8]=0; bad[9]=0; // dest inside code
     const badBlob = buildBlob({meta:Uint8Array.of(0),jumpTbl:Uint8Array.of(0),z:1,
       instr:bad,jumpEntries:[Uint8Array.of(0)],bitmaskBits:bitmask});
-    const st = runBlob(badBlob,100,{ env:makeHostEnv(), memInit:new Uint8Array(1<<20) });
+    const st = runBlob(badBlob,100n,{ env:makeHostEnv(), memInit:new Uint8Array(1<<20) });
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 });
@@ -131,7 +131,7 @@ describe("ΩI info handler with newer encodeInfoHelper", () => {
     env.encodeInfo = () => encodeSa;
 
     const mem = new Uint8Array(1 << 20);
-    const st  = runBlob(blob, 100, { env, memInit: mem });
+    const st  = runBlob(blob, 100n, { env, memInit: mem });
 
     expect(st.registers[7]).toBe(BigInt(INFO_BYTES));                 // <-- Sv
     expect(st.exit?.type).toBe(ExitReasonType.Panic);

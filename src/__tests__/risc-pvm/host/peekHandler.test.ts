@@ -8,7 +8,7 @@ import { MachineEntry } from "../../../risc-pvm/interpreter/host/innerMem/types"
 
 const DEST       = 0x19000;
 const BAD_ADDR   = 0x0020;
-const GAS        = 100;
+const GAS        = 100n;
 
 function outerCodePeek(n: number, o: number, s: number, z: number) {
   return Uint8Array.of(
