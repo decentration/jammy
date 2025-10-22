@@ -2,6 +2,7 @@
 import { blake2b } from "blakejs";
 import { PreimagesInput, PreimagesOutput, PreimagesState, ErrorCode, PreimagesMapEntry, AccountsMapEntry } from "./types";
 import { compareBytes, toHex } from "../../utils";
+import { Gas, ServiceActivityRecord, ServicesStatisticsMapEntry } from "../../types";
 
 export function applyPreimagesStf(
     preState: PreimagesState,
@@ -34,6 +35,9 @@ export function applyPreimagesStf(
         }
       }
     }
+
+    // Integrate accepted preimages + accumulate per service stats
+    const perServiceStats = new Map<number, { count: number; size: number }>();
   
     // 3) integrate the incoming preimages into the postState
     for (const p of input.preimages) {
@@ -88,20 +92,43 @@ export function applyPreimagesStf(
 
       //    - Mark the meta as now available => metaEntry.value = [slot]
       metaEntry.value = [input.slot];
+
+       // vi) Bump per-service stats for accepted preimage
+      const s = perServiceStats.get(requester) ?? { count: 0, size: 0 };
+      s.count += 1;
+      s.size += p.blob.length;
+      perServiceStats.set(requester, s);
     }
+
 
     // 5) Sort each accounts preimages array by ascending hash
     for (const acc of postState.accounts) {
       acc.data.preimages.sort((a, b) => compareBytes(a.hash, b.hash));
     }
-    
 
-    // 4) Return
+    // 6) Write service statistics, change count and size. 
+    postState.statistics = [...perServiceStats.entries()].map<ServicesStatisticsMapEntry>(
+      ([id, { count, size }]) => ({
+        id,
+        record: {
+          provided_count: count,
+          provided_size: size,
+          refinement_count: 0,
+          refinement_gas_used: 0n as Gas,
+          imports: 0,
+          extrinsic_count: 0,
+          extrinsic_size: 0,
+          exports: 0,
+          accumulate_count: 0,
+          accumulate_gas_used: 0n as Gas,
+        },
+      }) satisfies ServicesStatisticsMapEntry
+    );
+
+    // 7) Return
     return { output: { ok: null }, postState };
   }
   
-
-
   function compareBlob(a: Uint8Array, b: Uint8Array): number {
     for (let i = 0; i < 32; i++) {
       if (a[i] !== b[i]) 

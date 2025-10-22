@@ -17,7 +17,7 @@ describe("Authorizations STF conformance", () => {
     it(`should pass ${fileName}`, () => {
       // 1) Read JSON test vector
 
-      const filePath = path.join(`${JAM_TEST_VECTORS}/authorizations`, `${CHAIN_TYPE}`,  fileName);
+      const filePath = path.join(`${JAM_TEST_VECTORS}/stf//authorizations`, `${CHAIN_TYPE}`,  fileName);
       const rawJson = fs.readFileSync(filePath, "utf8");
 
       // 2) Parse top-level shape: { input, pre_state, output, post_state }

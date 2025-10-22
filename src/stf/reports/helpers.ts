@@ -1,7 +1,8 @@
 import { arrayEqual, convertToReadableFormat, toHex } from '../../utils';
 import { BlockItem } from '../types'; 
-import { ReporterItem } from './types';
+import { ReporterItem, ReportsState } from './types';
 import { hexStringToBytes } from '../../codecs';
+import { toGas } from './updateStatistics';
 
 /**
  *  areSortedAndUniqueByValidatorIndex:
@@ -183,4 +184,23 @@ export function finalizeReporters(items: ReporterItem[]): Uint8Array[] {
     return found ? found.exports_root : null;
   }
   
+  
+
+export function normalizeGasFields(state: ReportsState) {
+  // cores_statistics
+  for (const cs of state.cores_statistics) {
+    cs.gas_used = toGas(cs.gas_used);
+    // if you later store these as bigint too, coerce them here as well:
+    // cs.da_load = toGas(cs.da_load); // only if bigint
+  }
+
+  // services_statistics
+  for (const s of state.services_statistics) {
+    const r = s.record;
+    r.refinement_gas_used  = toGas(r.refinement_gas_used);
+    r.accumulate_gas_used  = toGas(r.accumulate_gas_used);
+    // (counts/sizes remain numbers)
+  }
+}
+
   

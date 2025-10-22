@@ -7,7 +7,7 @@ import { ExitReasonType } from "../../../../risc-pvm/interpreter/types";
 import { HEAP } from "../consts";
 import { loadImm, makeOpcodeBitmask, makeBlob, mkService } from "../helpers";
 
-const GAS  = 400;
+const GAS  = 400n;
 const DST  = HEAP + 0x400;
 const BAD = 0x40;
 const xs  = 0xDEAD_BEEFn;

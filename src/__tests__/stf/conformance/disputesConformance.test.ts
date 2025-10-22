@@ -37,7 +37,7 @@ describe("Disputes STF conformance", () => {
 
   testFiles.forEach((fileName) => {
     it(`should pass ${fileName}`, () => {
-      const filePath = path.join(`${JAM_TEST_VECTORS}/disputes`, `${CHAIN_TYPE}`,  fileName.concat('.json'));
+      const filePath = path.join(`${JAM_TEST_VECTORS}/stf//disputes`, `${CHAIN_TYPE}`,  fileName.concat('.json'));
       
       const rawJson = fs.readFileSync(filePath, "utf8");
 

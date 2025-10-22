@@ -21,7 +21,7 @@ describe("Assurances STF conformance", () => {
   testFiles.forEach((fileName) => {
     it(`should pass ${fileName}`, async () => {
       // 1) Read JSON test vector from file
-      const filePath = path.join(`${JAM_TEST_VECTORS}/assurances`, `${CHAIN_TYPE}`,  fileName);
+      const filePath = path.join(`${JAM_TEST_VECTORS}/stf//assurances`, `${CHAIN_TYPE}`,  fileName);
       const rawJson = fs.readFileSync(filePath, "utf8");
 
       // 2) Parse the top-level shape { input, pre_state, output, post_state }

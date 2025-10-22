@@ -1,7 +1,7 @@
 
 import { arrayEqual, convertToReadableFormat, toHex } from "../../utils";
 import { CORES_COUNT, MAX_BLOCKS_HISTORY, VALIDATOR_COUNT, MAX_WORK_SIZE, ROTATION_PERIOD, TOTAL_ACCUMULATE_GAS, TIMEOUT, EPOCH_LENGTH, VALIDATORS_PER_CORE, LOOKUP_ANCHOR_MAX_AGE } from "../../consts";
-import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, finalizeReporters, findExportsRoot, inRecentBlocksOrNew } from "./helpers";
+import { alreadyInRecentBlocks, areSortedAndUniqueByValidatorIndex, finalizeReporters, findExportsRoot, inRecentBlocksOrNew, normalizeGasFields } from "./helpers";
 import { Ed25519Public, SegmentItem } from "../../types/types";
 import { verifyReportSignature } from "./verifyReportSignature";
 import { hexStringToBytes, toBytes } from "../../codecs";
@@ -57,6 +57,9 @@ Promise<{ output: ReportsOutput; postState: ReportsState; }> {
 
   // 1) Clone preState
   const postState = structuredClone(preState) as ReportsState;
+  normalizeGasFields(postState);
+
+  
   const seenPkgHashes = new Set<string>();
   const newPackages: Map<string, { exportsRoot: Uint8Array }> = new Map(); 
   

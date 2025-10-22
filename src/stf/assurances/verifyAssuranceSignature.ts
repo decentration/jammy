@@ -28,8 +28,6 @@ export async function verifyAssuranceSignature(
     return false;
   }
 
-  console.log("anchor, bitfield, signature, publicKey", { anchor, bitfield, signature, publicKey });
-
   // 2) Build message from (anchor, bitfield
   const finalMsg = buildSignatureMessage(anchor, bitfield);
 

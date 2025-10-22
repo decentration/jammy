@@ -16,10 +16,6 @@ export function applyAuthorizationsStf(
   input: AuthorizationsInput
 ): { output: AuthorizationsOutput; postState: AuthorizationsState } {
   // 1) Log the preState for debugging
-  console.log(
-    "applyAuthorizationsStf: preState:\n",
-    JSON.stringify(convertToReadableFormat(preState), null, 2)
-  );
 
   // 2) Clone preState => postState
   const postState = structuredClone(preState) as AuthorizationsState;
@@ -81,10 +77,7 @@ export function applyAuthorizationsStf(
     }
   }
 
-  console.log(
-    "applyAuthorizationsStf: postState:\n",
-    JSON.stringify(convertToReadableFormat(postState), null, 2)
-  );
+  
 
   // 5) The tests expect output=null
   const output: AuthorizationsOutput = null;

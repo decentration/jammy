@@ -69,7 +69,6 @@ export function applyDisputesStf(
     };
   }
 
-  console.log("Culprits sorted and unique, here is faults", faults);
   // (c) Faults must be sorted by their key, no duplicates
   if (!isSortedAndUniqueByValidatorKey(faults)) {
     console.log("Faults not sorted or unique");

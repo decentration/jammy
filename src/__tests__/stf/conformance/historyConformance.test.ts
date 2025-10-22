@@ -15,7 +15,7 @@ describe("History STF conformance", () => {
   testFiles.forEach((fileName) => {
     it(`should pass ${fileName}`, () => {
       // 1) read JSON
-      const filePath = path.join(`${JAM_TEST_VECTORS}/history`, `data`, fileName);
+      const filePath = path.join(`${JAM_TEST_VECTORS}/stf//history`, `${CHAIN_TYPE}`, fileName);
       
       const rawJson = fs.readFileSync(filePath, "utf8");
 
@@ -35,14 +35,14 @@ describe("History STF conformance", () => {
       );
 
       // log the final postState hex freindly format
-      console.log("Computed postState hex:\n", 
-        JSON.stringify(convertToReadableFormat(postState), null, 2));
+      // console.log("Computed postState hex:\n", 
+      //   JSON.stringify(convertToReadableFormat(postState), null, 2));
 
       // 4) compare
       const readablePostState = convertToReadableFormat(postState);
       const readableExpectedPostState = JSON.stringify(convertToReadableFormat(post_state), null, 2);
       
-      console.log("Expected postState hex:\n", readableExpectedPostState);
+      // console.log("Expected postState hex:\n", readableExpectedPostState);
       expect(stfOutput).toEqual(output);
       expect(readablePostState).toEqual(post_state);
 

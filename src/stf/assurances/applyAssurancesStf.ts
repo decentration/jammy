@@ -1,9 +1,9 @@
-import { State as AssurancesState } from "./types";
 import { AssurancesInput, Output, ErrorCode } from "../types";
 import { areSortedAndUniqueByValidatorIndex, handleStaleAssignments, finalizeTwoThirds} from "./helpers";
 import { arrayEqual } from "../../utils";
 import { Report } from "../../types/types";
 import { validateAssurances } from "./validateAssurances";
+import { AssuranceState } from "./types";
 
 /**
  * applyAssurancesStf implements the logic from section 11 of the Jam paper:
@@ -21,9 +21,9 @@ import { validateAssurances } from "./validateAssurances";
  *      - Returns { output, postState }
  */
 export async function applyAssurancesStf(
-  preState: AssurancesState,
+  preState: AssuranceState,
   input: AssurancesInput
-): Promise<{ output: Output; postState: AssurancesState; }> {
+): Promise<{ output: Output; postState: AssuranceState; }> {
   // 1) clone preState => postState
   const postState = structuredClone(preState);
 

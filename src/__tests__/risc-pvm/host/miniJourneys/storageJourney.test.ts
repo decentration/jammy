@@ -7,7 +7,7 @@ import { loadImm, makeBlob, makeOpcodeBitmask, mkService } from "../helpers";
 import { HEAP } from "../consts";
 import { AccumulateX } from "../../../../risc-pvm/interpreter/host/types";
 
-const GAS  = 500;
+const GAS  = 500n;
 const KOFF = HEAP + 0x100;     // key bytes start
 const VOFF = HEAP + 0x200;     // value bytes start
 const OUT  = HEAP + 0x300;     // read-out destination
@@ -162,7 +162,7 @@ describe("Storage edge-cases", () => {
       );
       const mask = makeOpcodeBitmask(prog, [0,6,12,18,24,26]);
     
-      const st = runBlob(makeBlob(prog, mask), 200, { env, memInit: mem });
+      const st = runBlob(makeBlob(prog, mask), 200n, { env, memInit: mem });
       expect(st.registers[7]).toBe(WHO);
   });
       

@@ -52,7 +52,7 @@ describe("Reports STF - conformance tests", () => {
     testFiles.forEach((fileName) => {
         it(`should pass ${fileName}`, async () => {
             // 1) Read JSON test vector from file
-            const filePath = path.join(`${JAM_TEST_VECTORS}/reports`, `${CHAIN_TYPE}`, fileName);
+            const filePath = path.join(`${JAM_TEST_VECTORS}/stf//reports`, `${CHAIN_TYPE}`, fileName);
             console.log("checking filePath", filePath);
             const rawJson = fs.readFileSync(filePath, "utf8");
 
@@ -73,7 +73,7 @@ describe("Reports STF - conformance tests", () => {
             const convertedOutput = convertToReadableFormat(output);
 
             console.log("convertedOutput", convertedOutput);
-            console.log("expectedOutput", expectedOutput);
+            // console.log("expectedOutput", expectedOutput);
             // 5) Compare results
             expect(convertedOutput).toEqual(expectedOutput);
             expect(convertToReadableFormat(postState)).toEqual(expectedPostState);

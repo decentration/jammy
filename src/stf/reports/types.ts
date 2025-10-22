@@ -1,6 +1,6 @@
 import { AvailAssignment, CoresActivityRecord, Ed25519Public, Guarantee, SegmentItem, ServicesStatisticsMapEntry } from "../../types/types";
 import { WorkReportHash } from "../accumulate/types";
-import { BetaState, ServiceItem, ValidatorInfo } from "../types";
+import { RecentBlocks, ServiceItem, ValidatorInfo } from "../types";
 
 export interface ReportsInput { 
     guarantees: Guarantee[], 
@@ -19,7 +19,7 @@ export interface ReportsState {
     prev_validators: ValidatorInfo[],
     entropy: Entropy[],
     offenders: Ed25519Public[],
-    recent_blocks: BetaState,
+    recent_blocks: RecentBlocks,
     auth_pools: Uint8Array[][],
     accounts: ServiceItem[],
     cores_statistics: CoresActivityRecord[],

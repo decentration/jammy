@@ -1,8 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { applyStatsStf } from "../../../stf/statistics/applyStatsStf";
-import { StatsStfCodec } from "../../../stf/statistics/codecs/StatsStfCodec"; 
-import { deepConvertHexToBytes, toUint8Array } from "../../../codecs/utils";
+import { deepConvertHexToBytes } from "../../../codecs/utils";
 import { convertToReadableFormat } from "../../../utils";
 import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 
@@ -13,11 +12,9 @@ describe("Statistics STF conformance", () => {
     "stats_with_epoch_change-1",
   ];
 
-
-  
   testFiles.forEach((fileName) => {
     it(`should pass ${fileName}`, () => {
-      const filePath = path.join(`${JAM_TEST_VECTORS}/statistics`, `${CHAIN_TYPE}`, fileName.concat('.json'));
+      const filePath = path.join(`${JAM_TEST_VECTORS}/stf//statistics`, `${CHAIN_TYPE}`, fileName.concat('.json'));
       const rawJson = fs.readFileSync(filePath, "utf8");
       const { input, pre_state, output, post_state } = JSON.parse(rawJson);
 

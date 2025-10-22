@@ -37,7 +37,7 @@ describe("Safrole STF conformance", () => {
 
   testFiles.forEach((fileName) => {
     it(`should pass ${fileName}`, () => {
-      const filePath = path.join(`${JAM_TEST_VECTORS}/safrole`, `${CHAIN_TYPE}`, fileName.concat('.json'));
+      const filePath = path.join(`${JAM_TEST_VECTORS}/stf//safrole`, `${CHAIN_TYPE}`, fileName.concat('.json'));
       const rawJson = fs.readFileSync(filePath, "utf8");
 
       const { input, pre_state, output, post_state } = JSON.parse(rawJson);

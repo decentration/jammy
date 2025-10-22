@@ -1,6 +1,10 @@
-import { ServiceActivityRecordCodec } from "../../codecs";
-import { Report, ServiceActivityRecord, ServicesStatisticsMapEntry } from "../../types";
+import { coerceU64, ServiceActivityRecordCodec } from "../../codecs";
+import { CoresActivityRecord, Report, ServiceActivityRecord, ServicesStatisticsMapEntry } from "../../types";
 import { ReportsState } from "./types";
+
+export const toGas = (x: number | string | bigint): bigint => coerceU64(x);
+export const addGas = (a: number | string | bigint, b: number | string | bigint): bigint =>
+  toGas(a) + toGas(b);
 
 /**
  * updateStatistics:
@@ -21,10 +25,10 @@ export function updateStatistics(
     const coreIndex = report.core_index;
   
     // Ensure postState.cores_statistics has an entry for this core
-    let coreStats = postState.cores_statistics[coreIndex];
+    let coreStats: CoresActivityRecord = postState.cores_statistics[coreIndex];
     if (!coreStats) {
       coreStats = {
-        gas_used: 0,
+        gas_used: 0n,
         imports: 0,
         extrinsic_count: 0,
         extrinsic_size: 0,
@@ -39,7 +43,7 @@ export function updateStatistics(
     // 2) Accumulate stats for each result item in the work report
     for (const item of report.results) {
       // i) For the core
-    //   coreStats.gas_used += item.refine_load.gas_used + item.accumulate_gas;
+      coreStats.gas_used = addGas(coreStats.gas_used, item.refine_load.gas_used);     
       coreStats.imports += item.refine_load.imports;
       coreStats.extrinsic_count += item.refine_load.extrinsic_count;
       coreStats.extrinsic_size += item.refine_load.extrinsic_size;
@@ -63,15 +67,15 @@ export function updateStatistics(
             provided_count: 0,
             provided_size: 0,
             refinement_count: 0,
-            refinement_gas_used: 0,
+            refinement_gas_used: 0n,
             imports: 0,
             extrinsic_count: 0,
             extrinsic_size: 0,
             exports: 0,
             accumulate_count: 0,
-            accumulate_gas_used: 0,
-            on_transfers_count: 0,
-            on_transfers_gas_used: 0,
+            accumulate_gas_used: 0n,
+            // on_transfers_count: 0,
+            // on_transfers_gas_used: 0,
           },
         };
         postState.services_statistics.push(svcEntry);
@@ -79,7 +83,10 @@ export function updateStatistics(
   
       // 2a) update fields in ServiceActivityRecord
       svcEntry.record.refinement_count += 1;
-      svcEntry.record.refinement_gas_used += item.refine_load.gas_used;
+      svcEntry.record.refinement_gas_used = addGas(
+        svcEntry.record.refinement_gas_used,
+        item.refine_load.gas_used
+      );
       svcEntry.record.imports += item.refine_load.imports;
       svcEntry.record.extrinsic_count += item.refine_load.extrinsic_count;
       svcEntry.record.extrinsic_size += item.refine_load.extrinsic_size;
