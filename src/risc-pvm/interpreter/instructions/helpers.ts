@@ -1,5 +1,6 @@
+import { PAGE_SIZE } from "../host/consts";
 import { checkAccess } from "../memory";
-import { InterpreterState, ExitReasonType, PAGE_SIZE } from "../types";
+import { InterpreterState, ExitReasonType } from "../types";
 
 function panicLowMemory(s: InterpreterState): InterpreterState {
   return { ...s, exit: { type: ExitReasonType.Panic, detail: "low-mem" } };

@@ -1,12 +1,15 @@
 import { computeBasicBlockStarts } from "./computeBasicBlockStarts";
 import { deblob } from "./deblob";
 import { executeSingleStep } from "./executeSingleStep";
-import { InterpreterState, ExitReasonType, PAGE_SIZE } from "./types";
+import { InterpreterState, ExitReasonType } from "./types";
 import { bitmaskToBoolean } from "./utils/bitmask";
 import { createPageTable, mapPages } from "./memory";
 import { dispatchHostCall } from "./host/hostCallHandlers";
 import { HostEnvInterface, makeHostEnv } from "./host/hostEnvInterface";
 import { HostDispatcher } from "./host/types";
+import { Gas } from "../../types";
+import { MapPlanEntry } from "./initializer/types";
+import { PAGE_SIZE } from "./host/consts";
 
 
 export interface RunBlobOpts {
@@ -16,12 +19,15 @@ export interface RunBlobOpts {
   overrideHost?: HostDispatcher; // custom host dispatcher
   env?: HostEnvInterface; // host environment interface
   memInit?: Uint8Array;  // initial memory state 
+
+  registers?: bigint[]; 
+  mapPlan?: MapPlanEntry[]; // custom memory mapping plan
 }
 
-export function runBlob(blob: Uint8Array, initialGas: bigint, opts: RunBlobOpts = {}) {
+export function runBlob(blob: Uint8Array, initialGas: Gas, opts: RunBlobOpts = {}) {
   // console.log("runBlob", { blob, initialGas, opts });
   const { jumpTable, jumpEntryLength, jumpEntries, instructionData, opcodeBitmask } = deblob(blob);
-  // console.log("runBlob bitmask bits, bitmask" ,{ opcodeBitmask});
+  console.log("runBlob bitmask bits, bitmask" ,{ opcodeBitmask});
 
   const env  = opts.env ?? makeHostEnv();
   const host: HostDispatcher = opts.overrideHost ?? dispatchHostCall;
@@ -36,22 +42,25 @@ export function runBlob(blob: Uint8Array, initialGas: bigint, opts: RunBlobOpts 
 
   // program bytes (instructionData)
 
-  // convert bytesToPages 
-  const bytesToPages = (instructionData.length + PAGE_SIZE - 1) >>> 16
-  mapPages(pageTable, 0, bytesToPages, { read:true, write:false });
+  if (opts.mapPlan?.length) {
+    for (const { from, to, read, write } of opts.mapPlan) {
+      mapPages(pageTable, from, to, { read, write });
+    }
+  } else {
+    const codePages = (instructionData.length + PAGE_SIZE - 1) >>> 16;
+    mapPages(pageTable, 0, codePages, { read: true, write: false });
 
-  // heap zone => RW
-  const heapStartPage = HEAP_START >>> 16;
-  const heapEndPage   = HEAP_END   >>> 16;
-  mapPages(pageTable, heapStartPage, heapEndPage + 1, { read:true, write:true });
-
+    const heapStartPage = HEAP_START >>> 16;
+    const heapEndPage   = HEAP_END   >>> 16;
+    mapPages(pageTable, heapStartPage, heapEndPage + 1, { read: true, write: true });
+  }
 
   let state: InterpreterState = {
     code: instructionData,
     opcodeMaskBits: opcodeBits,
     pc: 0,
     gas: initialGas,
-    registers: Array(13).fill(0n),
+    registers: opts.registers ?? Array(13).fill(0n),     
     memory: opts.memInit ? Uint8Array.from(opts.memInit) : new Uint8Array(MEM_SIZE),
     exit: { type: ExitReasonType.Continue },
     context: {

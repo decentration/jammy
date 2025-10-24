@@ -1,10 +1,9 @@
 import { coerceU64, ServiceActivityRecordCodec } from "../../codecs";
 import { CoresActivityRecord, Report, ServiceActivityRecord, ServicesStatisticsMapEntry } from "../../types";
+import { addGas } from "../helpers";
 import { ReportsState } from "./types";
 
-export const toGas = (x: number | string | bigint): bigint => coerceU64(x);
-export const addGas = (a: number | string | bigint, b: number | string | bigint): bigint =>
-  toGas(a) + toGas(b);
+
 
 /**
  * updateStatistics:

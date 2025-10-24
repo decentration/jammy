@@ -1,10 +1,8 @@
-
-import { concatAll, decodeProtocolInt, encodeProtocolInt, VarLenBytesCodec } from "../../codecs";
-
+import { concatAll, decodeProtocolInt, encodeProtocolInt } from "../../codecs";
 
 export interface DeconstructedBlob {
   jumpTable: Uint8Array;        // Ez(j)
-  jumpEntryLength: number;        // z 
+  jumpEntryLength: number;      // z 
   instructionData: Uint8Array;  // E (c)
   jumpEntries: Uint8Array[];    // Ez(j) split by index
   opcodeBitmask: Uint8Array;    // E(k) 
@@ -13,48 +11,68 @@ export interface DeconstructedBlob {
  * first we need to get the blob check the first byte to see the number decode it into decimal then we 
  * skip the next amount of bytes and extract the blob without the metadata. 
  * (A.2) in A.1. 
- * E(|j|) jump table has length 1 byte.
- * E1(z) each jump index is    4 bytes 
- * E(|c|) instruction stream of length 12 bytes.
- * Ez(j) 1 jump entry (4 bytes)
+ * E(|j|) jump table has length x byte.
+ * E1(z) each jump index is    y bytes 
+ * E(|c|) instruction stream of length z bytes.
+ * Ez(j) 1 jump entry (x bytes)
  * E(k)
  * |k| is opcode bitmask, 
  * |c| is the instruction data of opcodes and operands,
  * |k| is |c| because every byte of |k| represents whether |c| is an opcode `1` or an operand `0`. 
- * deblob is a concatenation of seven parts 
+ * deblob is a concatenation of six parts 
  * 
 */
 export function deblob(wholeBlob: Uint8Array): DeconstructedBlob {
-    const { blob: blob } = deblobMetadata(wholeBlob);
+
+  try {
+    return parseRawBlob(wholeBlob);
+  } catch (e1) {
+    try {
+      console.log("deblob: retrying after deblobMetadata");
+      const { blob } = deblobMetadata(wholeBlob);
+      return parseRawBlob(blob);
+    } catch (e2) {
+      throw e1;
+    }
+  }
+}
+
+function parseRawBlob(blob: Uint8Array): DeconstructedBlob {
+  console.log("deblob: wholeBlob", blob);
+    // const { blob: blob } = deblobMetadata(blob);
 
     let offset = 0;
 
   // 1) Jump table length: E(|j|)
-  const { value: jumpTableLength, bytesRead: jtLenBytes } = decodeProtocolInt(blob.slice(offset));
+  const { value: jCount, bytesRead: jtLenBytes } = decodeProtocolInt(blob.slice(offset));
   offset += jtLenBytes;
+  const jumpTableLength = Number(jCount);
 
-  if (jumpTableLength < 1 || blob.length < offset + jumpTableLength) {
-    throw new Error('Invalid jump table length or blob too short');
+
+  if (!Number.isSafeInteger(jumpTableLength) || jumpTableLength < 0) {
+    throw new Error(`Invalid jump table length: ${jumpTableLength}`);
   }
 
-  const jumpTable = blob.slice(offset, offset + Number(jumpTableLength));
-  offset += Number(jumpTableLength);
+  // const jumpTable = blob.slice(offset, offset + Number(jumpTableLength));
+  // offset += Number(jumpTableLength);
 
   // 2) Jump index size (z): E1(z), single byte length
   if (blob.length <= offset) {
     throw new Error('Blob too short for jump index size');
   }
-  const jumpEntryLength = blob[offset];
-  if (jumpEntryLength === 0 || jumpEntryLength > 4) throw new Error(`Invalid jump index size: ${jumpEntryLength}. Must be 1-4 bytes.`);
-  offset += 1;
+  const jumpEntryLength = blob[offset++]; // we need to move offset after reading it 
+  if (jumpEntryLength < 1 || jumpEntryLength > 4) throw new Error(`Invalid jump index size: ${jumpEntryLength}. Must be 1-4 bytes.`);
+
 
   // 3) Instruction data size: E(|c|)
-  const { value: instructionLength, bytesRead: idLenBytes } = decodeProtocolInt(blob.slice(offset));
+  const { value: cLen, bytesRead: idLenBytes } = decodeProtocolInt(blob.slice(offset));
   offset += idLenBytes;
+  const instructionLength = Number(cLen);
 
-  if (blob.length < offset + instructionLength) {
-    throw new Error('Blob too short for instruction data');
+  if (!Number.isSafeInteger(instructionLength) || instructionLength < 0) {
+    throw new Error(`Invalid instruction length: ${instructionLength}`);
   }
+
 
   // 4) jump entries Ez(j): array of entries, each entry z bytes
   const jumpEntries: Uint8Array[] = [];
@@ -70,6 +88,12 @@ export function deblob(wholeBlob: Uint8Array): DeconstructedBlob {
     offset += jumpEntryLength;
   }
 
+  const jumpTable = concatAll(...jumpEntries);
+
+  if (blob.length < offset + instructionLength) {
+    throw new Error('Blob too short for instruction data');
+  }
+
   // 5) Instruction data bytes: E(c) 
   const instructionData = blob.slice(offset, offset + instructionLength);
   offset += instructionLength;
@@ -77,7 +101,7 @@ export function deblob(wholeBlob: Uint8Array): DeconstructedBlob {
   // 5) Opcode-bitmask  E(k)  (implicit length = ceil(|c|/8))
   const maskLen = Math.ceil((instructionLength) / 8);
   if (blob.length < offset + maskLen) {
-  throw new Error("Blob too short for opcode bit-mask");
+    throw new Error("Blob too short for opcode bit-mask");
   }
 
   const opcodeBitmask = blob.slice(offset, offset + maskLen);
@@ -126,48 +150,50 @@ export function deblobMetadata ( blob: Uint8Array ): {
 */
 export function buildBlob({
     meta,
-    jumpTbl, // raw bytes of jump table
+    // jumpTbl, // raw bytes of jump table
     z,
     instr,
     jumpEntries,
     bitmaskBits,
   }: {
     meta: Uint8Array;
-    jumpTbl: Uint8Array;
-    z: 1 | 2 | 4;
+    // jumpTbl: Uint8Array; // deprecated
+    z: 1 | 2 | 3 | 4;
     instr: Uint8Array;
     jumpEntries: Uint8Array[];
     bitmaskBits: Uint8Array;
   }): Uint8Array {
 
-    if (jumpEntries.length !== jumpTbl.length) throw new Error(`jumpEntries.length (${jumpEntries.length}) != |j| (${jumpTbl.length})`);
+    // if (jumpEntries.length !== jumpTbl.length) throw new Error(`jumpEntries.length (${jumpEntries.length}) != |j| (${jumpTbl.length})`);
   
     for (const e of jumpEntries) {
       console.log("e.length and z", e.length, z);
       if (e.length !== z) throw new Error(`every Ez(j) entry must be ${z}-byte(s)`);
     }
 
-    if (![1, 2, 4].includes(z)) throw new Error(`Invalid jump index size: ${z}. Must be 1, 2, or 4 bytes.`);
+    if (![1, 2, 3, 4].includes(z)) throw new Error(`Invalid jump index size: ${z}. Must be 1, 2, or 4 bytes.`);
     const needMask   = Math.ceil(instr.length / 8);
     console.log("bitmaskBits.length and needMask", bitmaskBits.length, needMask);
     if (bitmaskBits.length !== needMask) throw new Error(`bit-mask length ${bitmaskBits.length} != ceil(|c|/8) = ${needMask}`);
   
     const parts: Uint8Array[] = [];
 
-    parts.push(new Uint8Array([meta.length]));
+    parts.push(new Uint8Array([meta.length])); 
     parts.push(meta);
-    parts.push(encodeProtocolInt(jumpTbl.length));
-    parts.push(jumpTbl);
-    parts.push(new Uint8Array([z])); 
-    parts.push(encodeProtocolInt(instr.length));   
-    for (const je of jumpEntries) parts.push(je);
-    parts.push(instr);
 
-    const needed = Math.ceil(instr.length / 8); // bit-mask k – raw, length must be ceil(|c|/8)
-    if (bitmaskBits.length !== needed)
-      throw new Error(`bitmask length issue: expected ${needed} but got ${bitmaskBits.length}`);
+    // A.2 
+    parts.push(encodeProtocolInt(jumpEntries.length)); // E(|j|)
+    // parts.push(jumpTbl);
+    parts.push(new Uint8Array([z]));               // E1(z)
+    parts.push(encodeProtocolInt(instr.length));   // E(|c|) 
+    for (const je of jumpEntries) parts.push(je); // Ez(j)
+    parts.push(instr);                             // E(c)
 
-    parts.push(bitmaskBits);
+    // const needed = Math.ceil(instr.length / 8); // bit-mask k – raw, length must be ceil(|c|/8)
+    // if (bitmaskBits.length !== needed)
+    //   throw new Error(`bitmask length issue: expected ${needed} but got ${bitmaskBits.length}`);
+
+    parts.push(bitmaskBits);                     // E(k)
       
     return concatAll(...parts);
 }

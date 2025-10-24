@@ -24,7 +24,7 @@ export * from './AuthPools/AuthPoolsCodec';
 export * from './EntropyBufferCodec';
 export * from './ValidatorsInfoCodec';
 export * from './AvailAssignments/AvailAssignmentsCodec';
-export * from './IntegerCodec';
+export * from './IntegerCodec2';
 export * from './VarLenBytesCodec';
 export * from './OffendersMarkCodec';
 export * from './CoresStatisticsCodec';

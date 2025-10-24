@@ -172,4 +172,13 @@ export interface AccumulateContext {
   session: AccumulateY; // y
 }
 
-
+export interface ExecOpts {
+  codeHash: Uint8Array;
+  programBlob: Uint8Array;   // could have G manifest
+  initialGas: bigint;
+  memSize?: number;
+  args?: Uint8Array;
+  env?: HostEnvInterface;
+  overrideHost?: HostDispatcher;
+  preferCachedCode?: boolean; // default true
+};

@@ -2,7 +2,7 @@ import { arrayEqual, convertToReadableFormat, toHex } from '../../utils';
 import { BlockItem } from '../types'; 
 import { ReporterItem, ReportsState } from './types';
 import { hexStringToBytes } from '../../codecs';
-import { toGas } from './updateStatistics';
+import { toGas } from '../helpers';
 
 /**
  *  areSortedAndUniqueByValidatorIndex:

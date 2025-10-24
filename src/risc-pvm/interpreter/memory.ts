@@ -1,4 +1,5 @@
-import { PageTable, PageMeta, PAGE_SIZE } from "./types";
+import { PAGE_SIZE } from "./host/consts";
+import { PageTable, PageMeta } from "./types";
 
 // build page-table with N pages default-inaccessible
 export function createPageTable(numPages: number): PageTable {

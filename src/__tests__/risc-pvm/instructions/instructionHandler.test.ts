@@ -23,7 +23,7 @@ const BASE_LE   = Uint8Array.of(BASE & 0xFF, (BASE>>8)&0xFF, (BASE>>16)&0xFF); /
 const wrap = (code: Uint8Array, mask: Uint8Array) =>
   buildBlob({
     meta:        Uint8Array.of(0),
-    jumpTbl:     Uint8Array.of(0),
+    // jumpTbl:     Uint8Array.of(0),
     z:           1,
     instr:       code,
     jumpEntries: [Uint8Array.of(0)],
@@ -276,7 +276,7 @@ describe("Instruction execution tests", () => {
 
       // const bitmaskBits = Uint8Array.of(0b00010001, 0b01000000); 
       const bitmaskBits = Uint8Array.of(0b0001001, 0b00000100, 0b00000000);     
-      const blob = buildBlob({ meta, jumpTbl, z: 4, instr, jumpEntries, bitmaskBits });
+      const blob = buildBlob({ meta, z: 4, instr, jumpEntries, bitmaskBits });
       console.log("Blob built:", blob);
       const state0 = buildState({ code: instr, bitmask: bitmaskBits, blob: blob });
   
@@ -309,7 +309,7 @@ describe("Instruction execution tests", () => {
     const registers = Array(13).fill(0n);
     registers[2] = 2n;
     const bitmaskBits = Uint8Array.of(0b01000001, 0b00100000);
-    const blob = buildBlob({ meta, jumpTbl, z: 4, instr, jumpEntries, bitmaskBits });
+    const blob = buildBlob({ meta,  z: 4, instr, jumpEntries, bitmaskBits });
     const state0 = buildState({ code: instr, bitmask: bitmaskBits, blob ,
       registers
     });
@@ -330,7 +330,7 @@ describe("Instruction execution tests", () => {
 
     const instr = Uint8Array.of(Opcodes.jump_ind, 0x00, 0x01, 0x00, 0x00, 0x00);
     const bitmaskBits = Uint8Array.of(0x01);
-    const blob = buildBlob({ meta, jumpTbl, z: 4, instr, jumpEntries, bitmaskBits });
+    const blob = buildBlob({ meta,  z: 4, instr, jumpEntries, bitmaskBits });
     const state0 = buildState({ code: instr, bitmask: bitmaskBits, blob });
 
     state0.registers[0] = 1n; // r0=1 + offset(1)=2, address=2 => misaligned (should be even)
@@ -349,7 +349,7 @@ describe("Instruction execution tests", () => {
 
     const instr = Uint8Array.of(Opcodes.jump_ind, 0x00, 0x08, 0x00, 0x00, 0x00);
     const bitmaskBits = Uint8Array.of(0x01);
-    const blob = buildBlob({ meta, jumpTbl, z: 4, instr, jumpEntries, bitmaskBits });
+    const blob = buildBlob({ meta,  z: 4, instr, jumpEntries, bitmaskBits });
     const state0 = buildState({ code: instr, bitmask: bitmaskBits, blob });
 
     state0.registers[0] = 10n; // large value leading to index out of bounds
@@ -375,7 +375,7 @@ describe("Instruction execution tests", () => {
     );
 
     const bitmaskBits = Uint8Array.of(0x41, 0x04);
-    const blob = buildBlob({ meta, jumpTbl, z: 4, instr, jumpEntries, bitmaskBits });
+    const blob = buildBlob({ meta,  z: 4, instr, jumpEntries, bitmaskBits });
     const state0 = buildState({ code: instr, bitmask: bitmaskBits, blob });
 
     state0.registers[1] = 2n; // index=0, address=2 (not basic block start)
@@ -404,7 +404,7 @@ describe("Instruction execution tests", () => {
     );
 
     const bitmaskBits = Uint8Array.of(0x49, 0x12);
-    const blob = buildBlob({ meta, jumpTbl, z: 4, instr, jumpEntries, bitmaskBits });
+    const blob = buildBlob({ meta,  z: 4, instr, jumpEntries, bitmaskBits });
     const state0 = buildState({ code: instr, bitmask: bitmaskBits, blob });
 
     state0.registers[3] = 1n;
@@ -1111,7 +1111,7 @@ describe("Instruction execution tests", () => {
     function wrap(code: Uint8Array, bitmask: Uint8Array): Uint8Array {
       return buildBlob({
         meta:        Uint8Array.of(0),
-        jumpTbl:     Uint8Array.of(0),
+        // jumpTbl:     Uint8Array.of(0),
         z:           1,
         instr:       code,
         jumpEntries: [Uint8Array.of(0)],
@@ -1211,7 +1211,7 @@ describe("Instruction execution tests", () => {
       const wrap = (code: Uint8Array, mask: Uint8Array) =>
         buildBlob({
           meta:        Uint8Array.of(0),   // empty meta
-          jumpTbl:     Uint8Array.of(0),   // no jump table
+          // jumpTbl:     Uint8Array.of(0),   // no jump table
           z:           1,
           instr:       code,
           jumpEntries: [Uint8Array.of(0)],
@@ -2102,7 +2102,7 @@ describe("Instruction execution tests", () => {
   
       const blob = buildBlob({
         meta:  Uint8Array.of(0x00),
-        jumpTbl,  
+          
         z: 4,
         instr,
         jumpEntries,

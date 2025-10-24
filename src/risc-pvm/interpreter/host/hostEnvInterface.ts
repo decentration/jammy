@@ -33,6 +33,11 @@ export interface HostEnvInterface {
   acc: AccumulateContext; // (x,y)
 
   activationFee?: bigint; // global existential deposit / minimum balance
+
+  getStagedStorageWrites?: () => { key: Uint8Array; value: Uint8Array }[];
+  getStagedStorageDeletes?: () => Uint8Array[];
+  getAllStorageEntries?: () => { key: Uint8Array; value: Uint8Array }[];
+  clearStaged?: () => void;
 }
 
 // input option parameters
@@ -74,8 +79,12 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   // Convert the vectors object into a Map for fast lookup
   
   const keyStr = (u8: Uint8Array) => Buffer.from(u8).toString("hex");
+  const keyU8  = (hex: string) => new Uint8Array(Buffer.from(hex, "hex"));
+
   const map = new Map(Object.entries(vectors) as [FetchVector, Uint8Array][]);
   const store  = storage ?? new Map<string, Uint8Array>();
+  const stagedWrites: { key: Uint8Array; value: Uint8Array }[] = [];
+  const stagedDeletes: Uint8Array[] = [];
   const images  = preImage ?? new Map<string, Uint8Array>();
   const infos   = infoMap  ?? new Map<string, Uint8Array>();
   const mTable = machines ?? new Map<number, { p: Uint8Array; u: any; i: number }>();
@@ -93,11 +102,19 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     if (old) used -= old.length;
     used += v.length;
     store.set(s, v);
+
+    // accumulate staged writes
+    stagedWrites.push({ key: k.slice(), value: v.slice() });
+
   };
   const del = (k: Uint8Array) => {
     const s = keyStr(k);
     const old = store.get(s);
     if (old) { used -= old.length; store.delete(s); }
+
+    // accumulate staged deletes
+    stagedDeletes.push(k.slice());
+
   };
 
 
@@ -162,11 +179,17 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     getStorage : get,
     putStorage : put,
     deleteStorage : del,
+
+    getStagedStorageWrites: () => stagedWrites.map(w => ({ key: w.key.slice(), value: w.value.slice() })),
+    getStagedStorageDeletes: () => stagedDeletes.map(k => k.slice()),
+    getAllStorageEntries: () =>
+      Array.from(store.entries()).map(([hex, val]) => ({ key: keyU8(hex), value: val.slice() })),
+    clearStaged: () => { stagedWrites.length = 0; stagedDeletes.length = 0; },
+
     lookupPreimage: h => images.get(keyStr(h)), 
     historicalLookup: h => images.get(keyStr(h)), // refine
     getInfo     : (id: bigint) => svcTab.get(id),
     encodeInfo: encodeInfoHelper,
-  
 
     isFull     : () => used > capBytes,
 

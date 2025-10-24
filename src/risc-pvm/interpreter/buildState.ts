@@ -3,7 +3,6 @@ import { ExitReasonType, InterpreterState } from "./types";
 import { deblob, DeconstructedBlob } from "./deblob";
 import { decodeProtocolInt } from "../../codecs";
 import { computeBasicBlockStarts } from "./computeBasicBlockStarts";
-import { prettyState } from "./utils/debug";
 
 export function buildState(opts: {
   code?: Uint8Array;

@@ -1,9 +1,7 @@
 import { Gas } from "../../types";
 import { InnerMachineState } from "./host/innerMem/types";
+import { MapPlanEntry } from "./initializer/types";
 import { InstructionAddressTypes } from "./instructions/opcodes";
-
-
-export const PAGE_SIZE = 0x10000; // 64 KiB
 
 export interface PageMeta { read: boolean; write: boolean; }
 export type PageTable = PageMeta[];
@@ -75,3 +73,12 @@ export type RunInnerMachineFn = (
   regs: BigUint64Array, // registers
   u: InnerMachineState // (u') memory
 ) => InnerRunResult;
+
+export interface BaseInitResult {
+  code: Uint8Array;       // (p) inner program blob
+  registers: bigint[];
+  memInit: Uint8Array;    // initial memory image
+  heapStart: number;
+  heapEnd: number;
+  mapPlan?: MapPlanEntry[]; // optional for raw mode
+}

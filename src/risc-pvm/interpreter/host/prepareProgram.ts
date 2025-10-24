@@ -1,0 +1,31 @@
+import { initializeStandardProgram } from "../initializer/initStandardProgram";
+import { parseProgramContainer } from "../initializer/parseProgamContainer";
+import { StandardInitResult } from "../initializer/types";
+import { BaseInitResult } from "../types";
+import { stripManifestHeaderIfPresent } from "./utils";
+
+export type PreparedProgram =
+  | { via: "standard"; init: StandardInitResult }
+  | { via: "raw";      init: BaseInitResult };
+
+export function prepareProgram(
+  programBlob: Uint8Array,
+  memSize: number,
+  args: Uint8Array = new Uint8Array()
+): PreparedProgram {
+  const payload = stripManifestHeaderIfPresent(programBlob);
+  const parts = parseProgramContainer(payload);
+  if (parts) {
+    const init = initializeStandardProgram(payload, args, memSize);
+    return { via: "standard", init };
+  }
+  // minimal raw init
+  const init: BaseInitResult = {
+    code: payload,
+    registers: Array(13).fill(0n),
+    memInit: new Uint8Array(memSize),
+    heapStart: 0,
+    heapEnd: memSize,
+  };
+  return { via: "raw", init };
+}

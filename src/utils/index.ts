@@ -1,6 +1,14 @@
+import { hexStringToBytes } from "../codecs/utils";
+
 export function toHex(uint8: Uint8Array): string {
-    return "0x" + Buffer.from(uint8).toString("hex");
-  }
+  return "0x" + Buffer.from(uint8).toString("hex");
+}
+
+export function toHexPlain(u: Uint8Array): string {
+  return typeof Buffer !== "undefined"
+    ? Buffer.from(u).toString("hex")
+    : Array.from(u, b => b.toString(16).padStart(2, "0")).join("");
+}
   
 export function toHexToggle(bytes: Uint8Array, includePrefix: boolean=false): string {
 
@@ -92,3 +100,10 @@ export function ensureBinary(field: any, expectedLength: number, fieldName: stri
     }
     return a.length - b.length;
   }
+
+  export const asU8 = (x: any): Uint8Array =>
+    x instanceof Uint8Array ? x :
+    (typeof x === "string" && x.startsWith("0x")) ? hexStringToBytes(x) :
+    Array.isArray(x) ? new Uint8Array(x) :
+    new Uint8Array(Buffer.from(String(x), "hex"));
+  

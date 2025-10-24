@@ -10,7 +10,7 @@ describe("deblob helpers", () => {
   
     const BLOB = buildBlob({
       meta: META,
-      jumpTbl: JUMPTBL,
+      // jumpTbl: JUMPTBL,
       z,
       instr: CODE,
       jumpEntries: JUMP_ENTRIES,
@@ -48,7 +48,7 @@ describe("deblob helpers", () => {
     it("deblob rejects bogus jump-index size", () => {
       expect(() => buildBlob({
         meta: META,
-        jumpTbl: JUMPTBL,
+        // jumpTbl: JUMPTBL,
         z: 3 as any, // invalid size
         instr: CODE,
         jumpEntries: [Uint8Array.of(0x01, 0x02, 0x03)], 
