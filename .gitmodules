@@ -8,3 +8,6 @@
 [submodule "external/jam-duna-testnet"]
 	path = external/jam-duna-testnet
 	url = https://github.com/jam-duna/jamtestnet.git
+[submodule "external/jam-conformance"]
+	path = external/jam-conformance
+	url = https://github.com/davxy/jam-conformance.git
