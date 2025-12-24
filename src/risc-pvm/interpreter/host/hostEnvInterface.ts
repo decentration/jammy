@@ -34,10 +34,15 @@ export interface HostEnvInterface {
 
   activationFee?: bigint; // global existential deposit / minimum balance
 
+  onPageFault?: (addr: number, len: number, code: number) => void;
   getStagedStorageWrites?: () => { key: Uint8Array; value: Uint8Array }[];
   getStagedStorageDeletes?: () => Uint8Array[];
   getAllStorageEntries?: () => { key: Uint8Array; value: Uint8Array }[];
   clearStaged?: () => void;
+
+  ioBuffer?: Uint8Array;
+
+
 }
 
 // input option parameters
@@ -55,6 +60,9 @@ export interface HostEnvOptions {
   accounts?: Map<bigint, ServiceAccount>;
   activationFee?: bigint; // global existential deposit / minimum balance
   initAcc?: Partial<AccumulateContext>;
+
+  ioBuffer?: Uint8Array;
+  ioBufferSize?: number;
   
 }
 
@@ -77,7 +85,6 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   } = opts;
 
   // Convert the vectors object into a Map for fast lookup
-  
   const keyStr = (u8: Uint8Array) => Buffer.from(u8).toString("hex");
   const keyU8  = (hex: string) => new Uint8Array(Buffer.from(hex, "hex"));
 
@@ -90,6 +97,9 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   const mTable = machines ?? new Map<number, { p: Uint8Array; u: any; i: number }>();
   const svcTab  = accounts ?? new Map<bigint, ServiceAccount>();
   const initEnv = hydrateAccEnv(initAcc?.allocator?.env);
+
+  const ioBuffer = new Uint8Array(0x20000); // 128 KiB, zeroed
+
 
   let used = 0;
   store.forEach(v => { used += v.length; });
@@ -175,6 +185,8 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
 
     fetchVector: (v) => map.get(v) ?? null,
 
+    ioBuffer,
+
     //only used when provided
     getStorage : get,
     putStorage : put,
@@ -205,6 +217,13 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     activationFee,
 
     acc,
+
+    onPageFault: (addr, len, code) => {
+      console.error(
+        `[env/PageFault] addr=0x${addr.toString(16)} len=${len} code=${code}`
+      );
+    },
+
   
   };
 }

@@ -1,11 +1,34 @@
 
 import { compareBytes, toHex } from "../../utils";
-import { AccumulateState, AccumulateInput, AccumulateOutput, Reports, AccumulatedQueueItem, AccumulatedQueue, SingleReportItem, ReadyRecord, ReadyQueueItem, ReadyQueue, WorkPackageHash, } from "./types"; 
+import { AccumulateState, AccumulateInput, AccumulateOutput, Reports, AccumulatedQueueItem, AccumulatedQueue, SingleReportItem, ReadyRecord, ReadyQueueItem, ReadyQueue, WorkPackageHash, ServicesStatistics, AccumulateEphemeral, } from "./types"; 
 import { EPOCH_LENGTH } from "../../consts";
-import { computeBlockGasLimit, applyIntermediateChanges, applyDeferredTransfers, integratePreimages, gasBookeeping, editQueue, rotateAccumulated, updateReadyQueue } from "./helpers";
-import { accumulateAcceptedReports } from "./helpers/accumulateAcceptedReports";
-import { chunkAccumulatableReportsByGas } from "./helpers/chunkAccumulatableReportByGas";
-import { gatherAccumulatableReports } from "./helpers/gatherAccumulatableReports";
+import { computeBlockGasLimit, applyDeferredTransfers, integratePreimages, gasBookeeping, editQueue, rotateAccumulated, updateReadyQueue } from "./helpers";
+import { accumulateAcceptedReports } from "./accumulateAcceptedReports";
+import { chunkAccumulatableReportsByGas } from "./chunkAccumulatableReportByGas";
+import { gatherAccumulatableReports } from "./gatherAccumulatableReports";
+import { Gas, ServicesStatisticsMapEntry } from "../../types";
+import { coerceU64 } from "../../codecs";
+import { applyIntermediateChanges } from "./applyIntermediateChanges";
+
+export const J = (v: any) =>
+  JSON.stringify(v, (_k, val) => (typeof val === "bigint" ? val.toString() : val));
+
+function snapSvc(state: AccumulateState, sid: number) {
+  const acc = state.accounts.find(a => a.id === sid)!;
+  const stor = acc.data.storage.map(e => ({
+    key: Buffer.from(e.key).toString("hex"),
+    len: e.value.length
+  }));
+  return {
+    items: acc.data.service.items,
+    bytes: String(acc.data.service.bytes),
+    storageCount: stor.length,
+    storageLens: stor.map(s => s.len).sort((a,b)=>a-b),
+  };
+}
+
+const RUN = `ACC-TRACE-${Date.now()}`;
+const DEBUG_ACC = process.env.JAM_DEBUG_ACC === "1";
 
 /** applyAccumulateStf:
  *  - General idea for the main entry point for the Accumulate STF.
@@ -28,12 +51,14 @@ import { gatherAccumulatableReports } from "./helpers/gatherAccumulatableReports
  */
 export async function applyAccumulateStf (
   preState: AccumulateState,
-  input: AccumulateInput
+  input: AccumulateInput,
 ): Promise<{ output: AccumulateOutput; postState: AccumulateState }> {
   
   // 1) clone preState, deconstruct input, and rotate accumulated
   const { slot , reports } = input;
   const postState: AccumulateState = structuredClone(preState);
+  console.log(RUN, "PRE svc1729", snapSvc(postState, 1729));
+
   rotateAccumulated(postState, preState.slot, slot); // 12.32
 
   // 2)
@@ -42,11 +67,15 @@ export async function applyAccumulateStf (
   const { accumulatable_items : accumulatableReports, ready_queue_posterior_flattened : waiting 
   } = gatherAccumulatableReports(slot, reports, postState);
 
+  if (DEBUG_ACC) {
+    console.log("[acc] accumulatable:", accumulatableReports.length, "waiting:", waiting.length);
+  }
+
   // 3) update ready_queue: put the non-ready input reports into ready queue
   updateReadyQueue(postState, slot, preState.slot, waiting );
 
   // 4) calculate block gas-limit (12.20)
-  let blockGasLimit = computeBlockGasLimit(postState);
+  let blockGasLimit: Gas = computeBlockGasLimit(postState);
 
   const accumulatedHashes = new Set<string>();  
   const nowAccumulatable: ReadyRecord[] = accumulatableReports;
@@ -55,31 +84,76 @@ export async function applyAccumulateStf (
 
   // we need to update accumulatable with reports that has available dependencies
   let accumulatable: ReadyRecord[] = nowAccumulatable.concat(possiblyAccumulatable)
-  let accumulatedOutputs: any[] = [];
+  let allOutputs: AccumulateEphemeral[] = [];
+
+  const perService = new Map<number, { count: number; gas: Gas }>();
+  
+  const processed: ReadyRecord[] = [];
 
   // 5) loop over the accumulatable reports
   while (accumulatable.length) {
 
     // 5a)  pick a gas-bounded prefix (12.16)
     const { acceptedReports, leftoverReports } = chunkAccumulatableReportsByGas(accumulatable, blockGasLimit);
+    processed.push(...acceptedReports);
+
+    if (DEBUG_ACC) {
+      console.log("[acc] accepted:", acceptedReports.length, 
+                  "leftover:", leftoverReports.length, 
+                  "blockGas:", String(blockGasLimit));
+    }
 
     // nothing fits => break
     if (acceptedReports.length === 0) break;
 
+
+
+
     // 5b) accumulate them 12.17
-    const { accumulatedOutputs, newlyAccumulatedHashes } = await accumulateAcceptedReports(
+    const { accumulatedOutputs: batchResults, newlyAccumulatedHashes, totalActualGasUsed } = await accumulateAcceptedReports(
       postState,
       acceptedReports,
       blockGasLimit,
       slot
     );
 
-    accumulatedOutputs.push(...accumulatedOutputs);
+    // Per-service stats from actual gas
+    for (const br of batchResults) {
+      const sid = br.serviceId;
+      const cur = perService.get(sid) ?? { count: 0, gas: 0n };
+      cur.count += 1;
+      cur.gas   += (br.actualGasUsed ?? 0n);
+      perService.set(sid, cur);
+    }
+
+    allOutputs.push(...batchResults);
+    
+    // const g = (x: any) => (x !== undefined && x !== null) ? (coerceU64(x) ?? 0n) : 0n;
+
+    // for (const rec of processed) {
+    //   for (const item of rec.report.results) {
+    //     const sid = item.service_id;
+    //     const cur = perService.get(sid) ?? { count: 0, gas: 0n };
+    //     cur.count += 1;
+    //     cur.gas += g(item.accumulate_gas);  // sum advertised per-item gas
+    //     perService.set(sid, cur);
+    //   }
+    // }
+    
+
+
+    // if (DEBUG_ACC) {
+    //   const writes = batchResults.flatMap(r => r.ephemeralForThisReport ?? [])
+    //                              .flatMap(e => e.ephemeral?.storageWrites ?? []);
+    //   console.log("[acc] batch outputs:", batchResults.length, 
+    //               "storageWrites:", writes.length);
+    // }
+
 
     // 5c) gas bookkeeping: reduce the gas limit by the sum of all gas used in the accepted reports
-    gasBookeeping(acceptedReports, blockGasLimit);
+    blockGasLimit = blockGasLimit - totalActualGasUsed;
     // 5c.2) check if we are out of gas
-    if (blockGasLimit <= 0) break;
+    if (blockGasLimit <= 0n) break;
 
     // 5d) remove the hashes from the ready queue
     // and remove deps now satisfied
@@ -119,16 +193,59 @@ export async function applyAccumulateStf (
   
 
   // 6) TODO: apply intermediate changes 
-  applyIntermediateChanges(postState, accumulatedOutputs);
+  applyIntermediateChanges(postState, allOutputs, slot);
+
+  if (process.env.JAM_DEBUG_ACC === "1") {
+    const svc = postState.accounts.find(a => a.id === 1729);
+    if (svc) {
+      console.log(
+        `[acc:post] svc=1729 items=${svc.data.service.items} bytes=${svc.data.service.bytes.toString()}`
+      );
+      for (const e of svc.data.storage) {
+        console.log(`[acc:post] key=${Buffer.from(e.key).toString("hex")} len=${e.value.length}`);
+      }
+    }
+  }
+  
 
   // 7) TODO: handle deferred transfers 
-  applyDeferredTransfers(postState, accumulatedOutputs );
+  applyDeferredTransfers(postState, allOutputs );
 
   // 8) TODO: integrate new preimages
   integratePreimages(postState);
 
+  // Services
+
+  postState.statistics = Array.from(perService.entries())
+  .map<ServicesStatisticsMapEntry>(([id, { count, gas }]) => ({
+    id,
+    record: {
+      provided_count: 0,
+      provided_size: 0,
+      refinement_count: 0,
+      refinement_gas_used: 0n,
+      imports: 0,
+      extrinsic_count: 0,
+      extrinsic_size: 0,
+      exports: 0,
+      accumulate_count: count,
+      accumulate_gas_used: gas,
+    },
+  }))
+  .sort((a, b) => a.id - b.id);
+
+  for (const [sid, { count }] of perService.entries()) {
+    if (count > 0) {
+      const acc = postState.accounts.find(a => a.id === sid);
+      if (acc) acc.data.service.last_accumulation_slot = slot;
+    }
+  }
+  
+
    // 9) Update state
   const finalOutput: AccumulateOutput = { ok : new Uint8Array(32) };
+  console.log(RUN, "POST svc1729", snapSvc(postState, 1729));
+  console.log(RUN, "stats", J(postState.statistics.find(s => s.id === 1729)?.record));
   return { output: finalOutput, postState };
 }
 

@@ -21,6 +21,11 @@ export const withinBudget = (parts: ProgramContainerParts) => {
   return specBudget
 }
 
+export const U32 = 2 ** 32;
+export const P = (x: number) => (x + 0xFFFF) & ~0xFFFF; // page-align to 64KiB (ZZ)
+export const Z = (x: number) => P(x) >>> 16;            // pages at ZZ granularity
+
+export const toU32 = (n: number | bigint) => Number((BigInt(n) & 0xFFFF_FFFFn));
 
 
 

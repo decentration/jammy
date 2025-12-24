@@ -3,3 +3,7 @@ dist/
 .env
 src/__tests__/output/*
 .vscode/compare/
+traces
+tmp
+inspect 
+debug

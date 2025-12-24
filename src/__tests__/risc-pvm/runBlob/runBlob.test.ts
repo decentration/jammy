@@ -1,8 +1,8 @@
-import { buildBlob } from "../../risc-pvm/interpreter/deblob";
-import { Opcodes } from "../../risc-pvm/interpreter/instructions/opcodes";
-import { runBlob } from "../../risc-pvm/interpreter/runBlob";
-import { ExitReasonType } from "../../risc-pvm/interpreter/types";
-import { prettyState } from "../../risc-pvm/interpreter/utils/debug";
+import { buildBlob } from "../../../risc-pvm/interpreter/deblob";
+import { Opcodes } from "../../../risc-pvm/interpreter/instructions/opcodes";
+import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
+import { ExitReasonType } from "../../../risc-pvm/interpreter/types";
+import { prettyState } from "../../../risc-pvm/interpreter/utils/debug";
 
 
 describe("runBlob VM Execution Integration Tests", () => {

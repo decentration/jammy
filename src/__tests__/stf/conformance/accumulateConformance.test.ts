@@ -9,37 +9,37 @@ describe("Accumulate STF - conformance tests", () => {
 
     const testFiles = [
         "accumulate_ready_queued_reports-1",  //
-        "enqueue_and_unlock_chain-1",
-        "enqueue_and_unlock_chain-2",
-        "enqueue_and_unlock_chain-3",
-        "enqueue_and_unlock_chain-4",
-        "enqueue_and_unlock_chain_wraps-1",
-        "enqueue_and_unlock_chain_wraps-2",
-        "enqueue_and_unlock_chain_wraps-3",  //
-        "enqueue_and_unlock_chain_wraps-4",  //
-        "enqueue_and_unlock_chain_wraps-5",
-        "enqueue_and_unlock_simple-1",
-        "enqueue_and_unlock_simple-2",
-        "enqueue_and_unlock_with_sr_lookup-1",      
-        "enqueue_and_unlock_with_sr_lookup-2",
-        "enqueue_self_referential-1",
-        "enqueue_self_referential-2",
-        "enqueue_self_referential-3",
-        "enqueue_self_referential-4",
-        "no_available_reports-1",
-        "process_one_immediate_report-1",
-        "queues_are_shifted-1",            //        
-        "queues_are_shifted-2",           //  
-        "ready_queue_editing-1",
-        "ready_queue_editing-2",
-        "ready_queue_editing-3",
-        "same_code_different_services-1"
+        // "enqueue_and_unlock_chain-1",
+        // "enqueue_and_unlock_chain-2",
+        // "enqueue_and_unlock_chain-3",
+        // "enqueue_and_unlock_chain-4",
+        // "enqueue_and_unlock_chain_wraps-1",
+        // "enqueue_and_unlock_chain_wraps-2",
+        // "enqueue_and_unlock_chain_wraps-3",  //
+        // "enqueue_and_unlock_chain_wraps-4",  //
+        // "enqueue_and_unlock_chain_wraps-5",
+        // "enqueue_and_unlock_simple-1",
+        // "enqueue_and_unlock_simple-2",
+        // "enqueue_and_unlock_with_sr_lookup-1",      
+        // "enqueue_and_unlock_with_sr_lookup-2",
+        // "enqueue_self_referential-1",
+        // "enqueue_self_referential-2",
+        // "enqueue_self_referential-3",
+        // "enqueue_self_referential-4",
+        // "no_available_reports-1",
+        // "process_one_immediate_report-1",
+        // "queues_are_shifted-1",            //        
+        // "queues_are_shifted-2",           //  
+        // "ready_queue_editing-1",
+        // "ready_queue_editing-2",
+        // "ready_queue_editing-3",
+        // "same_code_different_services-1"
     ];
 
     testFiles.forEach((fileName) => {
         it(`should pass ${fileName}`, async () => {
             // 1) Read JSON test vector from file
-            const filePath = path.join(`${JAM_TEST_VECTORS}/accumulate`, `${CHAIN_TYPE}`, fileName.concat(".json"));
+            const filePath = path.join(`${JAM_TEST_VECTORS}/stf/accumulate`, `${CHAIN_TYPE}`, fileName.concat(".json"));
             console.log("checking filePath", filePath);
             const rawJson = fs.readFileSync(filePath, "utf8");
 

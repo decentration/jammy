@@ -16,6 +16,18 @@ interface InterpreterContext {
   heapEnd: number;        // Upper bound of the heap
   pageTable: PageTable;   // Page table for memory access control
 
+  // argsBand: new Uint8Array(ZI),
+  // stackBand: new Uint8Array(STACK_SIZE),
+  // argsBase: ARGS_BASE,
+  // stackStart: STACK_START,
+  // stackTop: STACK_TOP,
+
+  argsBand: Uint8Array;
+  stackBand: Uint8Array;
+  argsBase: number;
+  stackStart: number;
+  stackTop: number;
+
 }
 export type InterpreterState = {
   code: Uint8Array;            // Code to execute (ϲ), typically an ArrayBuffer-backed typed array
@@ -26,6 +38,7 @@ export type InterpreterState = {
   memory: Uint8Array;          // RAM (μ), typically an ArrayBuffer-backed typed array
   exit?: ExitReason;     // reason why the interpreter stopped
   context?: InterpreterContext;
+  
 };
 
 // Exit reasons

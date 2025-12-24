@@ -60,6 +60,11 @@ export function buildState(opts: {
       heapPointer: opts.heapPointer ?? opts.heapStart ?? 0,
       heapEnd: 2 ** 18, // default to 256 KiB
       pageTable: [], // will be initialized later
+      argsBand: new Uint8Array(0), // default empty args band
+      stackBand: new Uint8Array(0), // default empty stack band
+      argsBase: 0, // default args base
+      stackStart: 0, // default stack start
+      stackTop: 0, // default stack top
     },
   };
 

@@ -2,6 +2,20 @@ import { decodeImmediate32, decodeImmediate64, decodeOffset, decodeSignedIntLE, 
 import { skip } from "../utils/skip";
 import { Instruction, InstructionAddressTypes, OpcodeTable, Opcodes } from "./opcodes";
 
+const readLE = (m: Uint8Array, start: number, len: number) => {
+  let v = 0;
+  for (let i = 0; i < len; i++) v |= (m[start + i] ?? 0) << (8 * i);
+  return v >>> 0;
+};
+
+const readSignedLENumber = (m: Uint8Array, start: number, len: number): number => {
+  let v = 0;
+  for (let i = 0; i < len; i++) v |= (m[start + i] ?? 0) << (8 * i);
+  const shift = 32 - 8 * len;   // sign-extend to 32-bit
+  return (v << shift) >> shift;
+};
+
+
 /*
   * Decodes an instruction from the given memory at the specified program counter (pc).
   * 
@@ -68,10 +82,12 @@ export function decodeInstruction(memory: Uint8Array, pc: number, opcodeBits: bo
           // A.23 
           const ctl = memory[pc + 1]; // control byte
           const lX    = len4(hi4(ctl));
-          const offsetBytes = memory.subarray(pc + 1, pc + 2 + lX);
-          const offset = decodeOffset(pc, offsetBytes);
+          const offsetBytes = Math.min(4, ctl >>> 4);;
+          const offRaw = readLE(memory, pc + 2, offsetBytes);
+
+          // const offset = decodeOffset(pc, offsetBytes);
     
-          instruction.operands = [offset];
+          instruction.operands = [offRaw, offsetBytes];
           break;
         }
     
@@ -111,21 +127,25 @@ export function decodeInstruction(memory: Uint8Array, pc: number, opcodeBits: bo
         }
     
         case InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET: {
-
           // A.26 
           const ctl = memory[pc + 1];
-          const rA = ctl & 0x0F;
-          const lX = Math.min(4, (ctl >>> 4) & 0x07); 
+          const rA  =  ctl & 0x0F;
+          const lX  = Math.min(4, (ctl >>> 4) & 0x07);
+        
           const immBytes = memory.subarray(pc + 2, pc + 2 + lX);
           const vX = decodeSignedIntLE(immBytes);
-    
-          const lY = Math.min(4, Math.max(0, length - lX - 1));
-          const offsetBytes = memory.subarray(pc + 2 + lX, pc + 2 + lX + lY);
-          const vY = decodeOffset(pc, offsetBytes);
-    
-          instruction.operands = [rA, vX, vY];
+        
+          // FIX: length is skip(pc,k) = mode(1) + lX + lY
+          // so lY = length - 1 - lX, clamped to 1..4
+          const lY  = Math.max(1, Math.min(4, length - 1 - lX));
+        
+          const off = readSignedLENumber(memory, pc + 2 + lX, lY);
+        
+          instruction.operands = [rA, vX, off];
           break;
         }
+        
+        
     
         case InstructionAddressTypes.TWO_REGISTERS: {
           // A.27 
@@ -150,15 +170,35 @@ export function decodeInstruction(memory: Uint8Array, pc: number, opcodeBits: bo
         // }
 
         case InstructionAddressTypes.TWO_REGISTERS_ONE_IMMEDIATE: {
+          // regByte: high nibble = rB, low nibble = rA
           const reg = memory[pc + 1];
+
+          const isAlt =
+          opcode === Opcodes.rot_r_64_imm_alt || // 159
+          opcode === Opcodes.rot_r_32_imm_alt;   // 161
+
+          if (isAlt) {
+            // ALT packing:
+            // bits 7..6 : lX (0..3)  -> imm length = lX + 1 (=> 1..4 bytes)
+            // bits 5..4 : rB (2 bits)
+            // bits 3..0 : rA (4 bits)
+            const lXbits = (reg >>> 6) & 0x03;
+            const immLen = (lXbits + 1); // 1..4
+            const rB     = (reg >>> 4) & 0x03;
+            const rA     =  reg        & 0x0F;
         
-          const lX = reg >>> 6;          // top-2 bits
-          const rB = (reg >>> 4) & 0x3;   // next-2 bits
+            const imm = decodeSignedIntLE(memory.subarray(pc + 2, pc + 2 + immLen));
+            instruction.operands = [rA, rB, imm];
+            break;
+        
+          }
+
           const rA = reg & 0xF;          // low-4 bits
+          const rB = (reg >>> 4) & 0x0F;   // 
         
-          const immBytesLen = [1, 2, 4][lX];      // lX=0 -> 1, 1 -> 2, 2 -> 4
-          const immBytes = memory.subarray(pc + 2, pc + 2 + immBytesLen);
-          const imm  = decodeSignedIntLE(immBytes);
+          const immLen  = Math.min(4, Math.max(1, length - 2));          
+          const immBytes = memory.subarray(pc + 2, pc + 2 + immLen);
+          const imm     = decodeSignedIntLE(immBytes);
           console.log("Decoded TWO_REGISTERS_ONE_IMMEDIATE instruction", {rA, rB, imm, immBytes});
 
           instruction.operands = [rA, rB, imm];
@@ -171,12 +211,11 @@ export function decodeInstruction(memory: Uint8Array, pc: number, opcodeBits: bo
           const rA = ctl & 0x0F;
           const rB = (ctl >>> 4) & 0x0F;
 
-          const lX = Math.min(4, Math.max(0, length - 1));          
+          // const lX = Math.min(4, Math.max(0, length - 1));          
           
-          const offsetBytes = memory.subarray(pc + 2, pc + 2 + lX);
-          const offset = decodeOffset(pc, offsetBytes);
-    
-          instruction.operands = [rA, rB, offset];
+          const offLen = Math.max(1, Math.min(4, length - 2));
+          const off    = readSignedLENumber(memory, pc + 2, offLen);
+          instruction.operands = [rA, rB, off];
           break;
         }
     

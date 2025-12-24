@@ -650,23 +650,51 @@ describe("Instruction execution tests", () => {
   
     const regs = () => Array(13).fill(0n);
 
-    it("80 load_imm_jump loads register and jumps", () => {
+    const encOff24LE = (n: number) => {
+      const u = (n & 0xFFFFFF) >>> 0;
+      return [u & 0xFF, (u >>> 8) & 0xFF, (u >>> 16) & 0xFF];
+    };
+
+    const mode = (reg: number, immBytes: number) => ((reg & 0xF) << 4) | (immBytes & 0xF);
+    const encOff16LE = (n: number) => { const u=(n & 0xFFFF)>>>0; return [u & 0xFF, (u>>>8)&0xFF]; };
+    
+    const modeImmHiRegLo = (immBytes: number, reg: number) =>
+      ((immBytes & 0xF) << 4) | (reg & 0xF);
+    
+    // signed 8-bit LE (a single byte)
+    const encOff8 = (n: number) => (n & 0xFF);
+    
+    it("80 load_imm_jump loads rA and jumps (pc-relative)", () => {
+      const regs = Array(13).fill(0n);
+    
+    
+      const P = 0;
+      const T = 4;                       
+      const off8 = encOff8(T - P);       // 4
+    
       const code = Uint8Array.of(
-        Opcodes.load_imm_jump,
-        0x12,          // imm length 1 byte, reg 2-byte
-        0x34,          // immX = 0x34
-        0x06, 0, 0, 0, // offset = 6 (to trap opcode)
-        Opcodes.trap
+        
+        Opcodes.load_imm_jump,           // 80
+        modeImmHiRegLo(1, 2),            // immLen=1 (hi nibble), rA=2 (lo nibble) => 0x12
+        0x34,                            // immX
+        off8,                            // 1-byte signed offset
+        Opcodes.trap                     // at 4
       );
-      const bitmask = Uint8Array.of(0b01000001);
-  
-      const s0 = buildState({ code, bitmask, registers: regs() });
+    
+      // BB starts per your log: 0, 1, 5
+      const bitmask = Uint8Array.of(0b00010001);
+    
+      const s0 = buildState({ code, bitmask, registers: regs });
       const s1 = executeSingleStep(s0);
-  
+    
       expect(s1.registers[2]).toBe(0x34n);
-      expect(s1.pc).toBe(6);
+      expect(s1.pc).toBe(T);
       expect(s1.exit?.type).toBe(ExitReasonType.Continue);
     });
+    
+    
+    
+    
   
     it("81 branch_eq_imm jumps if register equals imm", () => {
       const offset = 6;  // Jump to the position of the next opcode (trap)
@@ -1202,9 +1230,6 @@ describe("Instruction execution tests", () => {
   });
 
   describe("A.5.10 Two Registers & One Immediate instructions (124-130)", () => {
-  
-
-
       const BASE = 0x30000;   // r1 will hold this
     
       // helper -> wrap raw code into a minimal, valid blob

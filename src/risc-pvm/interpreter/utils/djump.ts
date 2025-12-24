@@ -1,5 +1,5 @@
 import { JUMP_ALIGNMENT_FACTOR } from "../consts";
-import { ExitReasonType } from "../types";
+import { ExitReasonType, InterpreterState } from "../types";
 
 type DjumpResult = { exitReason: ExitReasonType; pc: number };
 
@@ -29,4 +29,19 @@ export function djump(a: number, jumpTable: number[], basicBlockStarts: Set<numb
 
   // or third condition of djump function
   return { exitReason: ExitReasonType.Continue, pc: targetPc };
+}
+
+export function ensureOpcodeBoundary(s: InterpreterState, target: number): number {
+  if (target < 0 || target >= s.code.length) {
+    (s as any).exit = { type: ExitReasonType.Panic, detail: `jump OOB: ${target}/${s.code.length}` };
+    throw new Error("jump OOB");
+  }
+
+  // IMPORTANT: opcodeMaskBits is boolean[] (from bitmaskToBoolean)
+  const bits = s.opcodeMaskBits as unknown as boolean[];
+  if (!bits[target]) {
+    (s as any).exit = { type: ExitReasonType.Panic, detail: `jump to non-opcode byte: pc=${target}` };
+    throw new Error("jump to non-opcode byte");
+  }
+  return target;
 }

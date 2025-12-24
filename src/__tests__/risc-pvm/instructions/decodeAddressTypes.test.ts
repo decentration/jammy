@@ -6,6 +6,15 @@ import { InstructionAddressTypes, Opcodes } from "../../../risc-pvm/interpreter/
 // helper create a Uint8Array from numbers
 const be8 = (...n: number[]) => Uint8Array.from(n);
 
+const bits = (len: number, starts: number[]) => {
+  const b = Array(len).fill(false);
+  for (const s of starts) b[s] = true;
+  return b;
+};
+
+const decode0 = (mem: Uint8Array, nextPc: number) =>
+  decodeInstruction(mem, 0, bits(mem.length, [0, nextPc]));
+
 // helper to build memory with a single instruction at pc=0
 function instruction(opcode: number, ...tail: number[]): Uint8Array {
   return Uint8Array.from([opcode, ...tail]);
@@ -15,9 +24,8 @@ function instruction(opcode: number, ...tail: number[]): Uint8Array {
 describe("NO_OPERAND decode", () => {
   it("trap (opcode 0) returns no operands", () => {
 
-    
     const mem = instruction(Opcodes.trap);
-    const decoded = decodeInstruction(mem, 0);
+    const decoded = decode0(mem, 0);
 
     expect(decoded.type).toBe(InstructionAddressTypes.NO_OPERAND);
     expect(decoded.operands).toEqual([]);
@@ -29,7 +37,7 @@ describe("ONE_IMMEDIATE decode", () => {
   it("ecalli 0x7F returns immediate 127", () => {
     // immediate 0x7F (1-byte, positive) 
     const mem = instruction(Opcodes.ecalli, 0x7f); // 0x7f = 127
-    const decoded = decodeInstruction(mem, 0);
+    const decoded = decode0(mem, 0);
     console.log("mem", mem);
 
     console.log("decoded instruction", decoded);
@@ -39,7 +47,7 @@ describe("ONE_IMMEDIATE decode", () => {
 
   it("ecalli 0xFF (−1) signed-extends", () => {
     const mem = instruction(Opcodes.ecalli, 0xff); // 0xFF => −1 
-    const decoded = decodeInstruction(mem, 0);
+    const decoded = decode0(mem, 0);
     expect(decoded.operands).toEqual([-1]);
   });
 });
@@ -49,7 +57,7 @@ describe("ONE_REGISTER_ONE_EXTENDED_IMMEDIATE decode", () => {
   it("load_imm_64 r=3, imm=0x0102030405060708n", () => {
     const imm = be8(0x08,0x07,0x06,0x05,0x04,0x03,0x02,0x01); // little endian
     const mem = instruction(Opcodes.load_imm_64, 0x03, ...imm);      // reg 3
-    const decoded = decodeInstruction(mem, 0);
+    const decoded = decode0(mem, 0);
 
     expect(decoded.type)
       .toBe(InstructionAddressTypes.ONE_REGISTER_ONE_EXTENDED_IMMEDIATE);
@@ -65,7 +73,7 @@ describe("TWO_IMMEDIATE decode", () => {
   it("store_imm_u32 with X=0x11, Y=0x22", () => {
     // opcode 32 (store_imm_u32).  Choose lX = 1 (0x11), lY = 1 (0x22)
     const mem = instruction(Opcodes.store_imm_u32, 0x01, 0x11, 0x22);
-    const decoded = decodeInstruction(mem, 0);
+    const decoded = decode0(mem, 0);
 
     expect(decoded.type).toBe(InstructionAddressTypes.TWO_IMMEDIATE);
     expect(decoded.operands).toEqual([0x11n, 0x22n]);  // both bigint
@@ -76,21 +84,20 @@ describe("TWO_IMMEDIATE decode", () => {
 describe("ONE_OFFSET decode", () => {
   it("jump +2 bytes forward", () => {
     // opcode 40 (jump).  offset = +2 (0x02)
-    const mem = instruction(Opcodes.jump, 0x02);
-    const decoded = decodeInstruction(mem, 0);
+    const mem = instruction(Opcodes.jump, 0x10, 0x02);
+    const decoded = decodeInstruction(mem, 0, bits(mem.length, [0,3]));
 
     expect(decoded.type).toBe(InstructionAddressTypes.ONE_OFFSET);
-    expect(decoded.operands?.[0]).toBe(0 + 2); // absolute target pc
+    expect(decoded.operands).toEqual([0x02, 1]); // [offRaw, offBytes]
   });
 });
 
 // 6) ONE_REGISTER_ONE_IMMEDIATE  (load_imm…)
 describe("ONE_REGISTER_ONE_IMMEDIATE decode", () => {
   it("load_imm r=5, imm=-2", () => {
-    // opcode 51.  reg nibble =5.  imm = 0xFE (−2)
-    const regNibble = 0x05;   // low-nibble 5
-    const mem = instruction(Opcodes.load_imm, regNibble, 0xfe);
-    const decoded = decodeInstruction(mem, 0);
+    // opcode 51.   rA=5, immLen=1 --> ctl = 0x15
+    const mem = instruction(Opcodes.load_imm, 0x15, 0xFE);
+    const decoded = decodeInstruction(mem, 0, bits(mem.length, [0,3]));
 
     expect(decoded.type)
       .toBe(InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE);
@@ -110,7 +117,7 @@ describe("ONE_REGISTER_TWO_IMMEDIATE decode", () => {
     const immY = [0x0D, 0x0C, 0x0B, 0x0A]; // little-endian
 
     const mem = instruction(opcode, regImmLengthByte, ...immX, ...immY);
-    const decoded = decodeInstruction(mem, 0);
+    const decoded = decode0(mem, 0);
 
     expect(decoded.type)
         .toBe(InstructionAddressTypes.ONE_REGISTER_TWO_IMMEDIATE);
@@ -126,16 +133,12 @@ describe("ONE_REGISTER_TWO_IMMEDIATE decode", () => {
 describe("ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET decode branch(νY , ⊺) , ω′ A = νX)", () => {
     it("throws error when immediate length is zero", () => {
         const opcode = Opcodes.load_imm_jump;
-        const regImmLengthByte = 0x02;
-        const offset = 0x05;
-  
-        const mem = instruction(opcode, regImmLengthByte, offset);
-      
-        expect(() => decodeInstruction(mem, 0))
-          .toThrowError("decodeSignedIntLE: length must be 1-8");
-      });
- 
-  });
+        const mem = instruction(opcode, 0x12, 0xFD, 0x05); // rA=2, |νX|=1, νX=-3, off=0x05 (1 byte)
+        const decoded = decodeInstruction(mem, 0, bits(mem.length, [0,4]));
+        
+        expect(decoded.type).toBe(InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET);
+        expect(decoded.operands).toEqual([2, -3n, 0x05]);
+})})
 
 
 describe("ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET decode branch(νY , ⊺) , ω′ A = νX)", () => {
@@ -143,10 +146,10 @@ describe("ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET decode branch(νY , ⊺) , ω′
       
       const opcode = Opcodes.load_imm_jump;
       const regNibble = 0x12; // Register ID 2
-      const imm = 0xfd; // -3 in signed 8-bit
+      const imm = 0xFD; // -3 in signed 8-bit
       const offset = 0x05; // Offset of +5 bytes
       const mem = instruction(opcode, regNibble, imm, offset);
-      const decoded = decodeInstruction(mem, 0);
+      const decoded = decode0(mem, 4);
       expect(decoded.type)
       .toBe(InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE_ONE_OFFSET);
       expect(decoded.operands).toEqual([2, -3n, 5]); // Register ID, immediate, offset. and -3n means 
@@ -161,7 +164,7 @@ describe("TWO_REGISTERS decode", () => {
     const regByte  = (0x9 << 4) | 0x2;      // high-nibble = rA (9), low-nibble = rD (2)
 
     const mem      = instruction(opcode, regByte);
-    const decoded  = decodeInstruction(mem, 0);
+    const decoded  = decode0(mem, 0);
 
     expect(decoded.type).toBe(InstructionAddressTypes.TWO_REGISTERS);
     expect(decoded.operands).toEqual([2, 9]);              // [rD, rA]
@@ -199,8 +202,8 @@ describe("TWO_REGISTERS_ONE_OFFSET decode", () => {
     const regByte  = (0x2 << 4) | 0x1;      // rB = 2, rA = 1
     const offset   = 0xFB;                  // -5 (signed 8-bit)
 
-    const mem      = instruction(opcode, regByte, offset);
-    const decoded  = decodeInstruction(mem, 0);
+    const mem = instruction(opcode, regByte, offset);
+    const decoded = decodeInstruction(mem, 0, bits(mem.length, [0,3]));
 
     expect(decoded.type).toBe(InstructionAddressTypes.TWO_REGISTERS_ONE_OFFSET);
     expect(decoded.operands).toEqual([1, 2, -5]);          // absolute pc + offset
@@ -218,7 +221,7 @@ describe("TWO_REGISTERS_TWO_IMMEDIATE decode", () => {
     const immY     = [0x56];                    // 0x56
 
     const mem      = instruction(opcode, regByte, lenByte, ...immX, ...immY);
-    const decoded  = decodeInstruction(mem, 0);
+    const decoded  = decode0(mem, 0);
 
     expect(decoded.type).toBe(InstructionAddressTypes.TWO_REGISTERS_TWO_IMMEDIATE);
     expect(decoded.operands).toEqual([5, 6, 0x1234n, 0x56n]);
@@ -234,7 +237,7 @@ describe("THREE_REGISTERS decode", () => {
     const regByte2 = 0x07;                  // rD = 7
 
     const mem      = instruction(opcode, regByte1, regByte2);
-    const decoded  = decodeInstruction(mem, 0);
+    const decoded  = decode0(mem, 0);
 
     expect(decoded.type).toBe(InstructionAddressTypes.THREE_REGISTERS);
     expect(decoded.operands).toEqual([3, 9, 7]);

@@ -1,9 +1,13 @@
-import { coerceU64 } from "../../../codecs";
+import { coerceU64, hexStringToBytes } from "../../../codecs";
 import { CORES_COUNT, EPOCH_LENGTH, TOTAL_ACCUMULATE_GAS, TOTAL_GAS_FOR_ALL_ACCUMULATION } from "../../../consts";
+import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
+import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { Gas } from "../../../types/types";
-import { toHex } from "../../../utils";
-import { AccumulateEphemeral, AccumulateState, ReadyRecord } from "../types";
+import { compareBytes, toHex } from "../../../utils";
+import { AccumulateEphemeral, AccumulateState, ReadyRecord, StorageMapEntry } from "../types";
 // import { pvmAccumulate } from "../ffi/pvm_ffi/pvm_ffi"; 
+
+
 
 /**
  * computeBlockGasLimit:
@@ -48,43 +52,84 @@ export function computeBlockGasLimit(
 
   }
 
-export async function accumulateSingleService(
-  state: AccumulateState,          // The chain state
-  slot: number,                    // Current slot from eq. (12.19) if needed
-  serviceId: number,
-  serviceItems: any[],            // Typically the results relevant to this service
-  blockGasLimit: Gas
-): Promise<AccumulateEphemeral> {
+// export async function accumulateSingleService(
+//   state: AccumulateState,          // The chain state
+//   slot: number,                    // Current slot from eq. (12.19) if needed
+//   serviceId: number,
+//   serviceItems: any[],            // Typically the results relevant to this service
+//   blockGasLimit: Gas
+// ): Promise<AccumulateEphemeral> {
+//   let storageWrites: { key: Uint8Array; value: Uint8Array }[] = [];
+//   let storageDeletes: Uint8Array[] = [];
+//   let newTransfers: { src: number; dest: number; amount: bigint }[] = [];
+//   // 1) Retrieve the service codeHash / other relevant info from chain state
+//   const svc = state.accounts.find(a => a.id === serviceId);
+//   if (!svc) {
+//     // If the service doesn't exist or was self-terminated => no accumulation
+//     return { selfTerminated: false, storageWrites: [] };
+//   }
 
-  // 1) Retrieve the service codeHash / other relevant info from chain state
-  const svc = state.accounts.find(a => a.id === serviceId);
-  if (!svc) {
-    // If the service doesn't exist or was self-terminated => no accumulation
-    return {
-      selfTerminated: false
-    };
+//   const currentCodeHash = svc.data.service.code_hash;
+
+//   // 2) Seed the host env storage from account.storage so the VM sees current state
+//   const seeded = new Map<string, Uint8Array>();
+//   for (const { key, value } of svc.data.storage) {
+//     seeded.set(Buffer.from(key).toString("hex"), value);
+//   }
+
+//   const env = makeHostEnv({ storage: seeded });
+
+//   // 4) Load blob; if unavailable, fall back to your placeholder path
+//   const blob = tryLoadServiceBlob(state, currentCodeHash);
+//   if (blob) {
+//     const startGas = blockGasLimit;
+//     const vm = runBlob(blob, startGas, { env });
+//     storageWrites = env.getStagedStorageWrites?.() ?? [];
+//     storageDeletes = env.getStagedStorageDeletes?.() ?? [];
+//     newTransfers =
+//       env.acc?.allocator?.transfers?.map(t => ({
+//         src: Number(t.from),
+//         dest: Number(t.to),
+//         amount: t.amount,
+//       })) ?? [];
+
+   
+//   }
+//   return await pvmAccumulatePlaceholder(slot, serviceId, currentCodeHash, serviceItems, blockGasLimit, {
+//     storageWrites,
+//     storageDeletes,
+//     newTransfers,
+//   });
+// }
+
+
+
+// export function applyIntermediateChanges(
+//   state: AccumulateState,
+//   accumulatedOutputs: any[]
+// ) {
+//   // If some ephemeral changes need final unification
+// }
+
+
+export const norm = (s: string) => s.toLowerCase().replace(/^0x/, "");
+
+export const tryDecode = (v: any): Uint8Array | null => {
+  if (v instanceof Uint8Array) return v;
+  if (Array.isArray(v)) return new Uint8Array(v);
+  if (typeof v === "string") {
+    if (/^0x/i.test(v)) return hexStringToBytes(v);
+    if (/^[0-9a-f]+$/i.test(v)) return new Uint8Array(Buffer.from(v, "hex"));
+    try { return new Uint8Array(Buffer.from(v, "base64")); } catch {}
   }
+  return null;
+};
 
-  const currentCodeHash = svc.data.service.code_hash;
-
-  const ephemeral = await pvmAccumulatePlaceholder( 
-    slot,
-    serviceId,
-    currentCodeHash,
-    serviceItems,
-    blockGasLimit
-);
-
-  return ephemeral;
-}
+export const asBytes = (x: any): Uint8Array =>
+  x instanceof Uint8Array ? x : hexStringToBytes(String(x));
 
 
-export function applyIntermediateChanges(
-  state: AccumulateState,
-  accumulatedOutputs: any[]
-) {
-  // If some ephemeral changes need final unification
-}
+
 
 export function applyDeferredTransfers(state: AccumulateState, accumulatedOutputs: any[]) {
   // gather ephemeral newTransfers => apply 
@@ -113,24 +158,31 @@ export function integratePreimages(state: AccumulateState) {
 //   return JSON.parse(resBytes.toString());
 // }
 
-async function pvmAccumulatePlaceholder(
-  slot: number,
-  serviceId: number,
-  codeHash: Uint8Array,
-  items: any[],
-  gasLimit: Gas,
-): Promise<AccumulateEphemeral> {
-  // TODO: Real code would call the PVM FFI, which we have started. 
-  // but we just return a dummy ephemeral object
-  return {
-    newTransfers: [],
-    newServices: [],
-    codeUpgrades: [],
-    selfTerminated: false,
-    commitmentHash: undefined,
-    actualGasUsed: 0n
-  };
-}
+// export async function pvmAccumulatePlaceholder(
+//   slot: number,
+//   serviceId: number,
+//   codeHash: Uint8Array,
+//   items: any[],
+//   gasLimit: Gas,
+//   effects?: {
+//     storageWrites?: { key: Uint8Array; value: Uint8Array }[];
+//     storageDeletes?: Uint8Array[];
+//     newTransfers?: { src: number; dest: number; amount: bigint }[];
+//   }
+// ): Promise<AccumulateEphemeral> {
+//   // TODO: Real code would call the PVM FFI, which we have started. 
+//   // but we just return a dummy ephemeral object
+//   return {
+//     newTransfers: effects?.newTransfers ?? [],
+//     newServices: [],
+//     codeUpgrades: [],
+//     selfTerminated: false,
+//     commitmentHash: undefined,
+//     actualGasUsed: 0n,
+//     storageWrites: effects?.storageWrites ?? [],
+//     storageDeletes: effects?.storageDeletes ?? [],
+//   };
+// }
 
 
 
@@ -228,11 +280,21 @@ export function rotateAccumulated(
 }
 
 
-export function gasBookeeping(acceptedReports: ReadyRecord[], blockGasLimit: bigint) {
-  // 1) gas bookkeeping: reduce the gas limit by the sum of all gas used in the accepted reports
-     const gasUsed = acceptedReports.reduce(
+export function gasBookeeping(acceptedReports: ReadyRecord[], blockGasLimit: Gas) {
+    // 1) gas bookkeeping: sum all gas used in the accepted reports
+    const gasUsed = acceptedReports.reduce(
        (sum , r) => sum + r.report.results.reduce((s, x) => s + (coerceU64(x.accumulate_gas) ?? 0n), 0n)
      , 0n);
-     blockGasLimit -= gasUsed;
+
+    // 2) exit early if we used up all gas
+    if (gasUsed >= blockGasLimit) return 0n as Gas;
+
+    //3) reduce the gas limit by the sum of all gas used in the accepted reports and clamp to zero
+    blockGasLimit -= gasUsed;
+    if (blockGasLimit < 0n) blockGasLimit = 0n;
+
+  
+    return blockGasLimit;
+  
 
 }

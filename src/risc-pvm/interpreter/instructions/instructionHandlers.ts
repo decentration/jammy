@@ -3,9 +3,8 @@ import { ExecutionHandler, ExitReasonType, InterpreterState } from "../types";
 import { Opcodes } from "./opcodes";
 import { branch } from "../utils/branch";
 import { GAS_PER_INSTRUCTION, GAS_COST_JUMP, GAS_COST_JUMP_IND, GAS_HOST_CALL } from "../consts";
-import { djump } from "../utils/djump";
+import { djump, ensureOpcodeBoundary } from "../utils/djump";
 import { panic, readBytes, toLE, writeBytes } from "./helpers";
-import { toBytes } from "../../../codecs";
 
 export function nextPc(state: InterpreterState): number {
 
@@ -20,33 +19,46 @@ export function nextPc(state: InterpreterState): number {
 }
 
 
-const branchHandler = (
+const signExtend = (x: number, bytes: number): number => {
+  const bits = BigInt(bytes * 8);
+  let v = BigInt(x) & ((1n << bits) - 1n);
+  if (v & (1n << (bits - 1n))) v -= (1n << bits);
+  return Number(v);
+};
+
+
+export const branchHandler = (
   condition: (registerValue: bigint, immediateValue: bigint) => boolean,
-  gasCost: bigint = GAS_COST_JUMP
 ): ExecutionHandler => {
-  return (state, [rA, imm, offset]) => {
+
+
+  return (state, [rA, imm, offRaw, offBytes = 3]) => {
     // console.log("Branch Handler called with operands:", { rA, imm, offset });
-    const basicBlockStarts = state.context?.basicBlockStarts;
-    if (!basicBlockStarts) return panic(state);
+    const bbs = state.context?.basicBlockStarts;
+    if (!bbs) return panic(state);
 
     const regVal = state.registers[rA];
     const immVal = BigInt(imm);
+
+    const baseNextPc = nextPc(state);
+    const off = signExtend(Number(offRaw), Number(offBytes));
+    const targetPc = state.pc + off;
+    // const targetPc = state.pc + Number(offset);
+
     const shouldBranch = condition(regVal, immVal);
-    const targetPc = state.pc + Number(offset);
-    console.log("Branch Handler:", { targetPc, shouldBranch, regVal, immVal, rA, offset });
+    // console.log("Branch Handler:", { targetPc, shouldBranch, regVal, immVal, rA, offRaw });
 
     const { exitReason, pc } = branch(
       targetPc,
       shouldBranch,
-      basicBlockStarts,
+      bbs,
       state.pc
     );
 
-
     return {
       ...state,
-      pc: shouldBranch ? pc : nextPc(state), // CRITICAL FIX HERE
-      gas: state.gas - gasCost,
+      pc: shouldBranch ? pc : baseNextPc,
+      gas: state.gas - GAS_COST_JUMP,
       exit: { type: exitReason },
     };
   };
@@ -55,23 +67,26 @@ const branchHandler = (
 
 export const trapHandler: ExecutionHandler = (s) => ({
   ...s,
-  gas  : s.gas - GAS_PER_INSTRUCTION,
+  // gas  : s.gas - GAS_PER_INSTRUCTION,
   exit : { type: ExitReasonType.Panic },
 });
 
 export const fallthroughHandler: ExecutionHandler = (s) => ({
   ...s,
   pc   : s.pc + 1, // 1 byte instruction
-  gas  : s.gas - GAS_PER_INSTRUCTION,
+  // gas  : s.gas - GAS_PER_INSTRUCTION,
   exit : {type: ExitReasonType.Continue }, // continue execution
 });
   
-export const ecalliHandler: ExecutionHandler = (s, [imm]) => ({
-  ...s,
-  pc   : nextPc(s),
-  gas  : s.gas - GAS_HOST_CALL, // decrement gas by host-call rate
-  exit : { type: ExitReasonType.HostCall, id: BigInt(imm) },  // immediate passed
-});
+export const ecalliHandler: ExecutionHandler = (s, [imm]) => {
+
+  return {
+    ...s,
+    pc   : nextPc(s),
+    gas: s.gas - GAS_HOST_CALL,
+    exit : { type: ExitReasonType.HostCall, id: BigInt(imm) },  // immediate passed
+  }
+};
 
 export const loadImm64Handler: ExecutionHandler = (s, [rA, imm]) => { // s is state, r
   const registers = s.registers.slice();
@@ -80,7 +95,7 @@ export const loadImm64Handler: ExecutionHandler = (s, [rA, imm]) => { // s is st
     ...s,
     registers,
     pc: s.pc + 10,
-    gas: s.gas - GAS_PER_INSTRUCTION,
+    // gas: s.gas - GAS_PER_INSTRUCTION,
     exit: { type: ExitReasonType.Continue }
   };
 };
@@ -102,7 +117,7 @@ const storeImm =
     return {
       ...s1,
       pc : nextPc(s1),
-      gas: s1.gas - GAS_PER_INSTRUCTION,
+      // gas: s1.gas - GAS_PER_INSTRUCTION,
       exit: { type: ExitReasonType.Continue },
     };
   };
@@ -114,19 +129,28 @@ export const storeImmU64Handler = storeImm(8);
 
 
 
-const jumpHandler: ExecutionHandler = (state, [offset]) => {
-  return branchHandler(() => true, GAS_COST_JUMP)(state, [0, 0, offset]);
+const jumpHandler: ExecutionHandler = (s) => {
+  const u24 =  (s.code[s.pc + 1] ?? 0)
+            | ((s.code[s.pc + 2] ?? 0) << 8)
+            | ((s.code[s.pc + 3] ?? 0) << 16);
+
+  console.log(`[EXEC][jump] pc=${s.pc} u24=0x${u24.toString(16)}`);
+
+  // Pass raw 24-bit to branchHandler; it will sign-extend with offBytes=3 and add state.pc
+  return branchHandler(() => true)(s, [0, 0, u24, 3]);
 };
 
-const jumpIndHandler: ExecutionHandler = (s: InterpreterState, operands: (number | bigint)[]) => {
-  const [rA, immOffset] = operands; // operands[0]=register index, operands[1]=immediate offset
-  const registerValue = Number(s.registers[Number(rA)]);
-  const address = (registerValue + Number(immOffset)) >>> 0; // mod 2^32
-  const { jumpTable, basicBlockStarts } = s.context ?? {};
-  console.log("JumpInd operands:", { rA, immOffset, address, jumpTable, basicBlockStarts });
-  if (!jumpTable || !basicBlockStarts) return panic(s);
 
-  const { exitReason, pc } = djump(address, jumpTable, basicBlockStarts);
+const jumpIndHandler: ExecutionHandler = (s: InterpreterState, operands: (number | bigint)[]) => {
+  const { basicBlockStarts: bbs, jumpTable } = s.context ?? {};
+  const jt  = jumpTable ?? [];
+  if (!bbs) return panic(s); // 
+
+  const [rA, immOffset] = operands; // operands[0]=register2 index, operands[1]=immediate offset
+  const address = Number((s.registers[Number(rA)] + BigInt(immOffset)) & 0xFFFF_FFFFn);
+  console.log("JumpInd operands:", { rA, immOffset, address, jumpTable, bbs });
+
+  const { exitReason, pc } = djump(address, jt, bbs);
 
   return {
     ...s,
@@ -145,7 +169,7 @@ const loadImmHandler: ExecutionHandler = (state, [rA, imm]) => {
     ...state,
     registers,
     pc: nextPc(state),
-    gas: state.gas - 1n,
+    // gas: state.gas - 1n,
     exit: { type: ExitReasonType.Continue },
   };
 };
@@ -176,7 +200,7 @@ const load =
       ...s1,
       registers: regs,
       pc : nextPc(s1),
-      gas: s1.gas - GAS_PER_INSTRUCTION,
+      // gas: s1.gas - GAS_PER_INSTRUCTION,
       exit: { type: ExitReasonType.Continue },
     };
   };
@@ -207,7 +231,7 @@ const store = (bytes: 1 | 2 | 4 | 8 ): ExecutionHandler =>
     return { 
       ...s1, 
       pc: nextPc(s1),
-      gas: s1.gas - GAS_PER_INSTRUCTION,
+      // gas: s1.gas - GAS_PER_INSTRUCTION,
       exit: { type: ExitReasonType.Continue },
     };
   };
@@ -239,7 +263,7 @@ console.log("StoreImmInd data to write:", {data, addr, base});
     return {
       ...s1,
       pc: nextPc(s1),
-      gas: s1.gas - GAS_PER_INSTRUCTION,
+      // gas: s1.gas - GAS_PER_INSTRUCTION,
       exit: { type: ExitReasonType.Continue },
     };
   };
@@ -251,26 +275,39 @@ const storeImmIndU64Handler = storeImmInd(8);   // 73
 
 // A.5.8
 // opcode 80: unconditional jump with immediate load
-const loadImmJumpHandler: ExecutionHandler = (state, [rA, immX, offset]) => {
+export const loadImmJumpHandler: ExecutionHandler = (state, [rA, immX, offRaw]) => {
+  // 1) rA ← immX (masked to 28..32 bits as per our ISA convention)
   const registers = state.registers.slice();
-  registers[rA] = BigInt(immX);
-  const targetPc = state.pc + Number(offset);
+  registers[Number(rA)] = (BigInt(immX) & 0xFFFF_FFFFn);
 
-  const { exitReason, pc } = branch(
-    targetPc,
-    true, // always be branching
-    state.context!.basicBlockStarts,
-    nextPc(state)
-  );
+  // 2) Derive lY correctly:
+  //    - mode is the layout byte
+  //    - lX in hi-nibble
+  //    - total instruction length = 1 (opcode) + skip(pc, k)
+  const mode   = state.code[state.pc + 1] ?? 0;
+  const lX     = (mode >> 4) & 0xF;
+  const lTotal = 1 + skip(state.pc, state.opcodeMaskBits);   // <-- FIX: full length
+  const lY     = Math.max(0, Math.min(4, lTotal - 2 - lX));   // 1..4 bytes of offset
+
+  // 3) offRaw is decoder-provided bucket; mask to lY bytes and sign-extend
+  const mask   = lY ? ((1 << (lY * 8)) >>> 0) - 1 : 0;
+  const offU32 = (Number(offRaw) & mask) >>> 0;
+  const rel    = signExtend(offU32, lY);
+
+  // 4) target = P + rel, then enforce opcode boundary
+  const P      = Number(state.pc);
+  const target = P + rel;
+  const pcOK   = ensureOpcodeBoundary(state, target);
 
   return {
     ...state,
     registers,
-    pc,
-    gas: state.gas - 1n,
-    exit: { type: exitReason },  
+    pc: pcOK,
+    // gas: state.gas - GAS_PER_INSTRUCTION,
+    exit: { type: ExitReasonType.Continue },
   };
 };
+
 
 // Branch handlers for conditional branches
 const branchEqImmHandler = branchHandler((reg, imm) => reg === imm); // 81
@@ -315,7 +352,7 @@ const sbrkHandler: ExecutionHandler = (state, [rD, rA]) => {
     ...state,
     registers,
     pc: nextPc(state),
-    gas: state.gas - GAS_PER_INSTRUCTION,
+    // gas: state.gas - GAS_PER_INSTRUCTION,
     context: {
       ...state.context!,
       heapPointer: newHeapPointer,
@@ -336,7 +373,7 @@ const twoRegisterOp = (fn: (a: bigint) => bigint): ExecutionHandler =>  // fn ta
       ...s,
       registers,
       pc: nextPc(s),
-      gas: s.gas - GAS_PER_INSTRUCTION,
+      // gas: s.gas - GAS_PER_INSTRUCTION,
       exit: { type: ExitReasonType.Continue },
     };
   };
@@ -407,7 +444,7 @@ const storeInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
     return {
       ...stateAfter,
       pc:  nextPc(stateAfter),
-      gas: stateAfter.gas - GAS_PER_INSTRUCTION,
+      // gas: stateAfter.gas - GAS_PER_INSTRUCTION,
       exit:{ type: ExitReasonType.Continue },
     };
   };
@@ -439,7 +476,7 @@ const loadInd =
       ...s1,
       registers : regs,
       pc        : nextPc(s1),
-      gas       : s1.gas - GAS_PER_INSTRUCTION,
+      // gas       : s1.gas - GAS_PER_INSTRUCTION,
       exit      : { type: ExitReasonType.Continue },
     };
   };
@@ -457,7 +494,10 @@ const twoRegImmOp = (fn: (regVal: bigint, imm: bigint) => bigint): ExecutionHand
   (state, [rA, rB, imm]) => {
     const registers = state.registers.slice();
     registers[rA] = fn(registers[rB], imm);
-    return { ...state, registers, pc: nextPc(state), gas: state.gas - GAS_PER_INSTRUCTION, exit: { type: ExitReasonType.Continue } };
+    return { ...state, 
+      registers, pc: nextPc(state), 
+      // gas: state.gas - GAS_PER_INSTRUCTION, 
+      exit: { type: ExitReasonType.Continue } };
   };
 
 // twoRegImmOp: Arithmetic and logical using twoRegImmOp
@@ -475,7 +515,7 @@ const setLtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
   ...state,
   registers: state.registers.with(rA, state.registers[rB] < BigInt(imm) ? 1n : 0n),
   pc: nextPc(state),
-  gas: state.gas - GAS_PER_INSTRUCTION,
+  // gas: state.gas - GAS_PER_INSTRUCTION,
   exit: { type: ExitReasonType.Continue },
 
 });
@@ -488,7 +528,7 @@ const setLtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
     BigInt.asIntN(64, state.registers[rB]) < BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
   ),
   pc: nextPc(state),
-  gas: state.gas - GAS_PER_INSTRUCTION,
+  // gas: state.gas - GAS_PER_INSTRUCTION,
   exit: { type: ExitReasonType.Continue },
 
 }); // 137
@@ -515,7 +555,7 @@ const setGtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
   ...state,
   registers: state.registers.with(rA, state.registers[rB] > BigInt(imm) ? 1n : 0n),
   pc: nextPc(state),
-  gas: state.gas - GAS_PER_INSTRUCTION,
+  // gas: state.gas - GAS_PER_INSTRUCTION,
   exit: { type: ExitReasonType.Continue },
 });
 
@@ -527,7 +567,7 @@ const setGtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
     BigInt.asIntN(64, state.registers[rB]) > BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
   ),
   pc: nextPc(state),
-  gas: state.gas - GAS_PER_INSTRUCTION,
+  // gas: state.gas - GAS_PER_INSTRUCTION,
   exit: { type: ExitReasonType.Continue },
 });
 
@@ -553,13 +593,13 @@ const cmovIzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
   const registers = state.registers.slice();
 
   // Check if the source register rB is zero
-  registers[rA] = registers[rB] === 0n ? imm : registers[rA];
+  registers[rA] = registers[rB] === 0n ? BigInt(imm) : registers[rA];
 
   return { 
     ...state, 
     registers, 
     pc: nextPc(state), 
-    gas: state.gas - GAS_PER_INSTRUCTION, 
+    // gas: state.gas - GAS_PER_INSTRUCTION, 
     exit: { type: ExitReasonType.Continue } 
   };
 };
@@ -570,13 +610,13 @@ const cmovNzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
   const registers = state.registers.slice();
 
   // Check if rB is not zero, if so, set rA to imm, else keep rA unchanged
-  registers[rA] = registers[rB] !== 0n ? imm : registers[rA];
+  registers[rA] = registers[rB] !== 0n ? BigInt(imm) : registers[rA];
 
   return { 
     ...state, 
     registers, 
     pc: nextPc(state), 
-    gas: state.gas - GAS_PER_INSTRUCTION, 
+    // gas: state.gas - GAS_PER_INSTRUCTION, 
     exit: { type: ExitReasonType.Continue } 
   };
 };
@@ -637,26 +677,23 @@ const rotateR32ImmAltHandler: ExecutionHandler = twoRegImmOp((rB, imm) => {
 
 const branchRegisterHandler = (
   condition: (regA: bigint, regB: bigint) => boolean
-): ExecutionHandler => (state, [rA, rB, offset]) => {
+): ExecutionHandler => (state, [rA, rB, offRaw]) => {
 
-  const basicBlockStarts = state.context?.basicBlockStarts;
-  if (!basicBlockStarts) return panic(state);
+  const bbs = state.context?.basicBlockStarts;
+  if (!bbs) return panic(state);
 
   const regAVal = state.registers[rA];
   const regBVal = state.registers[rB];
-  const shouldBranch = condition(regAVal, regBVal);
-  const targetPc = state.pc + Number(offset);
+  const taken = condition(regAVal, regBVal);
+  const off = signExtend(Number(offRaw), 3);
+  const targetPc = state.pc + off;
 
-  const { exitReason, pc } = branch(
-    targetPc,
-    shouldBranch,
-    basicBlockStarts,
-    nextPc(state)
-  );
+  const { exitReason, pc } = branch(targetPc, taken, bbs, state.pc);
+
 
   return {
     ...state,
-    pc,
+    pc: taken ? pc : nextPc(state),
     gas: state.gas - GAS_COST_JUMP,
     exit: { type: exitReason },
   };
@@ -670,29 +707,34 @@ const branchGeUHandler = branchRegisterHandler((a, b) => a >= b);  // 174
 const branchGeSHandler = branchRegisterHandler((a, b) => BigInt.asIntN(64, a) >= BigInt.asIntN(64, b)); // 175
 
 const loadImmJumpIndHandler: ExecutionHandler = (state, [rA, rB, immX, immY]) => {
+  const bbs = state.context?.basicBlockStarts;
+  const jt  = state.context?.jumpTable ?? [];
+  if (!bbs) return panic(state);
+
+
   const registers = state.registers.slice();
   
   // Load immediate vX directly into rA
-  registers[rA] = BigInt(immX);
+  registers[Number(rA)] = (BigInt(immX) & 0xFFFFFFFFn); // we mask because rA is 32-bit
 
   // Compute the indirect jump address as (wB + vY) mod 2^32
   const jumpIndex = Number((state.registers[rB] + BigInt(immY)) & 0xFFFFFFFFn);
   
   // djump via the jump table to find actual target pc
-  const { pc, exitReason } = djump(jumpIndex, state.context!.jumpTable, state.context!.basicBlockStarts);
+  const { pc, exitReason } = djump(jumpIndex, jt, bbs);
+
 
   return {
     ...state,
     registers,
     pc,
-    gas: state.gas - 1n,
+    gas: state.gas - GAS_COST_JUMP_IND,
     exit: { type: exitReason },  
   };
 };
 
 const threeRegOp = ( 
-  fn: (a: bigint, b: bigint) => bigint,
-  gas = GAS_PER_INSTRUCTION): ExecutionHandler =>
+  fn: (a: bigint, b: bigint) => bigint): ExecutionHandler =>
   (s, [rA, rB, rD]) => {
     const regs = s.registers.slice();
     regs[rD] = fn(regs[rA], regs[rB]);
@@ -701,7 +743,7 @@ const threeRegOp = (
       ...s,
       registers: regs,
       pc: nextPc(s),
-      gas: s.gas - gas,
+      // gas: s.gas - GAS_PER_INSTRUCTION,
       exit: { type: ExitReasonType.Continue }
     };
   };
@@ -788,14 +830,18 @@ const setLtSHandler = threeRegOp((a, b) => (toSigned64(a) < toSigned64(b) ? 1n :
 const cmovIzHandler: ExecutionHandler = (s, [rB, rA, rD]) => {
   const regs = s.registers.slice();
   if (regs[rB] === 0n) regs[rD] = regs[rA];
-  return { ...s, registers: regs, pc: nextPc(s), gas: s.gas - GAS_PER_INSTRUCTION };
+  return { ...s, registers: regs, pc: nextPc(s), 
+    // gas: s.gas - GAS_PER_INSTRUCTION 
+  };
 };
 
 // 219
 const cmovNzHandler: ExecutionHandler = (s, [rB, rA, rD]) => {
   const regs = s.registers.slice();
   if (regs[rB] !== 0n) regs[rD] = regs[rA];
-  return { ...s, registers: regs, pc: nextPc(s), gas: s.gas - GAS_PER_INSTRUCTION };
+  return { ...s, registers: regs, pc: nextPc(s), 
+    // gas: s.gas - GAS_PER_INSTRUCTION 
+  };
 };
 
 const rotL64Handler = threeRegOp((a, b) => ((a << (b % 64n)) | (a >> (64n - (b % 64n)))) & 0xFFFF_FFFF_FFFF_FFFFn); // 220

@@ -77,6 +77,20 @@ export const ZI = 1 << 24 // The standard pvm program initialization input data 
 export const ZP = 1 << 12 // The pvm memory page size. See equation 4.24.
 export const ZZ = 1 << 16 // The standard pvm program initialization zone size. See section A.7.
 
+
+const U32 = 0x1_0000_0000;                // 2^32
+export const ARGS_BASE  = (U32 - ZZ - ZI) >>> 0;          // 0xFEFF0000
+export const STACK_TOP  = (U32 - 2*ZZ - ZI) >>> 0;        // 0xFEFE0000
+export const STACK_SIZE = ZZ;                             
+export const STACK_START = (STACK_TOP - STACK_SIZE) >>> 0; 
+
+export const isInArgsBand  = (addr: number, len = 1) =>
+  addr >= ARGS_BASE && (addr + len) <= (ARGS_BASE + ZI);
+
+export const isInStackBand = (addr: number, len = 1) =>
+  addr >= STACK_START && (addr + len) <= STACK_TOP;
+
+
 // Accumulate consts for host calls
 export const SVC_ID = 0n // !TODO change when outer invocation is supported (bless and assign)
 export const CORE_BYTES = 32;          // 32-byte hash each (assign handler)

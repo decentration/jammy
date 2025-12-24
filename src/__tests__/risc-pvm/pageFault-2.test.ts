@@ -6,7 +6,7 @@ import { ExitReasonType } from "../../risc-pvm/interpreter/types";
 function blob(code: Uint8Array, bitmask: Uint8Array) {
   return buildBlob({
     meta:        Uint8Array.of(0),
-    jumpTbl:     Uint8Array.of(0),
+    // jumpTbl:     Uint8Array.of(0),
     z:           1,
     instr:       code,
     jumpEntries: [Uint8Array.of(0)],

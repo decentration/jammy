@@ -144,14 +144,24 @@ export interface NewTransfer {
     amount: bigint; // u64
 }
 
+export interface StorageWrites {
+    key: Uint8Array;
+    value: Uint8Array;
+}
+
 export interface AccumulateEphemeral {
+    serviceId: number; 
     newTransfers?: NewTransfer[];
     newServices?: NewService[];
     codeUpgrades?: CodeUpgrade[];
     selfTerminated?: boolean;
     commitmentHash?: string; 
     actualGasUsed?: Gas;
+    storageWrites?: StorageWrites[]; 
+    storageDeletes?: Uint8Array[];
   }
+
+
   
   
   
