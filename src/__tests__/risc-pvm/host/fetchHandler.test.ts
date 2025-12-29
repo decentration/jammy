@@ -38,7 +38,7 @@ const bitmask = Uint8Array.of(0b0100_0001, 0b0101_0000);   // imm, ecalli, trap
 
 describe("ΩY fetch handler", () => {
 
-  it("selector 0 (config): writes config vector & sets r7=size", () => {
+  it("selector 0 (config): writes config vector & sets r7=bytesWritten and r8=vLength", () => {
     const env   = makeHostEnv();
     const code = makeCode(FetchSel.Config);
     const blob  = makeBlob(code, bitmask);
@@ -46,11 +46,12 @@ describe("ΩY fetch handler", () => {
     const cfg   = buildFetchConfigVector();
 
     expect(st.registers[7]).toBe(BigInt(cfg.length));
+    expect(st.registers[8]).toBe(BigInt(cfg.length));
     expect(st.memory.slice(HEAP_START, HEAP_START + cfg.length)).toEqual(cfg);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
-  it("happy‑path: copies bytes & sets r7=size", () => {
+  it("happy‑path: copies bytes & sets r7=bytesWritten and r8=vLength", () => {
     const env = makeHostEnv();
     const code = makeCode(FetchSel.Config);
     const blob = makeBlob(code, bitmask);
@@ -58,11 +59,12 @@ describe("ΩY fetch handler", () => {
   
     const cfg = buildFetchConfigVector();
     expect(st.registers[7]).toBe(BigInt(cfg.length));
+    expect(st.registers[8]).toBe(BigInt(cfg.length));
     expect(st.memory.slice(HEAP_START, HEAP_START + cfg.length)).toEqual(cfg);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
-  it("config vector: copies bytes & sets r7=size", () => {
+  it("config vector: copies bytes & sets r7=bytesWritten and r8=vLength", () => {
     const env = makeHostEnv();
     const code = makeCode(FetchSel.Config);
     const blob = makeBlob(code, bitmask);
@@ -70,12 +72,13 @@ describe("ΩY fetch handler", () => {
 
     const cfg = buildFetchConfigVector();
     expect(st.registers[7]).toBe(BigInt(cfg.length));
+    expect(st.registers[8]).toBe(BigInt(cfg.length));
     expect(st.memory.slice(HEAP_START, HEAP_START + cfg.length)).toEqual(cfg);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });
 
 
-  it("code-blob vector: copies bytes & sets r7=vLength", () => {
+  it("code-blob vector: copies bytes & sets r7=bytesWritten and r8=vLength", () => {
     const V = Uint8Array.from([1,2,3,4,5]);
     const env = makeHostEnv({ vectors: { programBlob: V }});
     const code = makeCode(FetchSel.ProgSerialized);
@@ -88,6 +91,7 @@ describe("ΩY fetch handler", () => {
     console.log("st", st);
 
     expect(st.registers[7]).toBe(BigInt(V.length));
+    expect(st.registers[8]).toBe(BigInt(V.length));
     expect(st.memory.slice(HEAP_START, HEAP_START + V.length)).toEqual(V);
     expect(st.exit?.type).toBe(ExitReasonType.Panic);
   });

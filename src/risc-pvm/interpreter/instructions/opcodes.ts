@@ -4,6 +4,7 @@ export interface Instruction {
     type: InstructionAddressTypes;
     opcode: Opcodes;
     operands?: (number | bigint | Uint8Array)[];
+    length?: number;
 }
 
 export enum InstructionAddressTypes {
@@ -40,26 +41,26 @@ export const INSTRUCTION_ADDRESS_TYPES: InstructionAddressTypes[] = [
 
 export enum Opcodes {
     // A.5.1
-    trap = 0, 
-    fallthrough = 1, 
+    trap = 0,
+    fallthrough = 1,
 
     // A.5.2
-    ecalli =  10, //0x0A , 
+    ecalli = 10, //0x0A , 
 
-     // A.5.3
+    // A.5.3
     load_imm_64 = 20,
 
     // A.5.4
-    store_imm_u8 = 30, 
-    store_imm_u16 = 31, 
-    store_imm_u32 = 32, 
-    store_imm_u64 = 33, 
+    store_imm_u8 = 30,
+    store_imm_u16 = 31,
+    store_imm_u32 = 32,
+    store_imm_u64 = 33,
 
     // A.5.5
-    jump = 40, 
+    jump = 40,
 
     // A.5.6
-    jump_ind = 50, 
+    jump_ind = 50,
     load_imm = 51,
     load_u8 = 52,
     load_i8 = 53,
@@ -80,9 +81,9 @@ export enum Opcodes {
     store_imm_ind_u64 = 73,
 
     // A.5.8
-    load_imm_jump = 80, 
-    branch_eq_imm = 81, 
-    branch_ne_imm = 82, 
+    load_imm_jump = 80,
+    branch_eq_imm = 81,
+    branch_ne_imm = 82,
     branch_lt_u_imm = 83, // less than unsigned 
     branch_le_u_imm = 84, //  less than or equal to
     branch_ge_u_imm = 85, // greater than or equal to
@@ -93,8 +94,8 @@ export enum Opcodes {
     branch_gt_s_imm = 90, // signed greater than
 
     // A.5.9
-    move_reg = 100, 
-    sbrk = 101, 
+    move_reg = 100,
+    sbrk = 101,
     count_set_bits_64 = 102,
     count_set_bits_32 = 103,
     leading_zero_bits_64 = 104,
@@ -170,7 +171,7 @@ export enum Opcodes {
     rem_u_32 = 195, // remainder unsigned 32-bit
     rem_s_32 = 196, // remainder signed 32-bit
     shlo_l_32 = 197, // shift left logical 32-bit
-    shlo_r_32  = 198, // shift right logical 32-bit
+    shlo_r_32 = 198, // shift right logical 32-bit
     shar_r_32 = 199, // shift right arithmetic 32-bit
     add_64 = 200, // add 64-bit
     sub_64 = 201, // subtract 64-bit
@@ -371,4 +372,4 @@ export const TERMINATION_OPCODES = new Set([
     Opcodes.branch_ge_s_imm,
     Opcodes.branch_gt_u_imm,
     Opcodes.branch_gt_s_imm,
-  ]);
+]);

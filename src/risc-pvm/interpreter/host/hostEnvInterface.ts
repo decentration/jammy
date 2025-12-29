@@ -167,7 +167,9 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     }
   };
 
-  console.log("[env] runInnerMachine override:", !!opts.runInnerMachine);
+  if (process.env.JAM_DEBUG_HOST === "1" || process.env.JAM_DEBUG_ACC === "1") {
+    console.log("[env] runInnerMachine override:", !!opts.runInnerMachine);
+  }
 
   const runInnerMachineFinal =
   runInnerMachine ?? ((p, ic, gas, regs, u) => ({

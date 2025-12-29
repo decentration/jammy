@@ -1,10 +1,8 @@
-import { hash } from "../../../../../utils/crypto";
-import { readBytes, toLE, writeBytes } from "../../../instructions/helpers";
+import { readBytes, writeBytes } from "../../../instructions/helpers";
 import { ExitReasonType } from "../../../types";
-import { NONE, WHO } from "../../consts";
+import { NONE } from "../../consts";
 import { finish } from "../../helpers";
-import { HostCallHandler, ServiceAccount } from "../../types";
-import { getMergedXs, getStagedOnly } from "../accumulate/helpers";
+import { HostCallHandler } from "../../types";
 
 // ΩR – read (selector 3)
 export const readHandler: HostCallHandler = (s, _id, env) => {
@@ -20,37 +18,9 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
   
   if (!key) return { state: { ...s, exit: { type: ExitReasonType.Panic } }, ok: true };
 
-  const req  = BigInt.asUintN(64, selRaw);
-  const xsId = env.acc?.allocator?.env?.currentServiceId;
-  const targetId = (req === NONE ? xsId : req);
-  
-  // 2. resove account
-  let acct: ServiceAccount | undefined;
-  if (targetId === undefined) {
-    acct = undefined;
-  } else if (xsId !== undefined && targetId === xsId) {
-    // effective xs (prefer staged overlay if present)
-    acct = getMergedXs(env);
-  } else {
-    // non-xs: consult staged map only
-    acct = getStagedOnly(env, targetId);
-  }
-
-  if (!acct) return finish(s1, NONE);
-
-  const pref = toLE(BigInt.asUintN(32, targetId ?? 0n), 4);
-  const prefixedKey = new Uint8Array(pref.length + key.length);
-  prefixedKey.set(pref, 0);
-  prefixedKey.set(key, pref.length);
-
-  // 3. hash the key
-  const hKey = hash(prefixedKey);
-  const hKeyHex = Buffer.from(hKey).toString("hex");
-
-
-  // 4. Lookup in external storage
-  const value = acct.storage.get(hKeyHex);
-  console.log("readHandler 3", { hKeyHex, hasValue: !!value });
+  // This implementation’s STF models service storage as raw key/value pairs.
+  // Resolve against the host env’s committed+staged storage map.
+  const value = env.getStorage?.(key);
 
   if (!value) return finish(s1, NONE);  // key missing
 
@@ -70,5 +40,6 @@ export const readHandler: HostCallHandler = (s, _id, env) => {
   // 7. success!!
   const regs = s2.registers.slice();
   regs[7] = BigInt(vLength);
+  regs[6] = 0n; // conformance ABI: clear error register on success
   return { state: { ...s2, registers: regs }, ok: true };
 };

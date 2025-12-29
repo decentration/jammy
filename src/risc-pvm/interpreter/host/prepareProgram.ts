@@ -15,8 +15,12 @@ export function prepareProgram(
 ): PreparedProgram {
   const payload = stripManifestHeaderIfPresent(programBlob);
   const parts = parseProgramContainer(payload);
+  const DBG = process.env.JAM_DEBUG_VM === "1" || process.env.JAM_DEBUG_ACC === "1";
+  if (DBG) console.log("[prepareProgram] parts =", parts ? "standard" : "raw");
   if (parts) {
     const init = initializeStandardProgram(payload, args, memSize);
+    if (DBG) console.log("[prepareProgram] standard init mapPlan:", init.mapPlan);
+    if (DBG) console.log("[prepareProgram] stackSizeBytes:", init.stackSizeBytes);
     return { via: "standard", init };
   }
   // minimal raw init

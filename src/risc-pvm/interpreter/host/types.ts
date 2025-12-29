@@ -183,5 +183,6 @@ export interface ExecOpts {
   env?: HostEnvInterface;
   overrideHost?: HostDispatcher;
   preferCachedCode?: boolean; // default true
-  strictVm?: boolean; 
+  strictVm?: boolean;
+  entryPoint?: bigint;  // entry point selector (5=refine, 12=accumulate, 15=on_transfer)
 };

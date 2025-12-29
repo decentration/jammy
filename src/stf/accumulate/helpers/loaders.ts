@@ -37,7 +37,6 @@ function pullFromMap(m: Map<string, any> | undefined, k: string): Uint8Array | n
 }
 
 // search in account's preimages_blob first (that’s where vectors put code).
-// Fallbacks: state.code_blobs, state.blobs, and (as a last resort) all accounts’ preimages.
 export function tryLoadServiceBlobForService(
   state: AccumulateState,
   serviceId: number,

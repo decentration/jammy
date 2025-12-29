@@ -4,7 +4,11 @@ import { Opcodes } from "./opcodes";
 import { branch } from "../utils/branch";
 import { GAS_PER_INSTRUCTION, GAS_COST_JUMP, GAS_COST_JUMP_IND, GAS_HOST_CALL } from "../consts";
 import { djump, ensureOpcodeBoundary } from "../utils/djump";
-import { panic, readBytes, toLE, writeBytes } from "./helpers";
+import { panic, readBytesVm, toLE, writeBytesVm } from "./helpers";
+
+const DBG_STEP = process.env.JAM_DEBUG_STEP === "1";
+
+let _watch32760StoreFirst = true;
 
 export function nextPc(state: InterpreterState): number {
 
@@ -30,9 +34,11 @@ const signExtend = (x: number, bytes: number): number => {
 export const branchHandler = (
   condition: (registerValue: bigint, immediateValue: bigint) => boolean,
 ): ExecutionHandler => {
+  // already charged in executeSingleStep
+  // No additional gas charge needed
+  const additionalGas = 0n;
 
-
-  return (state, [rA, imm, offRaw, offBytes = 3]) => {
+  return (state, [rA, imm, offRaw]) => {
     // console.log("Branch Handler called with operands:", { rA, imm, offset });
     const bbs = state.context?.basicBlockStarts;
     if (!bbs) return panic(state);
@@ -41,11 +47,15 @@ export const branchHandler = (
     const immVal = BigInt(imm);
 
     const baseNextPc = nextPc(state);
-    const off = signExtend(Number(offRaw), Number(offBytes));
+    // offRaw is already sign-extended by the decoder
+    const off = Number(offRaw);
     const targetPc = state.pc + off;
     // const targetPc = state.pc + Number(offset);
 
     const shouldBranch = condition(regVal, immVal);
+    if (DBG_STEP) {
+      console.log(`[branch-imm] pc=${state.pc} op=${state.code[state.pc]} rA=${rA} reg=0x${regVal.toString(16)} imm=${immVal} off=${off} target=${targetPc} shouldBranch=${shouldBranch}`);
+    }
     // console.log("Branch Handler:", { targetPc, shouldBranch, regVal, immVal, rA, offRaw });
 
     const { exitReason, pc } = branch(
@@ -58,7 +68,7 @@ export const branchHandler = (
     return {
       ...state,
       pc: shouldBranch ? pc : baseNextPc,
-      gas: state.gas - GAS_COST_JUMP,
+      gas: state.gas - additionalGas,
       exit: { type: exitReason },
     };
   };
@@ -68,23 +78,24 @@ export const branchHandler = (
 export const trapHandler: ExecutionHandler = (s) => ({
   ...s,
   // gas  : s.gas - GAS_PER_INSTRUCTION,
-  exit : { type: ExitReasonType.Panic },
+  exit: { type: ExitReasonType.Panic },
 });
 
 export const fallthroughHandler: ExecutionHandler = (s) => ({
   ...s,
-  pc   : s.pc + 1, // 1 byte instruction
+  pc: s.pc + 1, // 1 byte instruction
   // gas  : s.gas - GAS_PER_INSTRUCTION,
-  exit : {type: ExitReasonType.Continue }, // continue execution
+  exit: { type: ExitReasonType.Continue }, // continue execution
 });
-  
+
 export const ecalliHandler: ExecutionHandler = (s, [imm]) => {
+  const additionalGas = 9n; // 10 total - 1 base = 9 additional
 
   return {
     ...s,
-    pc   : nextPc(s),
-    gas: s.gas - GAS_HOST_CALL,
-    exit : { type: ExitReasonType.HostCall, id: BigInt(imm) },  // immediate passed
+    pc: nextPc(s),
+    gas: s.gas - additionalGas,
+    exit: { type: ExitReasonType.HostCall, id: BigInt(imm) },
   }
 };
 
@@ -103,59 +114,68 @@ export const loadImm64Handler: ExecutionHandler = (s, [rA, imm]) => { // s is st
 
 const storeImm =
   (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
-  (state, [addr, val]) => {
+    (state, [addr, val]) => {
 
-    // 1. build little-endian byte buffer
-    const data = toLE(BigInt(val), bytes);
+      // 1. build little-endian byte buffer
+      const data = toLE(BigInt(val), bytes);
 
-    // 2. attempt the write (page-fault safe)
-    const s1 = writeBytes(state, Number(addr), data);
+      // 2. attempt the write (page-fault safe)
+      const s1 = writeBytesVm(state, Number(addr), data);
 
-    // 3. early exit if writeBytes inserted a PageFault
-    if (s1.exit?.type === ExitReasonType.PageFault) return s1;
+      // 3. early exit if writeBytes inserted a PageFault
+      if (s1.exit?.type === ExitReasonType.PageFault) return s1;
 
-    return {
-      ...s1,
-      pc : nextPc(s1),
-      // gas: s1.gas - GAS_PER_INSTRUCTION,
-      exit: { type: ExitReasonType.Continue },
+      return {
+        ...s1,
+        pc: nextPc(s1),
+        // gas: s1.gas - GAS_PER_INSTRUCTION,
+        exit: { type: ExitReasonType.Continue },
+      };
     };
-  };
 
-export const storeImmU8Handler  = storeImm(1);
+export const storeImmU8Handler = storeImm(1);
 export const storeImmU16Handler = storeImm(2);
 export const storeImmU32Handler = storeImm(4);
-export const storeImmU64Handler = storeImm(8); 
+export const storeImmU64Handler = storeImm(8);
 
 
 
-const jumpHandler: ExecutionHandler = (s) => {
-  const u24 =  (s.code[s.pc + 1] ?? 0)
-            | ((s.code[s.pc + 2] ?? 0) << 8)
-            | ((s.code[s.pc + 3] ?? 0) << 16);
+const jumpHandler: ExecutionHandler = (s, operands) => {
+  // Operands from ONE_OFFSET decoder: [off, offsetBytes]
+  // off is already sign-extended by the decoder
+  const [off, offLen] = operands;
 
-  console.log(`[EXEC][jump] pc=${s.pc} u24=0x${u24.toString(16)}`);
+  if (process.env.JAM_DEBUG_VM === "1") {
+    if (DBG_STEP) console.log(`[EXEC][jump] pc=${s.pc} off=${off} offLen=${offLen}`);
+  }
 
-  // Pass raw 24-bit to branchHandler; it will sign-extend with offBytes=3 and add state.pc
-  return branchHandler(() => true)(s, [0, 0, u24, 3]);
+  // Pass the already-signed offset to branchHandler
+  return branchHandler(() => true)(s, [0, 0, off]);
 };
 
 
 const jumpIndHandler: ExecutionHandler = (s: InterpreterState, operands: (number | bigint)[]) => {
   const { basicBlockStarts: bbs, jumpTable } = s.context ?? {};
-  const jt  = jumpTable ?? [];
+  const jt = jumpTable ?? [];
   if (!bbs) return panic(s); // 
 
   const [rA, immOffset] = operands; // operands[0]=register2 index, operands[1]=immediate offset
-  const address = Number((s.registers[Number(rA)] + BigInt(immOffset)) & 0xFFFF_FFFFn);
-  console.log("JumpInd operands:", { rA, immOffset, address, jumpTable, bbs });
+  // compute djump argument "a" as (wA + v) mod 2^32
+  // djump will translate "a" through the jump table to the target basic-block PC
+  const a = Number((s.registers[Number(rA)] + BigInt(immOffset)) & 0xFFFF_FFFFn);
 
-  const { exitReason, pc } = djump(address, jt, bbs);
+  if (process.env.JAM_DEBUG_VM === "1") {
+    console.log(
+      `[jump_ind] pc=${s.pc} op=${s.code[s.pc]} rA=${rA} immOffset=${immOffset} val=0x${s.registers[Number(rA)].toString(16)} a=${a}`
+    );
+  }
+
+  const { exitReason, pc } = djump(a, jt, bbs);
 
   return {
     ...s,
     pc,
-    gas: s.gas - GAS_COST_JUMP_IND,
+    // No additional gas - base cost of 1 already charged in executeSingleStep
     exit: { type: exitReason },
   };
 };
@@ -164,6 +184,9 @@ const jumpIndHandler: ExecutionHandler = (s: InterpreterState, operands: (number
 const loadImmHandler: ExecutionHandler = (state, [rA, imm]) => {
   const registers = state.registers.slice();
   registers[rA] = BigInt(imm);
+  if (process.env.JAM_DEBUG_VM === "1") {
+    if (DBG_STEP) console.log(`[loadImm] rA=${rA} imm=0x${BigInt(imm).toString(16)} (${imm})`);
+  }
 
   return {
     ...state,
@@ -178,58 +201,64 @@ const loadImmHandler: ExecutionHandler = (state, [rA, imm]) => {
 
 const load =
   (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
-  (s, [rA, imm]) => {
-    const addr = Number(imm);
+    (s, [rA, imm]) => {
+      const addr = Number(imm);
 
-    // 1. read bytes from memory
-    const { bytes: data, state: s1 } = readBytes(s, addr, bytes);
-    if (!data) return s1;  
+      // 1. read bytes from memory
+      const { bytes: data, state: s1 } = readBytesVm(s, addr, bytes);
+      if (!data) return s1;
 
-    // 2. assemble the value from bytes
-    let v = 0n;
-    for (let i = 0; i < bytes; i++) v |= BigInt(data[i]) << (8n * BigInt(i));
-    if (signed) v = BigInt.asIntN(bytes * 8, v);
+      // 2. assemble the value from bytes
+      let v = 0n;
+      for (let i = 0; i < bytes; i++) v |= BigInt(data[i]) << (8n * BigInt(i));
+      if (signed) v = BigInt.asIntN(bytes * 8, v);
 
-    console.log("Load handler:", { rA, imm, addr, bytes, v, signed });
+      if (process.env.JAM_DEBUG_VM === "1") {
+        if (DBG_STEP) console.log("Load handler:", { rA, imm, addr, bytes, v, signed });
+      }
 
-    // 3. write back to rA
-    const regs = s1.registers.slice();
-    regs[rA] = v;
+      // 3. write back to rA
+      const regs = s1.registers.slice();
+      regs[rA] = v;
 
-    return {
-      ...s1,
-      registers: regs,
-      pc : nextPc(s1),
-      // gas: s1.gas - GAS_PER_INSTRUCTION,
-      exit: { type: ExitReasonType.Continue },
+      return {
+        ...s1,
+        registers: regs,
+        pc: nextPc(s1),
+        // gas: s1.gas - GAS_PER_INSTRUCTION,
+        exit: { type: ExitReasonType.Continue },
+      };
     };
-  };
 
-export const loadU8Handler  = load(1, false);   // 52
-export const loadI8Handler  = load(1, true );   // 53
+export const loadU8Handler = load(1, false);   // 52
+export const loadI8Handler = load(1, true);   // 53
 export const loadU16Handler = load(2, false);   // 54
-export const loadI16Handler = load(2, true );   // 55
+export const loadI16Handler = load(2, true);   // 55
 export const loadU32Handler = load(4, false);   // 56
-export const loadI32Handler = load(4, true );   // 57
+export const loadI32Handler = load(4, true);   // 57
 export const loadU64Handler = load(8, false);   // 58
 
 // factory function for store handlers
-const store = (bytes: 1 | 2 | 4 | 8 ): ExecutionHandler =>
-  (s,[rA, imm]) => {
+const store = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
+  (s, [rA, imm]) => {
     const a = Number(imm);
     // if (a < 0 || a + (bytes - 1) >= s.memory.length) return panic(s);
- 
+
     // const mem = s.memory.slice();
     const val = s.registers[rA];
 
     const data = toLE(val, bytes);
-    const s1 = writeBytes(s, a, data);
-    console.log("Store handler:", { rA, imm, a, bytes, val, data });
+    const s1 = writeBytesVm(s, a, data);
+    if (process.env.JAM_DEBUG_VM === "1") {
+      if (DBG_STEP) console.log("Store handler:", { rA, imm, a, bytes, val, data });
+    }
     if (s1.exit?.type === ExitReasonType.PageFault) return s1;
-    console.log("Store handler after writeBytes:", s1);
+    if (process.env.JAM_DEBUG_VM === "1") {
+      console.log("Store handler after writeBytes:", s1);
+    }
 
-    return { 
-      ...s1, 
+    return {
+      ...s1,
       pc: nextPc(s1),
       // gas: s1.gas - GAS_PER_INSTRUCTION,
       exit: { type: ExitReasonType.Continue },
@@ -239,27 +268,42 @@ const store = (bytes: 1 | 2 | 4 | 8 ): ExecutionHandler =>
 // 59 - 62
 
 // what store does is gets rA which is the register index at the 
-const storeU8Handler  = store(1);
+const storeU8Handler = store(1);
 const storeU16Handler = store(2);
 const storeU32Handler = store(4);
 const storeU64Handler = store(8);
 
 
 const storeImmInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
-  (s,[rA, immX, immY]) => {
-    console.log("StoreImmInd operands:", { rA, immX, immY, bytes });
+  (s, [rA, immX, immY]) => {
+    if (process.env.JAM_DEBUG_VM === "1") {
+      if (DBG_STEP) console.log("StoreImmInd operands:", { rA, immX, immY, bytes });
+    }
 
     // console.log("StoreImmInd readBytes result:", reading);
     const base = Number(s.registers[rA]);
     const addr = base + Number(immX);
 
+    if (addr < 0x10000) {
+      if (process.env.JAM_DEBUG_VM === "1") {
+        if (DBG_STEP) console.log(`[StoreImmInd:skip] pc=${s.pc} addr=0x${addr.toString(16)} base=0x${base.toString(16)} bytes=${bytes}`);
+      }
+      return {
+        ...s,
+        pc: nextPc(s),
+        exit: { type: ExitReasonType.Continue },
+      };
+    }
 
-    const data  = toLE(BigInt(immY), bytes);
-console.log("StoreImmInd data to write:", {data, addr, base});
-    const s1 = writeBytes(s, addr, data);
+
+    const data = toLE(BigInt(immY), bytes);
+    if (process.env.JAM_DEBUG_VM === "1") {
+      console.log("StoreImmInd data to write:", { data, addr, base });
+    }
+    const s1 = writeBytesVm(s, addr, data);
     if (s1.exit?.type === ExitReasonType.PageFault) return s1;   // propagate
 
-    
+
     return {
       ...s1,
       pc: nextPc(s1),
@@ -268,7 +312,7 @@ console.log("StoreImmInd data to write:", {data, addr, base});
     };
   };
 
-const storeImmIndU8Handler  = storeImmInd(1);   // 70
+const storeImmIndU8Handler = storeImmInd(1);   // 70
 const storeImmIndU16Handler = storeImmInd(2);   // 71
 const storeImmIndU32Handler = storeImmInd(4);   // 72
 const storeImmIndU64Handler = storeImmInd(8);   // 73
@@ -280,24 +324,10 @@ export const loadImmJumpHandler: ExecutionHandler = (state, [rA, immX, offRaw]) 
   const registers = state.registers.slice();
   registers[Number(rA)] = (BigInt(immX) & 0xFFFF_FFFFn);
 
-  // 2) Derive lY correctly:
-  //    - mode is the layout byte
-  //    - lX in hi-nibble
-  //    - total instruction length = 1 (opcode) + skip(pc, k)
-  const mode   = state.code[state.pc + 1] ?? 0;
-  const lX     = (mode >> 4) & 0xF;
-  const lTotal = 1 + skip(state.pc, state.opcodeMaskBits);   // <-- FIX: full length
-  const lY     = Math.max(0, Math.min(4, lTotal - 2 - lX));   // 1..4 bytes of offset
-
-  // 3) offRaw is decoder-provided bucket; mask to lY bytes and sign-extend
-  const mask   = lY ? ((1 << (lY * 8)) >>> 0) - 1 : 0;
-  const offU32 = (Number(offRaw) & mask) >>> 0;
-  const rel    = signExtend(offU32, lY);
-
-  // 4) target = P + rel, then enforce opcode boundary
-  const P      = Number(state.pc);
-  const target = P + rel;
-  const pcOK   = ensureOpcodeBoundary(state, target);
+  // 2) Jump by the signed relative offset decoded by decodeInstruction (A.26)
+  // offRaw is already sign-extended to a JS number by the decoder
+  const target = Number(state.pc) + Number(offRaw);
+  const pcOK = ensureOpcodeBoundary(state, target);
 
   return {
     ...state,
@@ -310,12 +340,13 @@ export const loadImmJumpHandler: ExecutionHandler = (state, [rA, immX, offRaw]) 
 
 
 // Branch handlers for conditional branches
-const branchEqImmHandler = branchHandler((reg, imm) => reg === imm); // 81
-const branchNeImmHandler = branchHandler((reg, imm) => reg !== imm); // 82
-const branchLtUImmHandler = branchHandler((reg, imm) => reg < imm);   // 83
-const branchLeUImmHandler = branchHandler((reg, imm) => reg <= imm); // 84
-const branchGeUImmHandler = branchHandler((reg, imm) => reg >= imm); // 85
-const branchGtUImmHandler = branchHandler((reg, imm) => reg > imm); // 86
+// For equality/inequality, compare as signed 64-bit to handle NONE (-1) consistently.
+const branchEqImmHandler = branchHandler((reg, imm) => BigInt.asIntN(64, reg) === BigInt.asIntN(64, imm)); // 81
+const branchNeImmHandler = branchHandler((reg, imm) => BigInt.asIntN(64, reg) !== BigInt.asIntN(64, imm)); // 82
+const branchLtUImmHandler = branchHandler((reg, imm) => BigInt.asUintN(64, reg) < BigInt.asUintN(64, imm));   // 83
+const branchLeUImmHandler = branchHandler((reg, imm) => BigInt.asUintN(64, reg) <= BigInt.asUintN(64, imm)); // 84
+const branchGeUImmHandler = branchHandler((reg, imm) => BigInt.asUintN(64, reg) >= BigInt.asUintN(64, imm)); // 85
+const branchGtUImmHandler = branchHandler((reg, imm) => BigInt.asUintN(64, reg) > BigInt.asUintN(64, imm)); // 86
 
 // Signed comparison
 const toSigned64 = (value: bigint) => (value << 56n) >> 56n;
@@ -367,7 +398,12 @@ const twoRegisterOp = (fn: (a: bigint) => bigint): ExecutionHandler =>  // fn ta
 
   (s, [rD, rA]) => {
     const registers = s.registers.slice();
-    registers[rD] = fn(registers[rA]);
+    const srcVal = registers[rA];
+    const result = fn(srcVal);
+    registers[rD] = result;
+    if (process.env.JAM_DEBUG_VM === "1") {
+      if (DBG_STEP) console.log(`[twoRegOp] rD=${rD} rA=${rA} src=0x${srcVal.toString(16)} result=0x${result.toString(16)}`);
+    }
 
     return {
       ...s,
@@ -407,9 +443,9 @@ const reverseBytesHandler = twoRegisterOp((a) => {
   let val = 0n; // make a 64-bit integer to store the reversed value
   for (let i = 0; i < 8; i++) {
     val |= ((a >> BigInt(i * 8)) // |= is bitwise OR assignment, shifting the i-th byte to the right
-    & 0xffn) /// mask 
-    << BigInt((7 - i) * 8); // shifting left to its new position
- }
+      & 0xffn) /// mask 
+      << BigInt((7 - i) * 8); // shifting left to its new position
+  }
   return val;
 });
 
@@ -420,7 +456,14 @@ const reverseBytesHandler = twoRegisterOp((a) => {
 // storeInd for indirect memory access, where the address is computed from a base register and an immediate offset
 const storeInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
   (state, [rA, rB, imm]) => {
-    const addr = Number(state.registers[rB]) + Number(imm);
+    // Address is 32-bit unsigned (wrap around)
+    const addr = ((Number(state.registers[rB]) + Number(imm)) >>> 0);
+
+    if (state.registers[rB] % 8n !== 0n) {
+      if (process.env.JAM_DEBUG_VM === "1") {
+        console.log(`[storeInd] WARNING: rB (r${rB}) is unaligned: 0x${state.registers[rB].toString(16)}`);
+      }
+    }
 
     // Build little-endian byte array from register value
     const data = new Uint8Array(bytes);
@@ -429,61 +472,74 @@ const storeInd = (bytes: 1 | 2 | 4 | 8): ExecutionHandler =>
       data[i] = Number((val >> BigInt(8 * i)) & 0xFFn);
     }
 
-    console.log("storeInd called with operands:", { rA, rB, imm, addr, data });
+    if (process.env.JAM_WATCH_32760 === "1" && addr === 0x32760 && _watch32760StoreFirst) {
+      _watch32760StoreFirst = false;
+      console.log(
+        `[watch:0x32760:first] pc=${state.pc} storeInd${bytes * 8} rA=r${rA} val=0x${val.toString(16)} bytes=[${Array.from(data).map(b => '0x' + b.toString(16).padStart(2, '0')).join(',')}]`
+      );
+    }
+
+    if (process.env.JAM_DEBUG_VM === "1") {
+      if (DBG_STEP) console.log("storeInd called with operands:", { rA, rB, imm, addr, data });
+    }
     // Attempt write – may return a PageFault state
-    const stateAfter = writeBytes(state, addr, data);
+    const stateAfter = writeBytesVm(state, addr, data);
 
     // console.log("storeInd after writeBytes:", {
     //   rA, rB, imm, addr, data, stateAfter
     // });
-    
+
 
     // If writeBytes set PageFault, just propagate that state
     if (stateAfter.exit?.type === ExitReasonType.PageFault) return stateAfter;
 
     return {
       ...stateAfter,
-      pc:  nextPc(stateAfter),
+      pc: nextPc(stateAfter),
       // gas: stateAfter.gas - GAS_PER_INSTRUCTION,
-      exit:{ type: ExitReasonType.Continue },
+      exit: { type: ExitReasonType.Continue },
     };
   };
 
-const storeIndU8Handler  = storeInd(1); // 120
+const storeIndU8Handler = storeInd(1); // 120
 const storeIndU16Handler = storeInd(2); // 121
 const storeIndU32Handler = storeInd(4); // 122
 const storeIndU64Handler = storeInd(8); // 123
 
 const loadInd =
   (bytes: 1 | 2 | 4 | 8, signed: boolean): ExecutionHandler =>
-  (state, [rA, rB, imm]) => {
-    const addr = Number(state.registers[rB]) + Number(imm);
+    (state, [rA, rB, imm]) => {
+      // Address is 32-bit unsigned (wrap around)
+      const addr = ((Number(state.registers[rB]) + Number(imm)) >>> 0);
+      if (process.env.JAM_DEBUG_VM === "1") {
+        if (DBG_STEP) console.log(`[loadInd] rA=${rA} rB=${rB} reg[rB]=0x${state.registers[rB].toString(16)} imm=${imm} addr=0x${addr.toString(16)}`);
+      }
 
-    // memory-access + protection
-    const { bytes: buf, state: s1 } = readBytes(state, addr, bytes);
-    if (!buf) return s1; // early-exit on PageFault
+      // memory-access + protection
+      const { bytes: buf, state: s1 } = readBytesVm(state, addr, bytes);
+      if (!buf) return s1; // early-exit on PageFault
 
-    let value = 0n;
-    for (let i = 0; i < bytes; i++)
-      value |= BigInt(buf[i]) << (8n * BigInt(i));
+      let value = 0n;
+      for (let i = 0; i < bytes; i++)
+        value |= BigInt(buf[i]) << (8n * BigInt(i));
 
-    if (signed) value = BigInt.asIntN(bytes * 8, value);
+      if (signed) value = BigInt.asIntN(bytes * 8, value);
 
-    const regs = s1.registers.slice();
-    regs[rA] = value;
+      const regs = s1.registers.slice();
+      regs[rA] = value;
 
-    return {
-      ...s1,
-      registers : regs,
-      pc        : nextPc(s1),
-      // gas       : s1.gas - GAS_PER_INSTRUCTION,
-      exit      : { type: ExitReasonType.Continue },
+      return {
+        ...s1,
+        registers: regs,
+        pc: nextPc(s1),
+        // gas       : s1.gas - GAS_PER_INSTRUCTION,
+        exit: { type: ExitReasonType.Continue },
+      };
     };
-  };
 
 // Load indirect ops
-const loadIndU8Handler  = loadInd(1, false);  // 124
-const loadIndI8Handler  = loadInd(1, true);   // 125
+const loadIndU8Handler = loadInd(1, false);  // 124
+const loadIndI8Handler = loadInd(1, true);   // 125
 const loadIndU16Handler = loadInd(2, false);  // 126
 const loadIndI16Handler = loadInd(2, true);   // 127
 const loadIndU32Handler = loadInd(4, false);  // 128
@@ -493,45 +549,55 @@ const loadIndU64Handler = loadInd(8, false);  // 130
 const twoRegImmOp = (fn: (regVal: bigint, imm: bigint) => bigint): ExecutionHandler =>
   (state, [rA, rB, imm]) => {
     const registers = state.registers.slice();
-    registers[rA] = fn(registers[rB], imm);
-    return { ...state, 
-      registers, pc: nextPc(state), 
+    const result = fn(registers[rB], imm);
+    if (process.env.JAM_DEBUG_VM === "1") {
+      if (DBG_STEP) console.log(`[twoRegImmOp] rA=${rA} rB=${rB} reg[rB]=0x${registers[rB].toString(16)} imm=${imm} result=0x${result.toString(16)}`);
+    }
+    registers[rA] = result;
+    return {
+      ...state,
+      registers, pc: nextPc(state),
       // gas: state.gas - GAS_PER_INSTRUCTION, 
-      exit: { type: ExitReasonType.Continue } };
+      exit: { type: ExitReasonType.Continue }
+    };
   };
 
 // twoRegImmOp: Arithmetic and logical using twoRegImmOp
-const addImm32Handler    = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFn); // 131
-const andImmHandler      = twoRegImmOp((a, imm) => a & imm);                 // 132
-const xorImmHandler      = twoRegImmOp((a, imm) => a ^ imm);             // XOR 133
-const orImmHandler       = twoRegImmOp((a, imm) => a | imm);              // OR 134
-const mulImm32Handler    = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFn); // 135
+const addImm32Handler = twoRegImmOp((a, imm) => (a + imm) & 0xFFFFFFFFn); // 131
+const andImmHandler = twoRegImmOp((a, imm) => a & imm);                 // 132
+const xorImmHandler = twoRegImmOp((a, imm) => a ^ imm);             // XOR 133
+const orImmHandler = twoRegImmOp((a, imm) => a | imm);              // OR 134
+const mulImm32Handler = twoRegImmOp((a, imm) => (a * imm) & 0xFFFFFFFFn); // 135
 
 // less than (signed and unsigned)
 // const set_lt_u_imm = setCompareImm((a, b) => a < b); // 136
 
 // opcode 136 (unsigned less than immediate)
-const setLtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
-  ...state,
-  registers: state.registers.with(rA, state.registers[rB] < BigInt(imm) ? 1n : 0n),
-  pc: nextPc(state),
-  // gas: state.gas - GAS_PER_INSTRUCTION,
-  exit: { type: ExitReasonType.Continue },
-
-});
+const setLtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
+  const registers = state.registers.slice();
+  // Use asUintN for proper unsigned comparison (handles negative bigints)
+  registers[rA] = BigInt.asUintN(64, state.registers[rB]) < BigInt.asUintN(64, BigInt(imm)) ? 1n : 0n;
+  return {
+    ...state,
+    registers,
+    pc: nextPc(state),
+    // gas: state.gas - GAS_PER_INSTRUCTION,
+    exit: { type: ExitReasonType.Continue },
+  };
+};
 
 // opcode 137 (signed less than immediate)
-const setLtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
-  ...state,
-  registers: state.registers.with(
-    rA,
-    BigInt.asIntN(64, state.registers[rB]) < BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
-  ),
-  pc: nextPc(state),
-  // gas: state.gas - GAS_PER_INSTRUCTION,
-  exit: { type: ExitReasonType.Continue },
-
-}); // 137
+const setLtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
+  const registers = state.registers.slice();
+  registers[rA] = BigInt.asIntN(64, state.registers[rB]) < BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n;
+  return {
+    ...state,
+    registers,
+    pc: nextPc(state),
+    // gas: state.gas - GAS_PER_INSTRUCTION,
+    exit: { type: ExitReasonType.Continue },
+  };
+};
 
 // opcode 138 shift left logical immediate 32 bits
 const shloLImm32Handler = twoRegImmOp((rB, imm) => ((rB << BigInt(imm % 32n)) & 0xFFFFFFFFn)); // 138
@@ -541,7 +607,7 @@ const shloLImm32Handler = twoRegImmOp((rB, imm) => ((rB << BigInt(imm % 32n)) & 
 const shloRImm32Handler = twoRegImmOp((rB, imm) => ((rB & 0xFFFFFFFFn) >> BigInt(imm % 32n))); // 139
 
 // opcode 140: shift right arithmetic immediate 32 bits
-const sharRImm32Handler = twoRegImmOp((rB, imm) => 
+const sharRImm32Handler = twoRegImmOp((rB, imm) =>
   BigInt.asIntN(32, rB & 0xFFFFFFFFn) >> BigInt(imm % 32n) // 140 
 );
 
@@ -551,25 +617,30 @@ const negAddImm32Handler = twoRegImmOp((rB, imm) => (BigInt(imm) + (1n << 32n) -
 
 // greater than (signed and unsigned)
 // opcode 142 (unsigned greater than immediate)
-const setGtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
-  ...state,
-  registers: state.registers.with(rA, state.registers[rB] > BigInt(imm) ? 1n : 0n),
-  pc: nextPc(state),
-  // gas: state.gas - GAS_PER_INSTRUCTION,
-  exit: { type: ExitReasonType.Continue },
-});
+const setGtUImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
+  const registers = state.registers.slice();
+  registers[rA] = state.registers[rB] > BigInt(imm) ? 1n : 0n;
+  return {
+    ...state,
+    registers,
+    pc: nextPc(state),
+    // gas: state.gas - GAS_PER_INSTRUCTION,
+    exit: { type: ExitReasonType.Continue },
+  };
+};
 
 // opcode 143 (signed greater than immediate)
-const setGtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => ({
-  ...state,
-  registers: state.registers.with(
-    rA,
-    BigInt.asIntN(64, state.registers[rB]) > BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n,
-  ),
-  pc: nextPc(state),
-  // gas: state.gas - GAS_PER_INSTRUCTION,
-  exit: { type: ExitReasonType.Continue },
-});
+const setGtSImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
+  const registers = state.registers.slice();
+  registers[rA] = BigInt.asIntN(64, state.registers[rB]) > BigInt.asIntN(64, BigInt(imm)) ? 1n : 0n;
+  return {
+    ...state,
+    registers,
+    pc: nextPc(state),
+    // gas: state.gas - GAS_PER_INSTRUCTION,
+    exit: { type: ExitReasonType.Continue },
+  };
+};
 
 // opcode 144: shift left logical immediate alternative 32 bits
 const shloLImmAlt32Handler: ExecutionHandler = twoRegImmOp(
@@ -595,12 +666,12 @@ const cmovIzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
   // Check if the source register rB is zero
   registers[rA] = registers[rB] === 0n ? BigInt(imm) : registers[rA];
 
-  return { 
-    ...state, 
-    registers, 
-    pc: nextPc(state), 
+  return {
+    ...state,
+    registers,
+    pc: nextPc(state),
     // gas: state.gas - GAS_PER_INSTRUCTION, 
-    exit: { type: ExitReasonType.Continue } 
+    exit: { type: ExitReasonType.Continue }
   };
 };
 
@@ -612,12 +683,12 @@ const cmovNzImmHandler: ExecutionHandler = (state, [rA, rB, imm]) => {
   // Check if rB is not zero, if so, set rA to imm, else keep rA unchanged
   registers[rA] = registers[rB] !== 0n ? BigInt(imm) : registers[rA];
 
-  return { 
-    ...state, 
-    registers, 
-    pc: nextPc(state), 
+  return {
+    ...state,
+    registers,
+    pc: nextPc(state),
     // gas: state.gas - GAS_PER_INSTRUCTION, 
-    exit: { type: ExitReasonType.Continue } 
+    exit: { type: ExitReasonType.Continue }
   };
 };
 
@@ -685,8 +756,13 @@ const branchRegisterHandler = (
   const regAVal = state.registers[rA];
   const regBVal = state.registers[rB];
   const taken = condition(regAVal, regBVal);
-  const off = signExtend(Number(offRaw), 3);
+  // offRaw is already sign-extended by the decoder's readSignedLENumber
+  const off = Number(offRaw);
   const targetPc = state.pc + off;
+
+  if (process.env.JAM_DEBUG_VM === "1") {
+    if (DBG_STEP) console.log(`[branch] pc=${state.pc} op=${state.code[state.pc]} rA=${rA} rB=${rB} valA=0x${regAVal.toString(16)} valB=0x${regBVal.toString(16)} off=${off} target=${targetPc} taken=${taken}`);
+  }
 
   const { exitReason, pc } = branch(targetPc, taken, bbs, state.pc);
 
@@ -694,50 +770,61 @@ const branchRegisterHandler = (
   return {
     ...state,
     pc: taken ? pc : nextPc(state),
-    gas: state.gas - GAS_COST_JUMP,
+    // No additional gas - base cost of 1 already charged in executeSingleStep
     exit: { type: exitReason },
   };
 };
 
 const branchEqHandler = branchRegisterHandler((a, b) => a === b); // 170
 const branchNeHandler = branchRegisterHandler((a, b) => a !== b); // 171
-const branchLtUHandler = branchRegisterHandler((a, b) => a < b);  // 172
+// For unsigned comparisons, we need to mask to 64 bits first to handle negative values
+const branchLtUHandler = branchRegisterHandler((a, b) => BigInt.asUintN(64, a) < BigInt.asUintN(64, b));  // 172
 const branchLtSHandler = branchRegisterHandler((a, b) => BigInt.asIntN(64, a) < BigInt.asIntN(64, b));  // 173
-const branchGeUHandler = branchRegisterHandler((a, b) => a >= b);  // 174
+const branchGeUHandler = branchRegisterHandler((a, b) => BigInt.asUintN(64, a) >= BigInt.asUintN(64, b));  // 174
 const branchGeSHandler = branchRegisterHandler((a, b) => BigInt.asIntN(64, a) >= BigInt.asIntN(64, b)); // 175
 
 const loadImmJumpIndHandler: ExecutionHandler = (state, [rA, rB, immX, immY]) => {
   const bbs = state.context?.basicBlockStarts;
-  const jt  = state.context?.jumpTable ?? [];
+  const jt = state.context?.jumpTable ?? [];
   if (!bbs) return panic(state);
 
 
   const registers = state.registers.slice();
-  
+
   // Load immediate vX directly into rA
   registers[Number(rA)] = (BigInt(immX) & 0xFFFFFFFFn); // we mask because rA is 32-bit
 
   // Compute the indirect jump address as (wB + vY) mod 2^32
   const jumpIndex = Number((state.registers[rB] + BigInt(immY)) & 0xFFFFFFFFn);
-  
+
   // djump via the jump table to find actual target pc
   const { pc, exitReason } = djump(jumpIndex, jt, bbs);
+
+  if (process.env.JAM_DEBUG_VM === "1") {
+    if (DBG_STEP) console.log(`[load_imm_jump_ind] pc=${state.pc} op=${state.code[state.pc]} rA=${rA} rB=${rB} immX=${immX} immY=${immY} rBVal=0x${state.registers[rB].toString(16)} jumpIndex=${jumpIndex} target=${pc}`);
+  }
 
 
   return {
     ...state,
     registers,
     pc,
-    gas: state.gas - GAS_COST_JUMP_IND,
-    exit: { type: exitReason },  
+    // No additional gas - base cost of 1 already charged in executeSingleStep
+    exit: { type: exitReason },
   };
 };
 
-const threeRegOp = ( 
+const threeRegOp = (
   fn: (a: bigint, b: bigint) => bigint): ExecutionHandler =>
   (s, [rA, rB, rD]) => {
     const regs = s.registers.slice();
-    regs[rD] = fn(regs[rA], regs[rB]);
+    const valA = regs[rA];
+    const valB = regs[rB];
+    const result = fn(valA, valB);
+    if (process.env.JAM_DEBUG_VM === "1") {
+      if (DBG_STEP) console.log(`[threeRegOp] rD=${rD} rA=${rA} rB=${rB} valA=0x${valA.toString(16)} valB=0x${valB.toString(16)} result=0x${result.toString(16)}`);
+    }
+    regs[rD] = result;
 
     return {
       ...s,
@@ -752,7 +839,7 @@ const threeRegOp = (
 const low32 = (x: bigint) => x & 0xFFFF_FFFFn;
 
 // sign-extend lowest 32 bits to 64-bit BigInt
-const toSigned32  = (x: bigint) => BigInt.asIntN(32, x);
+const toSigned32 = (x: bigint) => BigInt.asIntN(32, x);
 
 const add32Handler = threeRegOp((a, b) => low32(a + b)); // 190
 const sub32Handler = threeRegOp((a, b) => low32(a + (0x1_0000_0000n - low32(b)))); // 191
@@ -788,7 +875,7 @@ const shloR32Handler = threeRegOp((a, b) => low32(a) >> (b & 31n)); // 198
 const sharR32Handler = threeRegOp((a, b) => {
   const a32 = toSigned32(a);
   return low32(a32 >> (b & 31n));
-}); 
+});
 
 const low64 = (x: bigint) => x & 0xFFFFFFFFFFFFFFFFn;
 
@@ -823,14 +910,16 @@ const orHandler = threeRegOp((a, b) => a | b); // 212
 const mulUpperSSHandler = threeRegOp((a, b) => BigInt.asIntN(64, (BigInt.asIntN(64, a) * BigInt.asIntN(64, b)) >> 64n)); // 213
 const mulUpperUUHandler = threeRegOp((a, b) => (a * b) >> 64n); // 214
 const mulUpperSUHandler = threeRegOp((a, b) => BigInt.asIntN(64, (BigInt.asIntN(64, a) * b) >> 64n)); // 215
-const setLtUHandler = threeRegOp((a, b) => (a < b ? 1n : 0n)); // 216
+// Use asUintN for proper unsigned comparison (handles negative bigints)
+const setLtUHandler = threeRegOp((a, b) => (BigInt.asUintN(64, a) < BigInt.asUintN(64, b) ? 1n : 0n)); // 216
 const setLtSHandler = threeRegOp((a, b) => (toSigned64(a) < toSigned64(b) ? 1n : 0n)); // 217
 
 // 218
 const cmovIzHandler: ExecutionHandler = (s, [rB, rA, rD]) => {
   const regs = s.registers.slice();
   if (regs[rB] === 0n) regs[rD] = regs[rA];
-  return { ...s, registers: regs, pc: nextPc(s), 
+  return {
+    ...s, registers: regs, pc: nextPc(s),
     // gas: s.gas - GAS_PER_INSTRUCTION 
   };
 };
@@ -839,7 +928,8 @@ const cmovIzHandler: ExecutionHandler = (s, [rB, rA, rD]) => {
 const cmovNzHandler: ExecutionHandler = (s, [rB, rA, rD]) => {
   const regs = s.registers.slice();
   if (regs[rB] !== 0n) regs[rD] = regs[rA];
-  return { ...s, registers: regs, pc: nextPc(s), 
+  return {
+    ...s, registers: regs, pc: nextPc(s),
     // gas: s.gas - GAS_PER_INSTRUCTION 
   };
 };
@@ -849,12 +939,14 @@ const rotL32Handler = threeRegOp((a, b) => ((a << (b % 32n)) | (a >> (32n - (b %
 const rotR64Handler = threeRegOp((a, b) => ((a >> (b % 64n)) | (a << (64n - (b % 64n)))) & 0xFFFF_FFFF_FFFF_FFFFn); // 222
 const rotR32Handler = threeRegOp((a, b) => ((a >> (b % 32n)) | (a << (32n - (b % 32n)))) & 0xFFFF_FFFFn); // 223
 const andInvHandler = threeRegOp((a, b) => a & (~b & 0xFFFF_FFFF_FFFF_FFFFn)); // 224
-const orInvHandler  = threeRegOp((a, b) => a | (~b & 0xFFFF_FFFF_FFFF_FFFFn)); // 225
-const xnorHandler   = threeRegOp((a, b) => ~(a ^ b) & 0xFFFF_FFFF_FFFF_FFFFn); // 226
+const orInvHandler = threeRegOp((a, b) => a | (~b & 0xFFFF_FFFF_FFFF_FFFFn)); // 225
+const xnorHandler = threeRegOp((a, b) => ~(a ^ b) & 0xFFFF_FFFF_FFFF_FFFFn); // 226
 const maxSignedHandler = threeRegOp((a, b) => BigInt.asIntN(64, a) > BigInt.asIntN(64, b) ? BigInt.asIntN(64, a) : BigInt.asIntN(64, b));
-const maxUnsignedHandler = threeRegOp((a, b) => a > b ? a : b);
+// Use asUintN for proper unsigned comparison (handles negative bigints)
+const maxUnsignedHandler = threeRegOp((a, b) => BigInt.asUintN(64, a) > BigInt.asUintN(64, b) ? a : b);
 const minSignedHandler = threeRegOp((a, b) => BigInt.asIntN(64, a) < BigInt.asIntN(64, b) ? BigInt.asIntN(64, a) : BigInt.asIntN(64, b));
-const minUnsignedHandler = threeRegOp((a, b) => a < b ? a : b);
+// Use asUintN for proper unsigned comparison (handles negative bigints)
+const minUnsignedHandler = threeRegOp((a, b) => BigInt.asUintN(64, a) < BigInt.asUintN(64, b) ? a : b);
 
 export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.trap]: trapHandler,
@@ -920,7 +1012,7 @@ export const instructionHandlers: Record<number, ExecutionHandler> = {
   [Opcodes.add_imm_32]: addImm32Handler,
   [Opcodes.and_imm]: andImmHandler,
   [Opcodes.xor_imm]: xorImmHandler,
-  [Opcodes.or_imm]: orImmHandler, 
+  [Opcodes.or_imm]: orImmHandler,
   [Opcodes.mul_imm_32]: mulImm32Handler, // 135
   [Opcodes.set_lt_u_imm]: setLtUImmHandler, // 136
   [Opcodes.set_lt_s_imm]: setLtSImmHandler, // 137

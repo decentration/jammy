@@ -5,7 +5,10 @@ type DjumpResult = { exitReason: ExitReasonType; pc: number };
 
 // (A.18) from protocol spec 
 export function djump(a: number, jumpTable: number[], basicBlockStarts: Set<number>): DjumpResult {
-  console.log("Executing djump with a:", a, "jumpTable length:", jumpTable.length, "basicBlockStarts size:", basicBlockStarts.size);
+  const DBG = process.env.JAM_DEBUG_STEP === "1";
+  if (DBG) {
+    console.log("Executing djump with a:", a, "jumpTable length:", jumpTable.length, "basicBlockStarts size:", basicBlockStarts.size);
+  }
 
   // first condition of djump function
   if (a === (2**32 - 2**16)) { // 2**32 means 
@@ -23,7 +26,14 @@ export function djump(a: number, jumpTable: number[], basicBlockStarts: Set<numb
   const jumpTableIndex = (a / JUMP_ALIGNMENT_FACTOR) - 1;
   const targetPc = jumpTable[jumpTableIndex];
 
+  if (DBG) {
+    console.log("[djump] jumpTableIndex:", jumpTableIndex, "targetPc:", targetPc, "isInBB:", basicBlockStarts.has(targetPc), "jumpTable[148..152]:", jumpTable.slice(148, 153));
+  }
+
   if (!basicBlockStarts.has(targetPc)) {
+    if (DBG) {
+      console.log("[djump] PANIC - target not in basicBlockStarts. First 20 BB starts:", Array.from(basicBlockStarts).slice(0, 20));
+    }
     return { exitReason: ExitReasonType.Panic, pc: 0 };
   }
 

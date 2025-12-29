@@ -25,26 +25,29 @@ import { skip } from "./utils/skip";
  */
 export function computeBasicBlockStarts(instructionData: Uint8Array, opcodeBits: boolean[]): Set<number> {
   // console.log("Computing basic block starts...", { instructionData, opcodeBits });
+    const DBG = process.env.JAM_DEBUG_VM === "1";
     const basicBlockStarts = new Set<number>([0]); 
   
     let pc = 0;
     while (pc < instructionData.length) {
       const opcode = instructionData[pc];
       const instructionSkip = skip(pc, opcodeBits);
-      console.log("Instruction skip", instructionSkip)
-      console.log(`Processing opcode at pc=${pc}: ${opcode} (skip=${instructionSkip})`);
+      if (DBG) {
+        console.log("Instruction skip", instructionSkip);
+        console.log(`Processing opcode at pc=${pc}: ${opcode} (skip=${instructionSkip})`);
+      }
       if (TERMINATION_OPCODES.has(opcode)) {
-        console.log("TERMINATION_OPCODES has opcode", opcode )
+        if (DBG) console.log("TERMINATION_OPCODES has opcode", opcode );
         const nextBlockStart = pc + 1 + instructionSkip;
-        console.log("Next block start:", nextBlockStart);
+        if (DBG) console.log("Next block start:", nextBlockStart);
         if (nextBlockStart < instructionData.length && opcodeBits[nextBlockStart]) {
-          console.log("next block start is less than instruction length and opcode bits of next block start", nextBlockStart, opcodeBits[nextBlockStart])
+          if (DBG) console.log("next block start is less than instruction length and opcode bits of next block start", nextBlockStart, opcodeBits[nextBlockStart]);
           basicBlockStarts.add(nextBlockStart);
         }
       }
       pc += 1 + instructionSkip;
     }
-  console.log("Computed basic block starts:", basicBlockStarts);
+  if (DBG) console.log("Computed basic block starts:", basicBlockStarts);
   
     return basicBlockStarts;
   }

@@ -8,32 +8,37 @@ import { CHAIN_TYPE, JAM_TEST_VECTORS } from "../../../consts";
 describe("Accumulate STF - conformance tests", () => {
 
     const testFiles = [
+        "no_available_reports-1",
+        "process_one_immediate_report-1",  // 1 immediate report, 0 ready_queue
+
         "accumulate_ready_queued_reports-1",  //
-        // "enqueue_and_unlock_chain-1",
-        // "enqueue_and_unlock_chain-2",
-        // "enqueue_and_unlock_chain-3",
-        // "enqueue_and_unlock_chain-4",
-        // "enqueue_and_unlock_chain_wraps-1",
-        // "enqueue_and_unlock_chain_wraps-2",
-        // "enqueue_and_unlock_chain_wraps-3",  //
-        // "enqueue_and_unlock_chain_wraps-4",  //
-        // "enqueue_and_unlock_chain_wraps-5",
-        // "enqueue_and_unlock_simple-1",
-        // "enqueue_and_unlock_simple-2",
-        // "enqueue_and_unlock_with_sr_lookup-1",      
-        // "enqueue_and_unlock_with_sr_lookup-2",
-        // "enqueue_self_referential-1",
-        // "enqueue_self_referential-2",
-        // "enqueue_self_referential-3",
-        // "enqueue_self_referential-4",
-        // "no_available_reports-1",
-        // "process_one_immediate_report-1",
-        // "queues_are_shifted-1",            //        
-        // "queues_are_shifted-2",           //  
-        // "ready_queue_editing-1",
-        // "ready_queue_editing-2",
-        // "ready_queue_editing-3",
-        // "same_code_different_services-1"
+        "enqueue_and_unlock_chain-1",
+        "enqueue_and_unlock_chain-2",
+        "enqueue_and_unlock_chain-3",
+        "enqueue_and_unlock_chain-4",
+        "enqueue_and_unlock_chain_wraps-1",
+        "enqueue_and_unlock_chain_wraps-2",
+        "enqueue_and_unlock_chain_wraps-3",  //
+        "enqueue_and_unlock_chain_wraps-4",  //
+        "enqueue_and_unlock_chain_wraps-5",
+        "enqueue_and_unlock_simple-1",
+        "enqueue_and_unlock_simple-2",
+        "enqueue_and_unlock_with_sr_lookup-1",
+        "enqueue_and_unlock_with_sr_lookup-2",
+        "enqueue_self_referential-1",
+        "enqueue_self_referential-2",
+        "enqueue_self_referential-3",
+        "enqueue_self_referential-4",
+        "queues_are_shifted-1",            //        
+        "queues_are_shifted-2",           //  
+        "ready_queue_editing-1",
+        "ready_queue_editing-2",
+        "ready_queue_editing-3",
+        "same_code_different_services-1",
+        "transfer_for_ejected_service-1",
+        "work_for_ejected_service-1",
+        "work_for_ejected_service-2",
+        "work_for_ejected_service-3",
     ];
 
     testFiles.forEach((fileName) => {
@@ -61,12 +66,17 @@ describe("Accumulate STF - conformance tests", () => {
             const convertedOutput = convertToReadableFormat(output);
 
             // console.log("convertedOutput", convertedOutput);
-            // console.log("expectedOutput", expectedOutput);
+            console.log("expectedOutput", JSON.stringify(expectedOutput, (key, value) =>
+                typeof value === 'bigint' ? value.toString() + 'n' : value
+                , 2));
 
             console.log("postState", convertToReadableFormat(postState));
             // 5) Compare results
+            console.log("expectedPostState", JSON.stringify(expectedPostState, (key, value) =>
+                typeof value === 'bigint' ? value.toString() + 'n' : value
+                , 2));
             expect(convertedOutput).toEqual(expectedOutput);
             expect(convertToReadableFormat(postState)).toEqual(expectedPostState);
-            });
         });
     });
+});

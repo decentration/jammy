@@ -27,7 +27,7 @@ interface InterpreterContext {
   argsBase: number;
   stackStart: number;
   stackTop: number;
-
+  ioBuffer?: Uint8Array;
 }
 export type InterpreterState = {
   code: Uint8Array;            // Code to execute (ϲ), typically an ArrayBuffer-backed typed array

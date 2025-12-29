@@ -1,6 +1,6 @@
 
 import { compareBytes, toHex } from "../../utils";
-import { AccumulateState, AccumulateInput, AccumulateOutput, Reports, AccumulatedQueueItem, AccumulatedQueue, SingleReportItem, ReadyRecord, ReadyQueueItem, ReadyQueue, WorkPackageHash, ServicesStatistics, AccumulateEphemeral, } from "./types"; 
+import { AccumulateState, AccumulateInput, AccumulateOutput, Reports, AccumulatedQueueItem, AccumulatedQueue, SingleReportItem, ReadyRecord, ReadyQueueItem, ReadyQueue, WorkPackageHash, ServicesStatistics, AccumulateEphemeral, } from "./types";
 import { EPOCH_LENGTH } from "../../consts";
 import { computeBlockGasLimit, applyDeferredTransfers, integratePreimages, gasBookeeping, editQueue, rotateAccumulated, updateReadyQueue } from "./helpers";
 import { accumulateAcceptedReports } from "./accumulateAcceptedReports";
@@ -23,7 +23,7 @@ function snapSvc(state: AccumulateState, sid: number) {
     items: acc.data.service.items,
     bytes: String(acc.data.service.bytes),
     storageCount: stor.length,
-    storageLens: stor.map(s => s.len).sort((a,b)=>a-b),
+    storageLens: stor.map(s => s.len).sort((a, b) => a - b),
   };
 }
 
@@ -49,13 +49,13 @@ const DEBUG_ACC = process.env.JAM_DEBUG_ACC === "1";
  * @param input 
  * @returns 
  */
-export async function applyAccumulateStf (
+export async function applyAccumulateStf(
   preState: AccumulateState,
   input: AccumulateInput,
 ): Promise<{ output: AccumulateOutput; postState: AccumulateState }> {
-  
+
   // 1) clone preState, deconstruct input, and rotate accumulated
-  const { slot , reports } = input;
+  const { slot, reports } = input;
   const postState: AccumulateState = structuredClone(preState);
   console.log(RUN, "PRE svc1729", snapSvc(postState, 1729));
 
@@ -64,7 +64,7 @@ export async function applyAccumulateStf (
   // 2)
   // When we find an accumulable we add such items to the accumulatableReports list. 
   // split incoming reports into: immediately accumulatable (W!) and postponed (WQ => ready_queue)
-  const { accumulatable_items : accumulatableReports, ready_queue_posterior_flattened : waiting 
+  const { accumulatable_items: accumulatableReports, ready_queue_posterior_flattened: waiting
   } = gatherAccumulatableReports(slot, reports, postState);
 
   if (DEBUG_ACC) {
@@ -72,12 +72,12 @@ export async function applyAccumulateStf (
   }
 
   // 3) update ready_queue: put the non-ready input reports into ready queue
-  updateReadyQueue(postState, slot, preState.slot, waiting );
+  updateReadyQueue(postState, slot, preState.slot, waiting);
 
   // 4) calculate block gas-limit (12.20)
   let blockGasLimit: Gas = computeBlockGasLimit(postState);
 
-  const accumulatedHashes = new Set<string>();  
+  const accumulatedHashes = new Set<string>();
   const nowAccumulatable: ReadyRecord[] = accumulatableReports;
   const possiblyAccumulatable: ReadyRecord[] = [];
 
@@ -87,7 +87,7 @@ export async function applyAccumulateStf (
   let allOutputs: AccumulateEphemeral[] = [];
 
   const perService = new Map<number, { count: number; gas: Gas }>();
-  
+
   const processed: ReadyRecord[] = [];
 
   // 5) loop over the accumulatable reports
@@ -98,9 +98,9 @@ export async function applyAccumulateStf (
     processed.push(...acceptedReports);
 
     if (DEBUG_ACC) {
-      console.log("[acc] accepted:", acceptedReports.length, 
-                  "leftover:", leftoverReports.length, 
-                  "blockGas:", String(blockGasLimit));
+      console.log("[acc] accepted:", acceptedReports.length,
+        "leftover:", leftoverReports.length,
+        "blockGas:", String(blockGasLimit));
     }
 
     // nothing fits => break
@@ -122,12 +122,12 @@ export async function applyAccumulateStf (
       const sid = br.serviceId;
       const cur = perService.get(sid) ?? { count: 0, gas: 0n };
       cur.count += 1;
-      cur.gas   += (br.actualGasUsed ?? 0n);
+      cur.gas += (br.actualGasUsed ?? 0n);
       perService.set(sid, cur);
     }
 
     allOutputs.push(...batchResults);
-    
+
     // const g = (x: any) => (x !== undefined && x !== null) ? (coerceU64(x) ?? 0n) : 0n;
 
     // for (const rec of processed) {
@@ -139,7 +139,7 @@ export async function applyAccumulateStf (
     //     perService.set(sid, cur);
     //   }
     // }
-    
+
 
 
     // if (DEBUG_ACC) {
@@ -190,7 +190,7 @@ export async function applyAccumulateStf (
 
   // updated slot
   postState.slot = slot;
-  
+
 
   // 6) TODO: apply intermediate changes 
   applyIntermediateChanges(postState, allOutputs, slot);
@@ -206,10 +206,10 @@ export async function applyAccumulateStf (
       }
     }
   }
-  
+
 
   // 7) TODO: handle deferred transfers 
-  applyDeferredTransfers(postState, allOutputs );
+  applyDeferredTransfers(postState, allOutputs);
 
   // 8) TODO: integrate new preimages
   integratePreimages(postState);
@@ -217,22 +217,22 @@ export async function applyAccumulateStf (
   // Services
 
   postState.statistics = Array.from(perService.entries())
-  .map<ServicesStatisticsMapEntry>(([id, { count, gas }]) => ({
-    id,
-    record: {
-      provided_count: 0,
-      provided_size: 0,
-      refinement_count: 0,
-      refinement_gas_used: 0n,
-      imports: 0,
-      extrinsic_count: 0,
-      extrinsic_size: 0,
-      exports: 0,
-      accumulate_count: count,
-      accumulate_gas_used: gas,
-    },
-  }))
-  .sort((a, b) => a.id - b.id);
+    .map<ServicesStatisticsMapEntry>(([id, { count, gas }]) => ({
+      id,
+      record: {
+        provided_count: 0,
+        provided_size: 0,
+        refinement_count: 0,
+        refinement_gas_used: 0n,
+        imports: 0,
+        extrinsic_count: 0,
+        extrinsic_size: 0,
+        exports: 0,
+        accumulate_count: count,
+        accumulate_gas_used: gas,
+      },
+    }))
+    .sort((a, b) => a.id - b.id);
 
   for (const [sid, { count }] of perService.entries()) {
     if (count > 0) {
@@ -240,10 +240,10 @@ export async function applyAccumulateStf (
       if (acc) acc.data.service.last_accumulation_slot = slot;
     }
   }
-  
 
-   // 9) Update state
-  const finalOutput: AccumulateOutput = { ok : new Uint8Array(32) };
+
+  // 9) Update state
+  const finalOutput: AccumulateOutput = { ok: new Uint8Array(32) };
   console.log(RUN, "POST svc1729", snapSvc(postState, 1729));
   console.log(RUN, "stats", J(postState.statistics.find(s => s.id === 1729)?.record));
   return { output: finalOutput, postState };

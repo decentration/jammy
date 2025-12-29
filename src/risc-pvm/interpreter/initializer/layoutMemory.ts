@@ -1,7 +1,9 @@
-import { ZZ, ZP, PAGE_SIZE } from "../host/consts";
+import { ZZ, ZP } from "../host/consts";
 import { P_vm, Z_vm } from "./helpers";
 import { LayoutMemory, ProgramContainerParts } from "./types";
 
+// Page calculation uses 64KB pages (ZZ) to match checkAccess in memory.ts
+const PAGE_64K = ZZ; // 65536
 
 export function layoutMemory(parts: ProgramContainerParts, memSize: number): LayoutMemory {
   const { readOnly, readWrite, reservePages } = parts;
@@ -25,10 +27,11 @@ export function layoutMemory(parts: ProgramContainerParts, memSize: number): Lay
   if (roEnd <= memSize) memInit.set(readOnly, roStart);
   if (rwEnd <= memSize) memInit.set(readWrite, rwStart);
 
-  const page = (addr: number) => (addr / PAGE_SIZE) | 0;
+  // Use 64KB pages to match memory.ts checkAccess
+  const page = (addr: number) => (addr / PAGE_64K) | 0;
   const mapPlan = [
-    { from: page(roStart), to: page(roPadEnd), read: true,  write: false },
-    { from: page(rwStart), to: page(reserveEnd), read: true,  write: true  },
+    { from: page(roStart), to: page(roPadEnd) + 1, read: true,  write: false },
+    { from: page(rwStart), to: page(reserveEnd) + 1, read: true,  write: true  },
   ];
 
   return {

@@ -6,19 +6,22 @@ import { AccEnv, AccumulateX, HostCallHandler, DeferredTransfer } from "../../ty
 import { getMergedXs, getStagedOnly, stageAccount } from "./helpers";
 
 // ΩT – transfer (selector 20)
-// g = 10 + w9
+// g = 10 + φ9 (Graypaper B.7)
+// The transfer host call costs 10 gas + the gas limit (φ9/r9) for the on_transfer callback
 export const transferHandler: HostCallHandler = (s, _id, env) => {
   const designIdx = Number(s.registers[7]);             // (d) – index into (xe).d
-  const amount =   BigInt.asUintN(64, s.registers[8]); // (a) – amount
-  const gasLim =   BigInt.asUintN(64, s.registers[9]); // (l) – gas limit for on_transfer
-  const off =      Number(s.registers[10]);            // (o) – ptr to memo (WT bytes)
+  const amount = BigInt.asUintN(64, s.registers[8]); // (a) – amount
+  const gasLim = BigInt.asUintN(64, s.registers[9]); // (l) – gas limit for on_transfer
+  const off = Number(s.registers[10]);            // (o) – ptr to memo (WT bytes)
 
+  // Total cost: 10 (host call) + gasLim (for on_transfer callback)
+  const totalGasCost = 10n + gasLim;
 
-  if (BigInt(s.gas) < gasLim) {
+  if (BigInt(s.gas) < totalGasCost) {
     return { state: { ...s, exit: { type: ExitReasonType.OutOfGas } }, ok: true };
   }
 
-  let sCharged = { ...s, gas: BigInt(s.gas) - gasLim };
+  let sCharged = { ...s, gas: BigInt(s.gas) - totalGasCost };
 
   const { bytes: memo, state: sAfterRead } = readBytes(sCharged, off, WT);
   if (!memo) {
@@ -49,9 +52,9 @@ export const transferHandler: HostCallHandler = (s, _id, env) => {
   // CASH if a < (xs)t...
   const threshold = xs.threshold ?? 0n;     // (xs)t
   if (amount < threshold) return finish(sCharged, CASH);
-  
+
   const newBal = xs.balance - amount;
-  const existential = env.activationFee ?? 0n; 
+  const existential = env.activationFee ?? 0n;
   if (newBal < existential) return finish(sCharged, CASH);
 
   xs.balance = newBal;
@@ -62,9 +65,9 @@ export const transferHandler: HostCallHandler = (s, _id, env) => {
   ax.transfers.push({
     from: xsId,
     to: destId,
-    amount: amount, 
-    gasLimit: gasLim, 
-    memo: memo.slice(), 
+    amount: amount,
+    gasLimit: gasLim,
+    memo: memo.slice(),
   });
 
   return finish(sCharged, OK);

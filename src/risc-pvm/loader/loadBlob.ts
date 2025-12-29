@@ -3,15 +3,14 @@ import { createHash } from "crypto";
 export type LoadedBlob = {
   endian: "LE" | "BE";
   entryPc: bigint;
-  image: Uint8Array;       // raw program bytes
-  hashHex: string;         // sha256 of canonical header+image
+  image: Uint8Array;
+  hashHex: string;
 };
 
 export function loadBlob(buf: Uint8Array): LoadedBlob {
   if (buf.length < 16) throw new Error("Blob too small");
-  // Example: detect via magic/version/endianness flags (adapt to your spec)
-  const leMagic = buf.slice(0, 4).toString() === "...."; // placeholder
-  const beMagic = false; // detect…
+  const leMagic = buf.slice(0, 4).toString() === "....";
+  const beMagic = false;
   const endian = leMagic ? "LE" : beMagic ? "BE" : (() => { throw new Error("Unknown blob format"); })();
 
   // Read header fields using endian
@@ -19,7 +18,7 @@ export function loadBlob(buf: Uint8Array): LoadedBlob {
   const oLen = endian === "LE" ? dv.getUint32(8, true) : dv.getUint32(8, false);
   const entry = endian === "LE" ? dv.getBigUint64(12, true) : dv.getBigUint64(12, false);
 
-  const headerBytes = 64; // example; set to spec
+  const headerBytes = 64;
   if (buf.length < headerBytes + oLen) throw new Error("BE/LE: header exceeds blob");
 
   const image = buf.slice(headerBytes, headerBytes + oLen);

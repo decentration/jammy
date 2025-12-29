@@ -8,7 +8,9 @@
 export function bitmaskToBoolean(bitmask: Uint8Array, codeByteLen: number): boolean[] {
     const totalBits = bitmask.length;
     const expectedBytes = Math.ceil(codeByteLen / 8); // of course opcode mask is stored in octets, so we round up by 8s. 
-    console.log("bitmaskoBoolean: totalBits", totalBits, "expectedBytes", expectedBytes, "codeByteLen", codeByteLen);
+    if (process.env.JAM_DEBUG_VM === "1") {
+      console.log("bitmaskoBoolean: totalBits", totalBits, "expectedBytes", expectedBytes, "codeByteLen", codeByteLen);
+    }
     if (totalBits < expectedBytes) {
       throw new Error(
         `Bitmask length mismatch: bitmask has fewer bits ${totalBits}, than the required ${codeByteLen}`

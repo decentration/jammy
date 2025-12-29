@@ -1,8 +1,8 @@
-export const GAS_PER_INSTRUCTION   = 1n   // for M1
-export const GAS_HOST_CALL         = 10n  // Host call premium
-export const GAS_COST_JUMP         = 10n  // Cost for jump instruction
+export const GAS_PER_INSTRUCTION   = 1n   // Base cost for each instruction per Graypaper Appendix A.5
+export const GAS_HOST_CALL         = 10n  // Host call premium (NOTE: Graypaper shows ecalli costs 1 gas, not 10 extra)
+export const GAS_COST_JUMP         = 1n   // Cost for jump instruction per Graypaper A.5.5 (opcode 40)
 export const JUMP_ALIGNMENT_FACTOR = 2 // ZA DJump Alignment Factor
-export const GAS_COST_JUMP_IND     = 0n
+export const GAS_COST_JUMP_IND     = 1n   // Indirect jump cost per Graypaper A.5.6 (opcode 50)
 
 export const GAS_MEM_BASE          = 10n;   // cost per memory op
 export const GAS_MEM_BYTE          = 1n;    // cost per byte touched

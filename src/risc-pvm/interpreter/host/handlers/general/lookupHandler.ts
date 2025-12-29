@@ -47,5 +47,6 @@ export const lookupHandler: HostCallHandler = (s, _id, env) => {
 
   const regs = s2.registers.slice();
   regs[7] = BigInt(vLength);
+  regs[6] = 0n; // conformance ABI: clear error register on success
   return { state: { ...s2, registers: regs }, ok: true };
 };

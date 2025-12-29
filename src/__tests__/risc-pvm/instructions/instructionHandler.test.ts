@@ -15,6 +15,7 @@ const MEM_OPTS = {
   memSize  : 0x40000, // 256 KiB -> 4x64 KiB pages
   heapStart: 0x30000, // page-3 is RW 
   heapEnd  : 0x38000, // 
+  strictVm : false,   // Allow Panic exit for trap instruction tests
 };
 
 const BASE      = 0x30040;
@@ -207,14 +208,17 @@ describe("Instruction execution tests", () => {
       expect(state1.gas).toBe(state0.gas - GAS_COST_JUMP);
     });
 
-    it("jumps to the immediate next byte (offset=1)", () => {
-      const code = Uint8Array.of(Opcodes.jump, Opcodes.fallthrough, 0);
-      const bitmask = Uint8Array.of(0b00000011);
+    it("jumps to offset=2 (next instruction after jump)", () => {
+      // jump instruction is at pc=0, occupies 2 bytes (opcode + 1 byte offset)
+      // offset=2 means target = pc + offset = 0 + 2 = 2, which is the next instruction
+      const code = Uint8Array.of(Opcodes.jump, 0x02, Opcodes.fallthrough);
+      // bitmask: bit 0 = jump opcode, bit 2 = fallthrough opcode
+      const bitmask = Uint8Array.of(0b00000101);
       const state0 = buildState({ code, bitmask });
     
       const state1 = executeSingleStep(state0);
     
-      expect(state1.pc).toBe(1);
+      expect(state1.pc).toBe(2);
       expect(state1.exit?.type).toBe(ExitReasonType.Continue);
     });
 
@@ -1165,6 +1169,7 @@ describe("Instruction execution tests", () => {
           memSize  : 0x40000, // 256 KiB -> 4 pages
           heapStart: 0x30000, // page 3
           heapEnd  : 0x38000,
+          strictVm : false,   // Allow Panic exit
         });
 
       expect(final.memory[0x30000 + 5]).toBe(0xAA);

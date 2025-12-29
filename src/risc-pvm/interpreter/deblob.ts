@@ -28,7 +28,9 @@ export function deblob(wholeBlob: Uint8Array): DeconstructedBlob {
     return parseRawBlob(wholeBlob);
   } catch (e1) {
     try {
-      console.log("deblob: retrying after deblobMetadata");
+      if (process.env.JAM_DEBUG_VM === "1") {
+        console.log("deblob: retrying after deblobMetadata");
+      }
       const { blob } = deblobMetadata(wholeBlob);
       return parseRawBlob(blob);
     } catch (e2) {
@@ -38,7 +40,9 @@ export function deblob(wholeBlob: Uint8Array): DeconstructedBlob {
 }
 
 function parseRawBlob(blob: Uint8Array): DeconstructedBlob {
-  console.log("deblob: wholeBlob", blob);
+  if (process.env.JAM_DEBUG_VM === "1") {
+    console.log("deblob: wholeBlob", blob);
+  }
     // const { blob: blob } = deblobMetadata(blob);
 
     let offset = 0;
@@ -61,7 +65,10 @@ function parseRawBlob(blob: Uint8Array): DeconstructedBlob {
     throw new Error('Blob too short for jump index size');
   }
   const jumpEntryLength = blob[offset++]; // we need to move offset after reading it 
-  if (jumpEntryLength < 1 || jumpEntryLength > 4) throw new Error(`Invalid jump index size: ${jumpEntryLength}. Must be 1-4 bytes.`);
+  // Only validate z if there are actually jump entries (|j| > 0)
+  if (jumpTableLength > 0 && (jumpEntryLength < 1 || jumpEntryLength > 4)) {
+    throw new Error(`Invalid jump index size: ${jumpEntryLength}. Must be 1-4 bytes.`);
+  }
 
 
   // 3) Instruction data size: E(|c|)

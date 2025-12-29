@@ -30,15 +30,15 @@ describe("toLE(..., 8) edge cases", () => {
 });
 
 describe("ΩY config vector 64-bit slots (GA/GI/GR/GT)", () => {
-  // bytes: BI(8) BL(8) BS(8) C(2) D(4) E(4) -> GA at 34
-  const OFF_GA = 34;
+  // bytes: BI(8) BL(8) BS(8) C(4) D(4) E(4) -> GA at 36
+  const OFF_GA = 36;
   const OFF_GI = OFF_GA + 8;
   const OFF_GR = OFF_GI + 8;
   const OFF_GT = OFF_GR + 8;
 
   it("has stable total length", () => {
     const cfg = buildFetchConfigVector();
-    expect(cfg.length).toBe(138); // sum of part sizes in builder
+    expect(cfg.length).toBe(164); // sum of part sizes in builder
   });
 
   it("encodes GA as u64 little-endian", () => {

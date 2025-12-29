@@ -46,17 +46,26 @@ export const ResultValueCodec: Codec<ResultValue> = [
   // ENCODER
   (rv: ResultValue) => {
     if ("ok" in rv) {
-      const enc = VarLenBytesCodec.enc(rv.ok);      // ByteSequence
+      // Convert hex string to bytes if needed (input may be hex string from JSON)
+      const rawOk = rv.ok as any;
+      const okBytes: Uint8Array = rawOk instanceof Uint8Array
+        ? rawOk
+        : typeof rawOk === "string" && rawOk.startsWith("0x")
+          ? new Uint8Array(Buffer.from(rawOk.slice(2), "hex"))
+          : typeof rawOk === "string"
+            ? new Uint8Array(Buffer.from(rawOk, "hex"))
+            : rawOk;
+      const enc = VarLenBytesCodec.enc(okBytes);      // ByteSequence
       const out = new Uint8Array(1 + enc.length);
       out[0] = TAG.ok;
       out.set(enc, 1);
       return out;
     }
-    if ("out_of_gas" in rv)   return Uint8Array.of(TAG.out_of_gas);
-    if ("panic" in rv)        return Uint8Array.of(TAG.panic);
-    if ("bad_exports" in rv)  return Uint8Array.of(TAG.bad_exports);
-    if ("bad_code" in rv)     return Uint8Array.of(TAG.bad_code);
-    if ("code_oversize" in rv)return Uint8Array.of(TAG.code_oversize);
+    if ("out_of_gas" in rv) return Uint8Array.of(TAG.out_of_gas);
+    if ("panic" in rv) return Uint8Array.of(TAG.panic);
+    if ("bad_exports" in rv) return Uint8Array.of(TAG.bad_exports);
+    if ("bad_code" in rv) return Uint8Array.of(TAG.bad_code);
+    if ("code_oversize" in rv) return Uint8Array.of(TAG.code_oversize);
 
     throw new Error("ResultValueCodec.enc: unknown variant");
   },
@@ -65,8 +74,8 @@ export const ResultValueCodec: Codec<ResultValue> = [
   (data: ArrayBuffer | Uint8Array | string): ResultValue => {
     const uint8 =
       data instanceof Uint8Array ? data
-      : typeof data === "string" ? new TextEncoder().encode(data)
-      : new Uint8Array(data);
+        : typeof data === "string" ? new TextEncoder().encode(data)
+          : new Uint8Array(data);
 
     if (uint8.length < 1) {
       throw new Error("ResultValueCodec.dec: no discriminator byte");
@@ -80,13 +89,13 @@ export const ResultValueCodec: Codec<ResultValue> = [
         const { value: bytes } = decodeWithBytesUsed(VarLenBytesCodec, body);
         return { ok: bytes };
       }
-      case TAG.out_of_gas:   return { out_of_gas: null };
-      case TAG.panic:        return { panic: null };
-      case TAG.bad_exports:  return { bad_exports: null };
-      case TAG.bad_code:     return { bad_code: null };
-      case TAG.code_oversize:return { code_oversize: null };
+      case TAG.out_of_gas: return { out_of_gas: null };
+      case TAG.panic: return { panic: null };
+      case TAG.bad_exports: return { bad_exports: null };
+      case TAG.bad_code: return { bad_code: null };
+      case TAG.code_oversize: return { code_oversize: null };
       default:
-        throw new Error(`ResultValueCodec.dec: unknown variant byte 0x${tag.toString(32)}`, ); // 
+        throw new Error(`ResultValueCodec.dec: unknown variant byte 0x${tag.toString(32)}`,); // 
     }
   },
 ] as unknown as Codec<ResultValue>;

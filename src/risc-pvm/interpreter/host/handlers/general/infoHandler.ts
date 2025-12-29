@@ -26,6 +26,7 @@ export const infoHandler: HostCallHandler = (s, _id, env) => {
     // wehn v is empty, write nothing to memory
     const r = s.registers.slice();
     r[7] = NONE;
+    r[6] = 0n; // conformance ABI: clear error register on success (even for NONE)
     return { state: { ...s, registers: r }, ok: true };
   }
   
@@ -49,6 +50,7 @@ export const infoHandler: HostCallHandler = (s, _id, env) => {
   // r7 <- vLength
   const r = s1.registers.slice();
   r[7] = BigInt(vLength);
+  r[6] = 0n; // conformance ABI: clear error register on success
   return { state: { ...s1, registers: r }, ok: true };
 };
 

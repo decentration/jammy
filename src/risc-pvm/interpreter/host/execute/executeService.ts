@@ -32,6 +32,9 @@ export function executeProgram(opts: ExecOpts): InterpreterState {
     memInit: init.memInit,
     registers: init.registers, 
     mapPlan: init.mapPlan,
+    args: opts.args, // Pass args to runBlob so they can be copied to args band
+    stackSizeBytes: 'stackSizeBytes' in init ? (init as any).stackSizeBytes : undefined, // Pass stack size if available
+    entryPoint: opts.entryPoint, // Entry point selector for service invocation
   });
 }
 

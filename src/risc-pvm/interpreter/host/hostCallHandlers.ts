@@ -1,11 +1,18 @@
 import { GAS_HOST_CALL } from "../consts";
 import { InterpreterState, ExitReasonType } from "../types";
-import { OK, WHAT } from "./consts";
+import { OK, WHAT, NONE, OOB } from "./consts";
+import {
+  isHostTraceEnabled,
+  dumpHostCallEntry,
+  dumpHostCallExit,
+  recordHostCallTrace
+} from "../debug/hostCallTracer";
 import { fetchHandler } from "./handlers/general/fetchHandler";
 import { lookupHandler } from "./handlers/general/lookupHandler";
 import { readHandler } from "./handlers/general/readHandler";
 import { writeHandler } from "./handlers/general/writeHandler";
 import { infoHandler } from "./handlers/general/infoHandler";
+import { readBytes } from "../instructions/helpers";
 import { HostEnvInterface } from "./hostEnvInterface";
 import { HostCallHandler } from "./types";
 import { historicalLookupHandler } from "./handlers/refine/historicalLookupHandler";
@@ -31,7 +38,7 @@ import { solicitHandler } from "./handlers/accumulate/solicitHandler";
 import { provideHandler } from "./handlers/accumulate/provideHandler";
 
 // GAS (ΩG) - selector 0 
-const gasHandler: HostCallHandler = (state, id, env ) => {
+const gasHandler: HostCallHandler = (state, id, env) => {
 
   if (id !== OK) {
     return { state, ok: false };
@@ -43,23 +50,73 @@ const gasHandler: HostCallHandler = (state, id, env ) => {
       ok: true,
     };
   }
-  
+
   const registers = state.registers.slice();
   registers[7] = BigInt(state.gas); // B.17 / B.18
-  
+
   return { state: { ...state, registers }, ok: true };
 };
 
-// Defualt "uknown selector" 
+// Defualt "unknown selector" - B.17: just set r7 = WHAT and continue
 const unknownHandler: HostCallHandler = (state, id, env) => {
   const registers = state.registers.slice();
-  registers[7] = WHAT; // B.17 / B.18
-  return { 
-      state: { 
-          ...state, 
-          registers,
-          exit: { type: ExitReasonType.Panic, detail: `unknown-host-call ${id}` }
-      }, ok: false };
+  registers[7] = WHAT; // B.17 / B.18 - unknown selector, set WHAT and continue
+  return {
+    state: {
+      ...state,
+      registers,
+      exit: { type: ExitReasonType.Continue }
+    }, ok: true
+  };
+}
+
+// LOG (ΩZ) - selector 100 - JIP-1
+// Log host call for debug. Per JIP-1 it must have no effect on machine state.
+// However, conformance services may expect r6 (error code) to be cleared on success.
+const logHandler: HostCallHandler = (state, id, env) => {
+
+  const r7 = Number(state.registers[7] & 0xFFFFFFFFn);
+  const r8 = Number(state.registers[8] & 0xFFFFFFFFn);
+  const r9 = Number(state.registers[9] & 0xFFFFFFFFn);
+  const r10 = Number(state.registers[10] & 0xFFFFFFFFn);
+  const r11 = Number(state.registers[11] & 0xFFFFFFFFn);
+  const r12 = Number(state.registers[12] & 0xFFFFFFFFn);
+
+  const hasNewAbi = r10 !== 0 && r11 !== 0;
+  const target = hasNewAbi ? r12 : r7;
+  const source = hasNewAbi ? r10 : r8;
+  const length = hasNewAbi ? r11 : r9;
+
+  if (process.env.JAM_DEBUG_HOST === "1") {
+    if (source > 0 && length > 0 && length < 1024) {
+      const want = Math.min(length, 256);
+      const rb = readBytes(state, source, want);
+      const bytes = rb.bytes ?? state.memory.slice(source, source + want);
+      try {
+        const text = new TextDecoder().decode(bytes);
+        if (text.replace(/\u0000/g, "").trim().length === 0) {
+          console.log(
+            `[host:log] target=0x${target.toString(16)} source=0x${source.toString(16)} len=${length} bytesHex=${Buffer.from(bytes.slice(0, 64)).toString("hex")}`
+          );
+        } else {
+          console.log(
+            `[host:log] target=0x${target.toString(16)} source=0x${source.toString(16)} len=${length} msg="${text}"`
+          );
+        }
+      } catch {
+        console.log(`[host:log] target=0x${target.toString(16)} source=0x${source.toString(16)} len=${length} bytes=[${Array.from(bytes.slice(0, 32)).join(',')}...]`);
+      }
+    } else {
+      console.log(`[host:log] target=0x${target.toString(16)} source=0x${source.toString(16)} len=${length}`);
+    }
+  }
+
+  // Per test vector README: log costs 0 gas (refund the 10 that was charged).
+  // Conformance service ABI: clear r6 on success.
+  const registers = state.registers.slice();
+  registers[6] = 0n;
+  registers[7] = OK;
+  return { state: { ...state, registers, gas: state.gas + 10n }, ok: true };
 }
 
 
@@ -92,22 +149,73 @@ const HostCallHandlers: Record<number, HostCallHandler> = {
   24: forgetHandler,    // ΩF - forget pre-image (Accumulator)
   25: yieldHandler, // Ω♉︎ - yield (Accumulator)
   26: provideHandler, // Ω♈ - provide (Accumulate)
+  100: logHandler, // ΩZ - log (JIP-1)
 };
 
 
-
+// Host call selector names for debugging
+const HOST_CALL_NAMES: Record<number, string> = {
+  0: "gas", 1: "fetch", 2: "lookup", 3: "read", 4: "write", 5: "info",
+  6: "historicalLookup", 7: "export", 8: "machine", 9: "peek", 10: "poke",
+  11: "pages", 12: "invoke", 13: "expunge", 14: "bless", 15: "assign",
+  16: "designate", 17: "checkpoint", 18: "new", 19: "upgrade", 20: "transfer",
+  21: "eject", 22: "query", 23: "solicit", 24: "forget", 25: "yield", 26: "provide",
+  100: "log"
+};
 
 export function dispatchHostCall(state: InterpreterState, env: HostEnvInterface): InterpreterState {
-if (state.exit?.type !== ExitReasonType.HostCall || state.exit.id === undefined) 
-  return state; 
-    
-const selector = Number(state.exit.id);
-console.log("[host] sel=", selector);
-const handler = HostCallHandlers[selector] ?? unknownHandler; // when handler undefined use unknown handler. 
+  if (state.exit?.type !== ExitReasonType.HostCall || state.exit.id === undefined)
+    return state;
 
-const { state: s1, ok } = handler(state, BigInt(selector), env);
-console.log("[host] ok=", ok, "exit=", s1.exit ? ExitReasonType[s1.exit.type] : "∅",
-  "r7=", s1.registers[7], "r8=", s1.registers[8]);
+  const selector = Number(state.exit.id);
+  const handlerName = HOST_CALL_NAMES[selector] ?? "unknown";
+  const isKnown = selector in HostCallHandlers;
+  const DBG = process.env.JAM_DEBUG_HOST === "1";
+  const TRACE_LOCK_HOST =
+    process.env.JAM_TRACE_POSTLOCK_HOST === "1" && state.pc >= 17225;
+
+  // input logging
+  const r7 = state.registers[7];
+  const r8 = state.registers[8];
+  const r9 = state.registers[9];
+  const r10 = state.registers[10];
+  const r11 = state.registers[11];
+  const r12 = state.registers[12];
+
+  if (DBG || TRACE_LOCK_HOST) {
+    console.log(`[host:in] sel=${selector} (${handlerName}) known=${isKnown} pc=${state.pc} gas=${state.gas}`);
+    console.log(`[host:in]   r7=0x${r7.toString(16)} r8=0x${r8.toString(16)} r9=0x${r9.toString(16)} r10=0x${r10.toString(16)}`);
+    console.log(`[host:in]   r11=0x${r11.toString(16)} r12=0x${r12.toString(16)}`);
+  }
+
+  // Full state dump if JAM_DEBUG_HOST=1
+  dumpHostCallEntry(state, selector, handlerName);
+
+  const handler = HostCallHandlers[selector] ?? unknownHandler;
+  const { state: s1, ok } = handler(state, BigInt(selector), env);
+
+  // output logging
+  const exitType = s1.exit ? ExitReasonType[s1.exit.type] : "∅";
+  const r7Out = s1.registers[7];
+  const r8Out = s1.registers[8];
+  const r6Out = s1.registers[6];
+
+  if (DBG || TRACE_LOCK_HOST) {
+    console.log(`[host:out] sel=${selector} (${handlerName}) ok=${ok} exit=${exitType}`);
+    console.log(`[host:out]   r6=0x${r6Out.toString(16)} r7=0x${r7Out.toString(16)} r8=0x${r8Out.toString(16)}`);
+  }
+
+  // Check for special return values
+  if (DBG || TRACE_LOCK_HOST) {
+    if (r7Out === WHAT) console.log(`[host:out]   r7=WHAT (unknown/invalid)`);
+    if (r7Out === NONE) console.log(`[host:out]   r7=NONE (not found)`);
+    if (r7Out === OOB) console.log(`[host:out]   r7=OOB (out of bounds)`);
+  }
+
+  // Full state dump and trace recording if JAM_DEBUG_HOST=1
+  dumpHostCallExit(s1, selector, handlerName, ok);
+  recordHostCallTrace(state, selector, handlerName, s1, ok);
+
 
   if (ok && (!s1.exit || s1.exit.type === ExitReasonType.HostCall)) {
     return { ...s1, exit: { type: ExitReasonType.Continue } };

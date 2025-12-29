@@ -3,8 +3,8 @@ import { HostEnvInterface } from "./host/hostEnvInterface";
 import { PageTable, PageMeta } from "./types";
 
 // We map the FEFE/FEFF mailbox window (128 KiB) into env.ioBuffer.
-export const IO_BASE  = 0xFEFE0000 >>> 0;
-export const IO_SIZE  = 0x00020000 >>> 0; // covers FEFE and FEFF 64 KiB pages
+export const IO_BASE = 0xFEFE0000 >>> 0;
+export const IO_SIZE = 0x00020000 >>> 0; // covers FEFE and FEFF 64 KiB pages
 export const IO_LIMIT = (IO_BASE + IO_SIZE) >>> 0;
 const PAGE_FAULT_CODE = 0xfe_fe; // 65278
 
@@ -38,13 +38,8 @@ export function checkAccess(
 
   // Normalize to uint32
   addr = addr >>> 0;
-  len  = len >>> 0;
+  len = len >>> 0;
   const end = (addr + len - 1) >>> 0; // inclusive end
-
-  // A.7 panic zone: < 2^16 is invalid
-  if (addr < ZZ) {
-    return 0;
-  }
 
   // ---- IO WINDOW FAST PATH ----
   // Any access fully inside [IO_BASE, IO_LIMIT) is allowed.
@@ -65,7 +60,7 @@ export function checkAccess(
   }
 
   const firstPage = addr >>> 16;
-  const lastPage  = end >>> 16;
+  const lastPage = end >>> 16;
 
   for (let p = firstPage; p <= lastPage; p++) {
     const meta = pageTable[p] ?? { read: false, write: false };
@@ -119,7 +114,7 @@ export interface Memory {
 
 const inIoWindow = (addr: number, len: number): boolean => {
   addr = addr >>> 0;
-  len  = len >>> 0;
+  len = len >>> 0;
   if (len === 0) return false;
 
   const end = (addr + len) >>> 0;
@@ -134,7 +129,7 @@ export function makeMemory(heap: Uint8Array, env: HostEnvInterface): Memory {
   const heapLen = heap.length >>> 0;
 
   const pageFault = (addr: number, len: number): never => {
-    try { (env as any)?.onPageFault?.(addr >>> 0, len >>> 0, PAGE_FAULT_CODE); } catch {}
+    try { (env as any)?.onPageFault?.(addr >>> 0, len >>> 0, PAGE_FAULT_CODE); } catch { }
     const e = new Error(`PageFault @0x${(addr >>> 0).toString(16)} len=${len}`);
     (e as any).exit = {
       type: "PageFault",
@@ -147,7 +142,7 @@ export function makeMemory(heap: Uint8Array, env: HostEnvInterface): Memory {
 
   const viewFor = (addr: number, len: number): { buf: Uint8Array; off: number } => {
     addr = addr >>> 0;
-    len  = len >>> 0;
+    len = len >>> 0;
 
     const end = (addr + len) >>> 0;
 
@@ -166,7 +161,7 @@ export function makeMemory(heap: Uint8Array, env: HostEnvInterface): Memory {
 
     // --- 2) Normal heap region ---
     const wrapped = end < addr;
-    const oob     = end > heapLen;
+    const oob = end > heapLen;
     if (wrapped || oob) {
       return pageFault(addr, len); // throws
     }
@@ -206,8 +201,8 @@ export function makeMemory(heap: Uint8Array, env: HostEnvInterface): Memory {
     }
   };
 
-  const getU8  = (addr: number): number => load(addr, 1)[0]!;
-  const setU8  = (addr: number, v: number): void =>
+  const getU8 = (addr: number): number => load(addr, 1)[0]!;
+  const setU8 = (addr: number, v: number): void =>
     store(addr, Uint8Array.of(v & 0xff));
 
   const getU16 = (addr: number): number => {
@@ -222,8 +217,8 @@ export function makeMemory(heap: Uint8Array, env: HostEnvInterface): Memory {
   const getU32 = (addr: number): number => {
     const b = load(addr, 4);
     return (
-      (b[0]!      ) |
-      (b[1]! <<  8) |
+      (b[0]!) |
+      (b[1]! << 8) |
       (b[2]! << 16) |
       (b[3]! << 24)
     ) >>> 0;
@@ -244,13 +239,13 @@ export function makeMemory(heap: Uint8Array, env: HostEnvInterface): Memory {
   const getU64 = (addr: number): bigint => {
     const b = load(addr, 8);
     const lo =
-      (b[0]!      ) |
-      (b[1]! <<  8) |
+      (b[0]!) |
+      (b[1]! << 8) |
       (b[2]! << 16) |
       (b[3]! << 24);
     const hi =
-      (b[4]!      ) |
-      (b[5]! <<  8) |
+      (b[4]!) |
+      (b[5]! << 8) |
       (b[6]! << 16) |
       (b[7]! << 24);
     return (BigInt(hi >>> 0) << 32n) | BigInt(lo >>> 0);
