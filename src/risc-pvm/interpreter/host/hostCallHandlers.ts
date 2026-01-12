@@ -57,8 +57,17 @@ const gasHandler: HostCallHandler = (state, id, env) => {
   return { state: { ...state, registers }, ok: true };
 };
 
-// Defualt "unknown selector" - B.17: just set r7 = WHAT and continue
+// Default "unknown selector" - B.17: just set r7 = WHAT and continue
+// Add explicit OOG check before returning WHAT
 const unknownHandler: HostCallHandler = (state, id, env) => {
+  // Check for OOG before processing
+  if (state.gas < GAS_HOST_CALL) {
+    return {
+      state: { ...state, exit: { type: ExitReasonType.OutOfGas } },
+      ok: true,
+    };
+  }
+
   const registers = state.registers.slice();
   registers[7] = WHAT; // B.17 / B.18 - unknown selector, set WHAT and continue
   return {

@@ -11,19 +11,29 @@ import { runServicePvm } from "./helpers/runServicePvm";
 
 
 export function encodeServiceAccumulateArgs(slot: number, serviceId: number, items: any[]): Uint8Array {
-  // Graypaper B.4 
-  const encSlot = u32.enc(slot);
-  const encServiceId = u32.enc(serviceId);
+  // Graypaper B.4
+  const { encodeProtocolInt } = require("../../codecs/IntegerCodec");
 
-  const encItems = DiscriminatorCodec(ResultCodec).enc(items as any);
-  const encLen = u32.enc(encItems.length);
+  const encSlot = encodeProtocolInt(slot);
+  const encServiceId = encodeProtocolInt(serviceId);
+  const encLen = encodeProtocolInt(items.length);
 
   if (process.env.JAM_DEBUG_ACC === "1") {
-    console.log(`[encodeArgs] slot=${slot} sid=${serviceId} items=${items.length}`);
-    console.log(`[encodeArgs] encSlot=[${Array.from(encSlot).join(",")}]`);
+    console.log(`[encodeArgs] slot=${slot} sid=${serviceId} itemCount=${items.length}`);
+    console.log(`[encodeArgs] varlen bytes: slot=${encSlot.length}, sid=${encServiceId.length}, len=${encLen.length}`);
   }
 
-  return concatAll(encSlot, encServiceId, encLen, encItems);
+  // Return variable-length encoded args per C.5
+  return concatAll(encSlot, encServiceId, encLen);
+}
+
+// Encode work items as a vector for fetch selector 5/6
+export function encodeWorkItemsVector(items: any[]): Uint8Array {
+  if (items.length === 0) {
+    return new Uint8Array(0);
+  }
+  const encodedItems = items.map((item) => ResultCodec.enc(item));
+  return concatAll(...encodedItems);
 }
 
 
@@ -82,12 +92,44 @@ export async function accumulateSingleService(
   // Encode args first so we can provide them via both args zone AND paramBlob vector
   const argsEncoded = encodeServiceAccumulateArgs(slot, serviceId, serviceItems);
 
-  // Provide storage in env, and paramBlob vector for args
+  // Encode work items vector for fetch selectors 5/6
+  const workItemsEncoded = encodeWorkItemsVector(serviceItems);
+
+  // Encode work items as structured arrays for indexed fetch access (B.5 selectors 5/6)
+  // Each work item becomes an array of its encoded fields
+  const workItemsList: Uint8Array[][] = serviceItems.map((item: any) => {
+    const fields: Uint8Array[] = [];
+    // Field 0: service_id (u32)
+    fields.push(u32.enc(item.service_id ?? 0));
+    // Field 1: code_hash (32 bytes)
+    const codeHash = item.code_hash instanceof Uint8Array
+      ? item.code_hash
+      : (typeof item.code_hash === 'string'
+        ? new Uint8Array(Buffer.from(item.code_hash.replace('0x', ''), 'hex'))
+        : new Uint8Array(32));
+    fields.push(codeHash);
+    // Field 2: payload_hash (32 bytes)
+    const payloadHash = item.payload_hash instanceof Uint8Array
+      ? item.payload_hash
+      : (typeof item.payload_hash === 'string'
+        ? new Uint8Array(Buffer.from(item.payload_hash.replace('0x', ''), 'hex'))
+        : new Uint8Array(32));
+    fields.push(payloadHash);
+    // Field 3: accumulate_gas (u64)
+    fields.push(new Uint8Array(new BigUint64Array([coerceU64(item.accumulate_gas) ?? 0n]).buffer));
+    // Field 4: result (full ResultValue encoded)
+    fields.push(ResultCodec.enc(item));
+    return fields;
+  });
+
+  // Provide storage in env, paramBlob vector for args, and workItems vector
   const env = makeHostEnv({
     storage: seeded,
     vectors: {
       paramBlob: argsEncoded,
+      workItems: workItemsEncoded,
     },
+    workItemsList, // Pass structured work items for indexed access
     initAcc: {
       allocator: {
         env: {
@@ -124,13 +166,12 @@ export async function accumulateSingleService(
   const args = argsEncoded;
   if (args.length > ZI) throw new Error("Accumulate args exceed ZI");
 
-  // Debug: dump args encoding
+  // Debug: dump args and workItems encoding
   if (process.env.JAM_DEBUG_ACC === "1") {
     console.log(`[acc:args] len=${args.length}`);
-    console.log(`[acc:args] bytes 0-8 (slot+serviceId+count): [${Array.from(args.slice(0, 9)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(',')}]`);
-    console.log(`[acc:args] bytes 9-12 (result.service_id): [${Array.from(args.slice(9, 13)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(',')}]`);
-    console.log(`[acc:args] bytes 77-85 (result.accumulate_gas): [${Array.from(args.slice(77, 85)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(',')}]`);
-    console.log(`[acc:args] bytes 85-90 (result.result tag+len): [${Array.from(args.slice(85, 92)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(',')}]`);
+    console.log(`[acc:args] bytes 0-8 (slot+serviceId): [${Array.from(args.slice(0, 9)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(',')}]`);
+    console.log(`[acc:args] bytes 8-12 (count): [${Array.from(args.slice(8, 12)).map(b => '0x' + b.toString(16).padStart(2, '0')).join(',')}]`);
+    console.log(`[acc:workItems] len=${workItemsEncoded.length} itemCount=${serviceItems.length}`);
   }
 
   if (process.env.JAM_DEBUG_ACC === "1") {
@@ -150,7 +191,7 @@ export async function accumulateSingleService(
       entryPoint:
         process.env.JAM_PVM_ENTRYPOINT === "none"
           ? undefined
-          : 5n, // initial pc for Accumulate ΨA (Graypaper B.4 calls ΨM(c, 5, ...))
+          : BigInt(process.env.JAM_PVM_ENTRYPOINT || "5"), // Default 5 per B.4, or use env var
     });
   } catch (err) {
     // If we can't load/parse the service blob (e.g., ejected service, unparseable blob),

@@ -50,11 +50,57 @@ export const fetchHandler: HostCallHandler = (s, _id, env) => {
     console.log(`[fetch] sel=${sel} (${selName}) dest=0x${dest.toString(16)} offset=${offsetVector} lenReq=${lenReq}`);
   }
 
-  // config logic as a special case (protocol parameters, φ10 = 0)
-  if (sel === FetchSel.Config) {
+  // config logic as a special case (protocol parameters) now also returns config blob
+  if (sel === FetchSel.Config || sel === FetchSel.ProgMeta) {
     const provided = env.fetchVector ? env.fetchVector("config" as any) : undefined;
     const v = provided ?? buildFetchConfigVector();
     return finishFetchLike(s, r, dest, offsetVector, lenReq, v, selName);
+  }
+
+  // B.5 Selector 5
+  if (sel === FetchSel.WorkItemsElem) {
+    const idx1 = Number(s.registers[11]); //work item index
+    const idx2 = Number(s.registers[12]); // field index within work item
+    const items = env.workItemsList;
+
+    if (process.env.JAM_DEBUG_HOST === "1") {
+      console.log(`[fetch:sel5] idx1=${idx1} idx2=${idx2} itemsLen=${items?.length ?? 0}`);
+    }
+
+    if (!items || idx1 >= items.length) {
+      r[7] = NONE;
+      return { state: { ...s, registers: r }, ok: true };
+    }
+    const workItem = items[idx1];
+    if (!workItem || idx2 >= workItem.length) {
+      r[7] = NONE;
+      return { state: { ...s, registers: r }, ok: true };
+    }
+    const v = workItem[idx2];
+    return finishFetchLike(s, r, dest, offsetVector, lenReq, v, `WorkItemsElem[${idx1}][${idx2}]`);
+  }
+
+  // B.5 Selector 6
+  if (sel === FetchSel.WorkItemsList) {
+    const idx1 = Number(s.registers[11]); // field index within current work item
+    const currentIdx = env.currentWorkItemIndex ?? 0;
+    const items = env.workItemsList;
+
+    if (process.env.JAM_DEBUG_HOST === "1") {
+      console.log(`[fetch:sel6] currentIdx=${currentIdx} idx1=${idx1} itemsLen=${items?.length ?? 0}`);
+    }
+
+    if (!items || currentIdx >= items.length) {
+      r[7] = NONE;
+      return { state: { ...s, registers: r }, ok: true };
+    }
+    const workItem = items[currentIdx];
+    if (!workItem || idx1 >= workItem.length) {
+      r[7] = NONE;
+      return { state: { ...s, registers: r }, ok: true };
+    }
+    const v = workItem[idx1];
+    return finishFetchLike(s, r, dest, offsetVector, lenReq, v, `WorkItemsList[${currentIdx}][${idx1}]`);
   }
 
   const vecName = fetchVecSelectorMap[sel];
@@ -116,11 +162,11 @@ function finishFetchLike(
     sOut = s1;
   }
 
-  // Conformance ABI (observed):
-  // - Query call (lenReq == 0): return the total vector length in r7, preserve r6 sentinel.
-  // - Copy call  (lenReq  > 0): clear r6 and return OK (0) in r7.
-  if (lenReq > 0) r[6] = 0n;
-  r[7] = lenReq === 0 ? BigInt(vLength) : OK;
-  r[8] = 0n;
+  // Per Graypaper B.5 and previous session analysis:
+  // - r7 = |v| (vector length)  
+  // - r6 MUST be preserved (not modified), the service checks:
+  //   branch_ge_u r7, r6 → with r6=NONE (2^64-1), r7 < r6 = success path
+  //   If we set r6=OK (0), then r7 >= r6 = error path (causes panic)
+  r[7] = BigInt(vLength);
   return { state: { ...sOut, registers: r }, ok: true };
 }

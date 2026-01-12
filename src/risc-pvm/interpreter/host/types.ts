@@ -43,13 +43,13 @@ export const fetchVecSelectorMap: Record<number, FetchVector | undefined> = {
   [FetchSel.Params]: "paramBlob",
   [FetchSel.Returns]: "returnBlob",
 
-  [FetchSel.ImportsElem]: "imports",
-  [FetchSel.ImportsList]: "workItems",
-  [FetchSel.WorkItemsElem]: "imports",
-  [FetchSel.WorkItemsList]: "imports",
+  [FetchSel.ImportsElem]: "imports",      // 3 -> imports (import element)
+  [FetchSel.ImportsList]: "imports",       // 4 -> imports (import list)
+  [FetchSel.WorkItemsElem]: "workItems",   // 5 -> workItems (work item element)
+  [FetchSel.WorkItemsList]: "workItems",   // 6 -> workItems (work item list)
 
   [FetchSel.ProgSerialized]: "programBlob",
-  [FetchSel.ProgMeta]: "paramBlob",
+  [FetchSel.ProgMeta]: "config", // simplified to just return config blob
   [FetchSel.ProgJ]: "paramBlob",
   [FetchSel.ProgX]: "paramBlob",
   [FetchSel.ProgWords]: "paramBlob",

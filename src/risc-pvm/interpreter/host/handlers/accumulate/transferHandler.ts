@@ -6,25 +6,28 @@ import { AccEnv, AccumulateX, HostCallHandler, DeferredTransfer } from "../../ty
 import { getMergedXs, getStagedOnly, stageAccount } from "./helpers";
 
 // ΩT – transfer (selector 20)
-// g = 10 + φ9 (Graypaper B.7)
-// The transfer host call costs 10 gas + the gas limit (φ9/r9) for the on_transfer callback
+// On failure (Panic, WHO, LOW, CASH), only charge base 10 gas.
+// On success, charge 10 + gasLim (for on_transfer callback).
 export const transferHandler: HostCallHandler = (s, _id, env) => {
   const designIdx = Number(s.registers[7]);             // (d) – index into (xe).d
   const amount = BigInt.asUintN(64, s.registers[8]); // (a) – amount
   const gasLim = BigInt.asUintN(64, s.registers[9]); // (l) – gas limit for on_transfer
   const off = Number(s.registers[10]);            // (o) – ptr to memo (WT bytes)
 
-  // Total cost: 10 (host call) + gasLim (for on_transfer callback)
-  const totalGasCost = 10n + gasLim;
+  const baseGas = 10n;
+  const totalGasCost = baseGas + gasLim;
 
+  // Check if we have enough gas for the full cost (in case success path)
   if (BigInt(s.gas) < totalGasCost) {
     return { state: { ...s, exit: { type: ExitReasonType.OutOfGas } }, ok: true };
   }
 
-  let sCharged = { ...s, gas: BigInt(s.gas) - totalGasCost };
+  // Charge only base gas initially - will charge gasLim on success
+  let sCharged = { ...s, gas: BigInt(s.gas) - baseGas };
 
   const { bytes: memo, state: sAfterRead } = readBytes(sCharged, off, WT);
   if (!memo) {
+    // Panic - only base gas charged
     return { state: { ...sCharged, exit: { type: ExitReasonType.Panic } }, ok: true };
   }
   sCharged = sAfterRead;
@@ -32,7 +35,8 @@ export const transferHandler: HostCallHandler = (s, _id, env) => {
   // Resolve destination via designations table in (xe).d
   const designations: Map<number, bigint> | undefined = env.acc?.allocator?.env?.designations;
   if (!designations || !designations.has(Number(designIdx))) {
-    return finish(sCharged, WHO); // unknown designation index
+    // WHO - only base gas charged
+    return finish(sCharged, WHO);
   }
 
   const destId = designations.get(designIdx);
@@ -42,7 +46,10 @@ export const transferHandler: HostCallHandler = (s, _id, env) => {
 
   if (!dest) return finish(sCharged, WHO);
 
-  if (gasLim < dest.gasOnTransfer) return finish(sCharged, LOW);
+  if (gasLim < dest.gasOnTransfer) {
+    // LOW - only base gas charged
+    return finish(sCharged, LOW);
+  }
 
   const xe = env.acc.allocator.env as AccEnv;
   const xsId = xe.currentServiceId ?? SVC_ID;
@@ -51,11 +58,20 @@ export const transferHandler: HostCallHandler = (s, _id, env) => {
 
   // CASH if a < (xs)t...
   const threshold = xs.threshold ?? 0n;     // (xs)t
-  if (amount < threshold) return finish(sCharged, CASH);
+  if (amount < threshold) {
+    // CASH - only base gas charged
+    return finish(sCharged, CASH);
+  }
 
   const newBal = xs.balance - amount;
   const existential = env.activationFee ?? 0n;
-  if (newBal < existential) return finish(sCharged, CASH);
+  if (newBal < existential) {
+    // CASH - only base gas charged
+    return finish(sCharged, CASH);
+  }
+
+  // Success path: charge the additional gasLim
+  sCharged = { ...sCharged, gas: sCharged.gas - gasLim };
 
   xs.balance = newBal;
   stageAccount(env, xsId, { ...xs, balance: newBal });
