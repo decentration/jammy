@@ -44,12 +44,20 @@ export async function accumulateAcceptedReports(
 
     // For each service => single VM run (12.19)
     for (const [serviceId, serviceResults] of serviceMap.entries()) {
+      const reportContext = {
+        packageSpec: rep.package_spec,
+        authorizerHash: rep.authorizer_hash,
+        authOutput: rep.auth_output,
+        context: rep.context,
+      };
+
       const ep = await accumulateSingleService(
         state,
         slot,
         serviceId,
         serviceResults,
-        blockGasLimit
+        blockGasLimit,
+        reportContext
       );
 
       // Collect per-service ephemeral; DO NOT mutate storage here.

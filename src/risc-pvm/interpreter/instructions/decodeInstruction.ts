@@ -107,7 +107,6 @@ export function decodeInstruction(memory: Uint8Array, pc: number, opcodeBits: bo
 
     case InstructionAddressTypes.ONE_REGISTER_ONE_IMMEDIATE: {
       // A.24 
-
       const ctl = memory[pc + 1]; // control byte
       const rA = ctl & 0x0F;
       const lX = Math.min(4, Math.max(0, length - 1)); // length of immediate, capped at 4 bytes
@@ -119,18 +118,16 @@ export function decodeInstruction(memory: Uint8Array, pc: number, opcodeBits: bo
     }
 
     case InstructionAddressTypes.ONE_REGISTER_TWO_IMMEDIATE: {
-      // A.25 (A.5.7)
-      // According to GP A.25 (292-294):
-      //   lN = l if l ≤ 6 else l - 7
-      //   l'N = floor(lN / 2)   <- first immediate length
-      //   l''N = lN - l'N       <- second immediate length
+      // A.26 (A.5.7) - GP specifies:
+      //   lX = min(4, floor(ctl/16) mod 8)  <- from control byte high nibble bits 4-6
+      //   lY = min(4, max(0, ℓ − lX − 1))   <- remaining bytes for second immediate
       const ctl1 = memory[pc + 1];
       const rA = ctl1 & 0x0F;                  // low nibble gives rA
-      // Note: high nibble of ctl1 is NOT used for lX in A.25!
 
-      const lN = length <= 6 ? length : length - 7;
-      const lX = Math.floor(lN / 2);           // first immediate length
-      const lY = lN - lX;                      // second immediate length
+      // lX from control byte high nibble (bits 4-6), per A.26
+      const lX = Math.min(4, (ctl1 >>> 4) & 0x07);
+      // lY is the remaining instruction bytes after control and first immediate
+      const lY = Math.min(4, Math.max(0, length - lX - 1));
 
       // first immediate (vX)
       const xStart = pc + 2;
@@ -142,7 +139,7 @@ export function decodeInstruction(memory: Uint8Array, pc: number, opcodeBits: bo
       const immY = decodeSignedIntLE(memory.subarray(xEnd, yEnd));
 
       if (DBG_DECODE) {
-        console.log(`[DECODE] pc=${pc} op=${opcode} ONE_REG_TWO_IMM: length=${length} lN=${lN} lX=${lX} lY=${lY} rA=${rA} immX=${immX} immY=${immY}`);
+        console.log(`[DECODE] pc=${pc} op=${opcode} ONE_REG_TWO_IMM: length=${length} ctl=0x${ctl1.toString(16)} lX=${lX} lY=${lY} rA=${rA} immX=${immX} immY=${immY}`);
       }
 
       instruction.operands = [rA, immX, immY];
