@@ -1,10 +1,11 @@
 import { coerceU64, hexStringToBytes } from "../../../codecs";
 import { CORES_COUNT, EPOCH_LENGTH, TOTAL_ACCUMULATE_GAS, TOTAL_GAS_FOR_ALL_ACCUMULATION } from "../../../consts";
+import { BI, BL, BS } from "../../../risc-pvm/interpreter/host/consts";
 import { makeHostEnv } from "../../../risc-pvm/interpreter/host/hostEnvInterface";
 import { runBlob } from "../../../risc-pvm/interpreter/runBlob";
 import { Gas } from "../../../types/types";
 import { compareBytes, toHex } from "../../../utils";
-import { AccumulateEphemeral, AccumulateState, ReadyRecord, StorageMapEntry } from "../types";
+import { AccumulateEphemeral, AccumulateState, PreimagesStatusItem, ReadyRecord, StorageMapEntry } from "../types";
 // import { pvmAccumulate } from "../ffi/pvm_ffi/pvm_ffi"; 
 
 
@@ -14,43 +15,43 @@ import { AccumulateEphemeral, AccumulateState, ReadyRecord, StorageMapEntry } fr
  *   - (12.20)
  *  */
 export function computeBlockGasLimit(
-    state: AccumulateState,
-  ): Gas {
-    // TODO:
-    // 12.20 block budgeting 
-    // let g = max(GT , GA ⋅ C + ∑x∈V(χg )(x))
-    // ∑x∈V(χg )(x)) is the sum of always accumulate gas from privilged services pre_state.privileges.always_acc
-    // so gas limit GT or GA * C + sum of always_acc gas
-    // C = 341 for full. 
-    // χ: The privileged service indices.
-    // χg : The always-accumulate service indices and their basic gas allowance.
-    // GA = 10, 000, 000: The gas allocated to invoke a work-report’s Accumulation logic. 
-    // GT = 3, 500, 000, 000: The total gas allocated across for all Accumulation. Should be no smaller than GA ⋅ C + ∑g∈V(χg )(g). 
-    // TOTAL_ACCUMULATE_GAS = GA
-    // TOTAL_GAS_FOR_ALL_ACCUMULATION = GT
-    // CORES_COUNT = C
+  state: AccumulateState,
+): Gas {
+  // TODO:
+  // 12.20 block budgeting 
+  // let g = max(GT , GA ⋅ C + ∑x∈V(χg )(x))
+  // ∑x∈V(χg )(x)) is the sum of always accumulate gas from privilged services pre_state.privileges.always_acc
+  // so gas limit GT or GA * C + sum of always_acc gas
+  // C = 341 for full. 
+  // χ: The privileged service indices.
+  // χg : The always-accumulate service indices and their basic gas allowance.
+  // GA = 10, 000, 000: The gas allocated to invoke a work-report’s Accumulation logic. 
+  // GT = 3, 500, 000, 000: The total gas allocated across for all Accumulation. Should be no smaller than GA ⋅ C + ∑g∈V(χg )(g). 
+  // TOTAL_ACCUMULATE_GAS = GA
+  // TOTAL_GAS_FOR_ALL_ACCUMULATION = GT
+  // CORES_COUNT = C
 
-    // we use Math.max to get the max of the two
-    // we want to ensure that our final gas limit cannot fall below GT
-    
+  // we use Math.max to get the max of the two
+  // we want to ensure that our final gas limit cannot fall below GT
 
 
-    let blockGasLimit: Gas = TOTAL_GAS_FOR_ALL_ACCUMULATION // GT
-    // Add all the privileges, C (concurrency), etc.
 
-    // sum always accumulate gas
-    let sumAlwaysAccGas = 0n;
-    for (const entry of state.privileges.always_acc) {
-       sumAlwaysAccGas += coerceU64(entry.gas);
-    }
+  let blockGasLimit: Gas = TOTAL_GAS_FOR_ALL_ACCUMULATION // GT
+  // Add all the privileges, C (concurrency), etc.
 
-    const candidate: Gas = TOTAL_ACCUMULATE_GAS * coerceU64(CORES_COUNT) + sumAlwaysAccGas
-
-    const gt: Gas = TOTAL_GAS_FOR_ALL_ACCUMULATION;
-    
-    return candidate > gt ? candidate : gt;
-
+  // sum always accumulate gas
+  let sumAlwaysAccGas = 0n;
+  for (const entry of state.privileges.always_acc) {
+    sumAlwaysAccGas += coerceU64(entry.gas);
   }
+
+  const candidate: Gas = TOTAL_ACCUMULATE_GAS * coerceU64(CORES_COUNT) + sumAlwaysAccGas
+
+  const gt: Gas = TOTAL_GAS_FOR_ALL_ACCUMULATION;
+
+  return candidate > gt ? candidate : gt;
+
+}
 
 // export async function accumulateSingleService(
 //   state: AccumulateState,          // The chain state
@@ -93,7 +94,7 @@ export function computeBlockGasLimit(
 //         amount: t.amount,
 //       })) ?? [];
 
-   
+
 //   }
 //   return await pvmAccumulatePlaceholder(slot, serviceId, currentCodeHash, serviceItems, blockGasLimit, {
 //     storageWrites,
@@ -120,7 +121,7 @@ export const tryDecode = (v: any): Uint8Array | null => {
   if (typeof v === "string") {
     if (/^0x/i.test(v)) return hexStringToBytes(v);
     if (/^[0-9a-f]+$/i.test(v)) return new Uint8Array(Buffer.from(v, "hex"));
-    try { return new Uint8Array(Buffer.from(v, "base64")); } catch {}
+    try { return new Uint8Array(Buffer.from(v, "base64")); } catch { }
   }
   return null;
 };
@@ -191,9 +192,9 @@ export function integratePreimages(state: AccumulateState) {
 export function editQueue(bucket: ReadyRecord[], done: Set<string>): ReadyRecord[] {
   return bucket.filter(r => !done.has(toHex(r.report.package_spec.hash)))
     .map(r => ({
-      ...r, 
+      ...r,
       dependencies: r.dependencies.filter(dep => !done.has(toHex(dep)))
-  }));
+    }));
 }
 
 
@@ -214,9 +215,9 @@ export function updateReadyQueue(
   const oldLandingBucket = state.ready_queue[preStateSlot % EPOCH_LENGTH];
 
   // 2) find which of the new waiting reports aren’t already present implying that they are fresh.
-  const existingReports = new Set( state.ready_queue.flatMap(b => b.map(r => toHex(r.report.package_spec.hash))));
+  const existingReports = new Set(state.ready_queue.flatMap(b => b.map(r => toHex(r.report.package_spec.hash))));
   const freshReports = waiting.filter(r => !existingReports.has(toHex(r.report.package_spec.hash)));
-  
+
   console.log("oldLandingBucket", oldLandingBucket.map(r => toHex(r.report.package_spec.hash)));
   console.log("existingReports", existingReports);
   console.log("freshReports", freshReports.map(r => toHex(r.report.package_spec.hash)));
@@ -243,7 +244,7 @@ export function updateReadyQueue(
   console.log("merged", merged.map(r => toHex(r.report.package_spec.hash)));
   // put the result into the bucket
   state.ready_queue[newIdx] = merged;
-  
+
 
   console.log("state.ready_queue", state.ready_queue.map(b => b.map(r => toHex(r.report.package_spec.hash))));
 }
@@ -255,16 +256,16 @@ function wipeSkippedBuckets(state: AccumulateState, preSlot: number, newSlot: nu
   console.log("newIdx", newIdx, "oldIdx", oldIdx);
   const delta = (newIdx - oldIdx + EPOCH_LENGTH) % EPOCH_LENGTH;
 
-    // we wipe out the buckets that were skipped
-    for (let i = 1; i <= delta; i++) {
-      state.ready_queue[(oldIdx + i) % EPOCH_LENGTH] = [];
-    }
+  // we wipe out the buckets that were skipped
+  for (let i = 1; i <= delta; i++) {
+    state.ready_queue[(oldIdx + i) % EPOCH_LENGTH] = [];
+  }
 }
 
 export function rotateAccumulated(
-  state            : AccumulateState,
-  prevSlot         : number,
-  currentSlot      : number,
+  state: AccumulateState,
+  prevSlot: number,
+  currentSlot: number,
 ) {
   // const E = state.accumulated.length; 
 
@@ -274,27 +275,51 @@ export function rotateAccumulated(
   // if (slotDiff > E) slotDiff = E;
 
   // console.log("slotDiff", slotDiff);
-  state.accumulated.shift();   
+  state.accumulated.shift();
   state.accumulated.push([])
 
 }
 
 
 export function gasBookeeping(acceptedReports: ReadyRecord[], blockGasLimit: Gas) {
-    // 1) gas bookkeeping: sum all gas used in the accepted reports
-    const gasUsed = acceptedReports.reduce(
-       (sum , r) => sum + r.report.results.reduce((s, x) => s + (coerceU64(x.accumulate_gas) ?? 0n), 0n)
-     , 0n);
+  // 1) gas bookkeeping: sum all gas used in the accepted reports
+  const gasUsed = acceptedReports.reduce(
+    (sum, r) => sum + r.report.results.reduce((s, x) => s + (coerceU64(x.accumulate_gas) ?? 0n), 0n)
+    , 0n);
 
-    // 2) exit early if we used up all gas
-    if (gasUsed >= blockGasLimit) return 0n as Gas;
+  // 2) exit early if we used up all gas
+  if (gasUsed >= blockGasLimit) return 0n as Gas;
 
-    //3) reduce the gas limit by the sum of all gas used in the accepted reports and clamp to zero
-    blockGasLimit -= gasUsed;
-    if (blockGasLimit < 0n) blockGasLimit = 0n;
+  //3) reduce the gas limit by the sum of all gas used in the accepted reports and clamp to zero
+  blockGasLimit -= gasUsed;
+  if (blockGasLimit < 0n) blockGasLimit = 0n;
 
-  
-    return blockGasLimit;
-  
 
+  return blockGasLimit;
+
+
+}
+
+// Compute threshold balance a_t GP 9.8
+export function computeThresholdBalance(
+  storageEntries: StorageMapEntry[],
+  preimageStatusEntries: PreimagesStatusItem[],
+  gratisOffset: bigint
+): bigint {
+  // a_i = 2 * |preimages_status| + |storage|
+  const ai = 2n * BigInt(preimageStatusEntries.length) + BigInt(storageEntries.length);
+  let ao = 0n;
+
+  // Preimage status entries: each has 81 bytes overhead + the preimage length
+  for (const p of preimageStatusEntries) {
+    ao += 81n + 32n; // 81 + hash length as placeholder
+  }
+
+  // Storage entries: 34 + |key| + |value| per entry
+  for (const s of storageEntries) {
+    ao += 34n + BigInt(s.key.length) + BigInt(s.value.length);
+  }
+
+  const threshold = BigInt(BS) + BigInt(BI) * ai + BigInt(BL) * ao - gratisOffset;
+  return threshold > 0n ? threshold : 0n;
 }

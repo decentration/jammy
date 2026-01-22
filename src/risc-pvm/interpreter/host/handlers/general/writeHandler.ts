@@ -1,13 +1,16 @@
 import { readBytes } from "../../../instructions/helpers";
 import { ExitReasonType } from "../../../types";
-import { NONE, WHO } from "../../consts";
-import { finish } from "../../helpers";
-import { HostCallHandler } from "../../types";
+import { NONE, WHO, FULL, BI, BL, BS } from "../../consts";
+import { computeThresholdAfterWrite, finish, computeThresholdBalance } from "../../helpers";
+import { HostCallHandler, ServiceAccount } from "../../types";
 import { IO_BASE } from "../../../memory";
+import { coerceU64 } from "../../../../../codecs";
+import { getMergedXs } from "../accumulate/helpers";
+
 
 // ΩW – selector 4
 export const writeHandler: HostCallHandler = (s, _id, env) => {
-  
+
   let kOff = Number(s.registers[7]);      // (kO) key offset
   let kLen = Number(s.registers[8]);      // (kZ) key length
   let vOff = Number(s.registers[9]);      // (vO) value offset
@@ -21,16 +24,19 @@ export const writeHandler: HostCallHandler = (s, _id, env) => {
   const { bytes: keyBytes, state: s1 } = readBytes(s, kOff, kLen);
   if (!keyBytes) return { state: { ...s, exit: { type: ExitReasonType.Panic } }, ok: true };
 
-  // This implementation’s STF models service storage as raw key/value pairs on the service account.
-  // Therefore ΩW writes are staged via env.putStorage/env.deleteStorage (consumed by applyIntermediateChanges).
-  const prev = env.getStorage?.(keyBytes);
-  const prevLen = prev ? BigInt(prev.length) : NONE;
+  const keyHex = Buffer.from(keyBytes).toString("hex");
 
+  // Get previous value (if exists)
+  const prev = env.getStorage?.(keyBytes);
+  const prevLen = prev ? coerceU64(prev.length) : NONE;
+
+  // Delete case (vLen = 0) - no threshold check needed (reduces footprint)
   if (vLen === 0) {
     env.deleteStorage?.(keyBytes);
     return finish(s1, prevLen);
   }
 
+  // Read the new value
   const r = readBytes(s1, vOff, vLen);
   if (!r.bytes) {
     // value bytes OOB => Panic (A.8–A.9; ΩW)
@@ -39,6 +45,22 @@ export const writeHandler: HostCallHandler = (s, _id, env) => {
 
   const xsId = env.acc?.allocator?.env?.currentServiceId;
   if (xsId === undefined) return finish(r.state, WHO);
+
+  // Compute the threshold balance that would result from this write
+  // and verify the account balance can cover it
+  const xs = getMergedXs(env);
+  if (xs) {
+    const newThreshold = computeThresholdAfterWrite(xs, keyHex, prev, r.bytes);
+
+    if (xs.balance < newThreshold) {
+      if (DBG) {
+        const currentThreshold = computeThresholdBalance(xs);
+        console.log(`[host-write] FULL: balance=${xs.balance} < newThreshold=${newThreshold} (current=${currentThreshold})`);
+      }
+      return finish(r.state, FULL);
+    }
+  }
+
 
   env.putStorage?.(keyBytes, r.bytes);
   return finish(r.state, prevLen);

@@ -9,7 +9,7 @@ export function getServiceProgramFromState(state: any, serviceId: number) {
   const codeHash =
     asU8(svc.data?.service?.code_hash ?? svc.service?.code_hash ?? svc.code_hash);
 
-  const preimages = (svc.data?.preimages_blob ?? svc.preimages_blob ?? []) as any[];
+  const preimages = (svc.data?.preimage_blobs ?? svc.data?.preimages_blob ?? svc.preimage_blobs ?? svc.preimages_blob ?? []) as any[];
   const hit = preimages.find((pi) => compareBytes(asU8(pi.hash), codeHash) === 0);
   if (!hit) throw new Error("no matching preimage");
 

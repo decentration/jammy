@@ -4,6 +4,7 @@ import { InterpreterState } from "../types";
 import { BI, BL, BS, BYTES_PER_SLOT, C, CORES_SIZE, D, E, F, GA, GI, GR, GT, H, HUH, I, INFO_BYTES, J, K, L, N, O, P, Q, R, RING_SPAN, RING_START, S, STEP, T, U, V, WA, WB, WC, WE, WG, WM, WP, WR, WT, WX, Y, ZA, ZI, ZP, ZZ } from "./consts";
 import { AccEnv, AccumulateContext, DesignationEntry, DesignationMap, FetchVector, ServiceAccount, ServiceId } from "./types";
 import { HostEnvInterface } from "./hostEnvInterface";
+import { coerceU64 } from "../../../codecs";
 
 
 // // ΩY fetch vector selector map 
@@ -90,6 +91,12 @@ export const buildFetchConfigVector = (): Uint8Array => {
     out.set(part, o);
     o += part.length;
   }
+
+  if (process.env.JAM_DEBUG_HOST === '1') {
+    console.log(`[buildFetchConfigVector] hex: ${Buffer.from(out).toString('hex')}`);
+    console.log(`[buildFetchConfigVector] length: ${out.length}`);
+  }
+
   return out;
 };
 
@@ -267,4 +274,60 @@ export function hydrateAccEnv(xeLike: Partial<AccEnv> | undefined): AccEnv {
     designationEntries:
       xeLike?.designationEntries instanceof Map ? xeLike.designationEntries : new Map(),
   };
+}
+
+
+// GP 9.8
+const PREIMAGE_OVERHEAD = 81n;   //  preimage entry
+const STORAGE_OVERHEAD = 34n;    // storage entry (32-byte key hash + 2 encoding bytes)
+
+export function computeThresholdBalance(xs: ServiceAccount): bigint {
+  const preimageCount = coerceU64(xs.preimages?.size ?? 0);
+  const storageCount = coerceU64(xs.storage?.size ?? 0);
+  const ai = 2n * preimageCount + storageCount;
+
+  // a_o = sum of (81 + blob_len) for preimages + sum of (34 + key_len + value_len) for storage
+  let ao = 0n;
+
+  // Preimage octets: 81 + blob length for each
+  if (xs.preimages) {
+    for (const [_hash, blob] of xs.preimages) {
+      ao += PREIMAGE_OVERHEAD + coerceU64(blob.length);
+    }
+  }
+
+
+  if (xs.storage) {
+    for (const [keyHex, value] of xs.storage) {
+      const keyLen = coerceU64(keyHex.length / 2);
+      const valueLen = coerceU64(value.length);
+      ao += STORAGE_OVERHEAD + keyLen + valueLen;
+    }
+  }
+
+  const at = coerceU64(BS) + coerceU64(BI) * ai + coerceU64(BL) * ao;
+  return at > 0n ? at : 0n;
+}
+
+/**
+ * Compute threshold balance after a proposed storage write.
+ * Returns the new a_t if this write were applied.
+ */
+export function computeThresholdAfterWrite(
+  xs: ServiceAccount,
+  keyHex: string,
+  prevValue: Uint8Array | undefined,
+  newValue: Uint8Array
+): bigint {
+  // Clone the storage map with the proposed write
+  const newStorage = new Map(xs.storage ?? new Map());
+  newStorage.set(keyHex, newValue);
+
+  // Create a temporary account view with the new storage
+  const projected: ServiceAccount = {
+    ...xs,
+    storage: newStorage,
+  };
+
+  return computeThresholdBalance(projected);
 }

@@ -1,18 +1,21 @@
 import { HostEnvInterface, makeHostEnv } from "../../risc-pvm/interpreter/host/hostEnvInterface";
 import { Gas } from "../../types";
-import { AccumulateState, AccumulateEphemeral } from "./types";
+import { AccumulateState, AccumulateEphemeral, StorageMapEntry, PreimagesBlobItem, PreimagesStatusItem, ReportContext } from "./types";
 import { getServiceProgramFromState } from "../loaders";
 import { executeProgram } from "../../risc-pvm/interpreter/host/execute/executeService";
 import { ExitReasonType } from "../../risc-pvm/interpreter/types";
 import { u32 } from "scale-ts";
-import { coerceU64, concatAll, DiscriminatorCodec, ResultCodec } from "../../codecs";
-import { ZI } from "../../risc-pvm/interpreter/host/consts";
+import { coerceU64, concatAll, DiscriminatorCodec, ResultCodec, toBytes } from "../../codecs";
+import { ZI, BS, BI, BL } from "../../risc-pvm/interpreter/host/consts";
 import { runServicePvm } from "./helpers/runServicePvm";
+import { computeThresholdBalance } from "./helpers";
+import { encodeProtocolInt } from "../../codecs/IntegerCodec";
+import { buildAccumulateInputSequence } from "../../codecs/InputSequenceCodec";
+
 
 
 export function encodeServiceAccumulateArgs(slot: number, serviceId: number, items: any[]): Uint8Array {
   // Graypaper B.4
-  const { encodeProtocolInt } = require("../../codecs/IntegerCodec");
 
   const encSlot = encodeProtocolInt(slot);
   const encServiceId = encodeProtocolInt(serviceId);
@@ -55,7 +58,8 @@ export async function accumulateSingleService(
   slot: number,                    // Current slot from (12.19) if needed
   serviceId: number,
   serviceItems: any[],
-  blockGasLimit: Gas
+  blockGasLimit: Gas,
+  reportContexts?: ReportContext[]  // Per-item report contexts (aligned with serviceItems)
 ): Promise<AccumulateEphemeral> {
   const callId = debugAccCallId++;
   if (process.env.JAM_DEBUG_ACC === "1") {
@@ -85,8 +89,12 @@ export async function accumulateSingleService(
 
   // 2) Seed the host env storage from account.storage so the VM sees current state
   const seeded = new Map<string, Uint8Array>();
+  // Also track original sizes for computing bytes delta later (seeded map may be mutated by PVM)
+  const originalStorageSizes = new Map<string, number>();
   for (const { key, value } of svc.data.storage) {
-    seeded.set(Buffer.from(key).toString("hex"), value);
+    const keyHex = Buffer.from(key).toString("hex");
+    seeded.set(keyHex, value);
+    originalStorageSizes.set(keyHex, value.length);
   }
 
   // Encode args first so we can provide them via both args zone AND paramBlob vector
@@ -122,12 +130,52 @@ export async function accumulateSingleService(
     return fields;
   });
 
+  // Build input sequence for FETCH selector 14 per B.5
+  // Selector 14 returns E(i) where i = i^T ⌢ i^U
+  // C.29: E_U(x) = E(x_p, x_e, x_a, x_y, x_g, O(x_l), ↕x_t)
+  // C.33: Work items encoded as E(0, E_U(item))
+
+  const workItemsForCodec = serviceItems.map((item: any, i: number) => {
+    const ctx = reportContexts?.[i] ?? reportContexts?.[0];
+
+    // Get result as bytes
+    let result: Uint8Array | undefined;
+    if (item.result?.ok) {
+      result = item.result.ok instanceof Uint8Array
+        ? item.result.ok
+        : new Uint8Array(Buffer.from(String(item.result.ok).replace('0x', ''), 'hex'));
+    }
+
+    return {
+      packageHash: toBytes(ctx?.packageSpec?.hash ?? ''),
+      exportsRoot: toBytes(ctx?.packageSpec?.exports_root ?? ''),
+      authorizerHash: toBytes(ctx?.authorizerHash ?? ''),
+      payloadHash: toBytes(item.payload_hash ?? ''),
+      gas: coerceU64(item.accumulate_gas) ?? 100000n,
+      result: result ?? new Uint8Array(0),
+      authorizerTrace: ctx?.authOutput ? toBytes(ctx.authOutput) : undefined,
+    };
+  });
+
+  // Build the conformant input sequence for FETCH selector 14
+  let inputSequence: Uint8Array | undefined;
+  if (workItemsForCodec.length > 0) {
+    inputSequence = buildAccumulateInputSequence(workItemsForCodec, []);
+
+    if (process.env.JAM_DEBUG_ACC === '1' && inputSequence) {
+      console.log(`[acc:inputSeq] Built input sequence: ${inputSequence.length} bytes for ${serviceItems.length} items`);
+      console.log(`[acc:inputSeq] First 20 bytes: [${Array.from(inputSequence.subarray(0, 20)).map((b: number) => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`);
+      console.log(`[acc:inputSeq] Last 30 bytes: [${Array.from(inputSequence.subarray(-30)).map((b: number) => '0x' + b.toString(16).padStart(2, '0')).join(', ')}]`);
+    }
+  }
+
   // Provide storage in env, paramBlob vector for args, and workItems vector
   const env = makeHostEnv({
     storage: seeded,
     vectors: {
       paramBlob: argsEncoded,
       workItems: workItemsEncoded,
+      ...(inputSequence && { authoriserTrace: inputSequence }),
     },
     workItemsList, // Pass structured work items for indexed access
     initAcc: {
@@ -194,15 +242,26 @@ export async function accumulateSingleService(
           : BigInt(process.env.JAM_PVM_ENTRYPOINT || "5"), // Default 5 per B.4, or use env var
     });
   } catch (err) {
-    // If we can't load/parse the service blob (e.g., ejected service, unparseable blob),
-    // treat it as a Panic exit
+    // B.9: if c is null or |c| > WC, return (e, [], null, 0, [])
+    // When code is unavailable (no preimage), return immediately with u = 0 (gas used = 0)
+    // This happens for ejected services or services whose code preimage isn't available
     console.log(`[acc:error] Failed to load service ${serviceId}: ${err}`);
-    pvm = {
-      exit: { type: ExitReasonType.Panic },
-      gas: 0n,
-      registers: new Array(13).fill(0n),
-      memory: new Uint8Array(),
-      pc: 0,
+    console.log(`[acc:error] Returning with gas = 0 per Graypaper B.9 (code unavailable)`);
+    return {
+      serviceId,
+      itemCount: serviceItems.length,
+      newTransfers: [],
+      newServices: [],
+      codeUpgrades: [],
+      selfTerminated: false,
+      commitmentHash: undefined,
+      actualGasUsed: 0n,  // B.9: u = 0 when c = ∅
+      codeUnavailable: true,  // B.9: Flag that code was unavailable
+      storageWrites: [],
+      storageDeletes: [],
+      storageInsertCount: 0,
+      storageValueBytesDelta: 0,
+      thresholdBalanceDelta: 0n,
     };
   }
 
@@ -334,12 +393,91 @@ export async function accumulateSingleService(
       amount: t.amount,
     })) ?? [];
 
-  // 5) ephemeral result from PVM + effects
+  // 5) Compute storage insert/update tracking for gas overhead
+  // Compare write keys against seeded storage to determine if INSERT or UPDATE
+  let storageInsertCount = 0;
+  let storageValueBytesDelta = 0;
+
+  // Track unique keys written (in case of multiple writes to same key)
+  const writtenKeys = new Map<string, Uint8Array>();
+  for (const w of storageWrites) {
+    const keyHex = Buffer.from(w.key).toString("hex");
+    writtenKeys.set(keyHex, w.value);  // Last write wins for final value
+  }
+
+  if (process.env.JAM_DEBUG_ACC === '1') {
+    console.log(`[acc:storage-tracking] svc=${serviceId} storageWrites.length=${storageWrites.length} writtenKeys.size=${writtenKeys.size} originalStorageSizes.size=${originalStorageSizes.size}`);
+  }
+
+  for (const [keyHex, newValue] of writtenKeys) {
+    // Use originalStorageSizes which captures the pre-PVM state (seeded map may have been mutated)
+    const oldSize = originalStorageSizes.get(keyHex);
+    if (process.env.JAM_DEBUG_ACC === '1') {
+      console.log(`[acc:storage-key] key=${keyHex} newLen=${newValue.length} oldLen=${oldSize ?? 'INSERT'}`);
+    }
+    if (oldSize === undefined) {
+      // New key - INSERT
+      storageInsertCount++;
+      storageValueBytesDelta += newValue.length;
+    } else {
+      // Existing key - UPDATE
+      storageValueBytesDelta += (newValue.length - oldSize);
+    }
+  }
+
+  if (process.env.JAM_DEBUG_ACC === '1') {
+    console.log(`[acc:storage-result] inserts=${storageInsertCount} bytesDelta=${storageValueBytesDelta}`);
+  }
+
+  // 6) Compute threshold balance delta (9.8)
+  // Calculate a_t before PVM execution (pre-state)
+  const gratisOffset = svc.data.service.deposit_offset ?? 0n;
+  const atAnterior = computeThresholdBalance(
+    svc.data.storage,
+    svc.data.preimages_status ?? [],
+    typeof gratisOffset === 'bigint' ? gratisOffset : BigInt(gratisOffset)
+  );
+
+  // Build post-state storage by applying writes to a copy of the original
+  const postStorage: StorageMapEntry[] = [];
+  const writtenKeySet = new Set(writtenKeys.keys());
+
+  // Keep entries not overwritten
+  for (const entry of svc.data.storage) {
+    const keyHex = Buffer.from(entry.key).toString("hex");
+    if (!writtenKeySet.has(keyHex)) {
+      postStorage.push(entry);
+    }
+  }
+
+  // Add new/updated entries from writes
+  for (const [keyHex, value] of writtenKeys) {
+    postStorage.push({
+      key: new Uint8Array(Buffer.from(keyHex, 'hex')),
+      value: value
+    });
+  }
+
+  // Calculate a after PVM execution (post-state)
+  const atPosterior = computeThresholdBalance(
+    postStorage,
+    svc.data.preimages_status ?? [],
+    typeof gratisOffset === 'bigint' ? gratisOffset : BigInt(gratisOffset)
+  );
+
+  const thresholdBalanceDelta = atPosterior - atAnterior;
+
+  if (process.env.JAM_DEBUG_ACC === '1') {
+    console.log(`[acc:threshold] svc=${serviceId} atPre=${atAnterior.toString()} atPost=${atPosterior.toString()} delta=${thresholdBalanceDelta.toString()}`);
+  }
+
+  // 7) ephemeral result from PVM + effects
   const actualGasUsed = gasForVm - (pvm.gas ?? 0n);
   // const selfTerminated = pvm.exit?.type === ExitReasonType.Halt;
 
   const ep: AccumulateEphemeral = {
     serviceId,
+    itemCount: serviceItems.length,  // Track number of work items for statistics
     newTransfers,
     newServices: [],
     codeUpgrades: [],
@@ -348,6 +486,9 @@ export async function accumulateSingleService(
     actualGasUsed,
     storageWrites,
     storageDeletes,
+    storageInsertCount,
+    storageValueBytesDelta,
+    thresholdBalanceDelta,  //  9.8
   };
 
   return ep;

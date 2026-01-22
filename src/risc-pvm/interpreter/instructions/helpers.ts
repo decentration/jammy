@@ -67,6 +67,21 @@ function readBytesImpl(s: InterpreterState, addr: number, len: number, allowLowM
     return { state: panicLowMemory(s) };
   }
 
+  // A.42: Addresses 0 to ZZ-1 map to the code segment (read-only)
+  if (addr < ZZ && (addr + len) <= ZZ) {
+    // Route to code array (stored in s.code)
+    const code = s.code;
+    if (addr >= 0 && (addr + len) <= code.length) {
+      const bytes = code.subarray(addr, addr + len);
+      if (DBG) console.log(`[readBytes:code] addr=0x${addr.toString(16)} len=${len} bytes=[${Array.from(bytes).slice(0, 8).join(',')}]`);
+      return { bytes, state: s };
+    } else {
+      // Out of bounds within code segment - return zeros (undefined code space)
+      if (DBG) console.log(`[readBytes:code] addr=0x${addr.toString(16)} OOB, returning zeros`);
+      return { bytes: new Uint8Array(len), state: s };
+    }
+  }
+
   const ctx: any = s.context ?? {};
   const { argsBand, stackBand, argsBase, stackStart, stackTop } = ctx;
 
@@ -84,7 +99,7 @@ function readBytesImpl(s: InterpreterState, addr: number, len: number, allowLowM
       const off = addr - stackStart;
       if (off < 0 || (off + len) > stackBand.length) {
         if (DBG) console.log(`[readBytes:stack] OOB check failed! off=${off} len=${len} limit=${stackBand.length}`);
-        return { state: triggerFaultWithDetail(s, addr >>> 16) };
+        return { state: triggerFaultWithDetail(s, addr >>> 12) };
       }
       const bytes = stackBand.subarray(off, off + len);
       if (DBG) console.log(`[readBytes:stack] addr=0x${addr.toString(16)} bytes=[${Array.from(bytes).join(',')}] bandLen=${stackBand.length}`);
@@ -94,9 +109,9 @@ function readBytesImpl(s: InterpreterState, addr: number, len: number, allowLowM
 
   // IO CHECK
   if (isIoAddr(addr)) {
-    if (!ctx.ioBuffer) return { state: triggerFaultWithDetail(s, addr >>> 16) };
+    if (!ctx.ioBuffer) return { state: triggerFaultWithDetail(s, addr >>> 12) };
     const off = (addr - IO_BASE) >>> 0;
-    if ((off + len) > ctx.ioBuffer.length) return { state: triggerFaultWithDetail(s, addr >>> 16) };
+    if ((off + len) > ctx.ioBuffer.length) return { state: triggerFaultWithDetail(s, addr >>> 12) };
     return { bytes: ctx.ioBuffer.subarray(off, off + len), state: s };
   }
 
@@ -106,14 +121,14 @@ function readBytesImpl(s: InterpreterState, addr: number, len: number, allowLowM
   if (badPage !== undefined) return { state: triggerFaultWithDetail(s, badPage) };
   if (addr < 0 || (addr + len) > s.memory.length) {
     if (DBG) console.log(`[readBytes:ram] OOB: addr=${addr} + len=${len} > memLen=${s.memory.length}`);
-    return { state: triggerFaultWithDetail(s, addr >>> 16) };
+    return { state: triggerFaultWithDetail(s, addr >>> 12) };
   }
   const bytes = s.memory.subarray(addr, addr + len);
   if (DBG) console.log(`[readBytes:ram] success at 0x${addr.toString(16)} data=[${Array.from(bytes).slice(0, 8).join(',')}]`);
   return { bytes, state: s };
 }
 
-// Host-call pointer reads should treat pointers < 64 KiB as invalid (low-mem => Panic).
+// Host-call pointer reads should treat pointers < ZZ (64 KiB) as invalid (low-mem => Panic).
 export function readBytes(s: InterpreterState, addr: number, len: number) {
   return readBytesImpl(s, addr, len, false);
 }
@@ -152,8 +167,15 @@ function writeBytesImpl(s: InterpreterState, addr: number, buf: Uint8Array, allo
 
   // ROUTE FIRST
   if (argsBand && inBand(argsBase, argsBand.length, addr, buf.length)) {
-    // args are read-only => fault on write
-    return triggerFaultWithDetail(s, addr >>> 16);
+    // FIX: Args zone should be writable for services that use it as scratch space
+    // The service binary expects to write to the args zone during initialization
+    const off = addr - argsBase;
+    if (DBG) console.log(`[writeBytes:args] addr=0x${addr.toString(16)} off=${off} len=${buf.length}`);
+    if (off < 0 || (off + buf.length) > argsBand.length) {
+      return triggerFaultWithDetail(s, addr >>> 12);
+    }
+    argsBand.set(buf, off);
+    return s;
   }
 
   if (stackBand && stackStart !== undefined && stackTop !== undefined) {
@@ -162,7 +184,7 @@ function writeBytesImpl(s: InterpreterState, addr: number, buf: Uint8Array, allo
       const off = addr - stackStart;
       if (DBG) console.log(`[writeBytes:stack] addr=0x${addr.toString(16)} off=${off} len=${buf.length} bytes=[${Array.from(buf).slice(0, 8).join(',')}]`);
       if (off < 0 || (off + buf.length) > stackBand.length) {
-        return triggerFaultWithDetail(s, addr >>> 16);
+        return triggerFaultWithDetail(s, addr >>> 12);
       }
       stackBand.set(buf, off);
       return s;
@@ -171,9 +193,9 @@ function writeBytesImpl(s: InterpreterState, addr: number, buf: Uint8Array, allo
 
   // IO CHECK
   if (isIoAddr(addr)) {
-    if (!ctx.ioBuffer) return triggerFaultWithDetail(s, addr >>> 16);
+    if (!ctx.ioBuffer) return triggerFaultWithDetail(s, addr >>> 12);
     const off = (addr - IO_BASE) >>> 0;
-    if ((off + buf.length) > ctx.ioBuffer.length) return triggerFaultWithDetail(s, addr >>> 16);
+    if ((off + buf.length) > ctx.ioBuffer.length) return triggerFaultWithDetail(s, addr >>> 12);
     ctx.ioBuffer.set(buf, off);
     return s;
   }
@@ -184,7 +206,7 @@ function writeBytesImpl(s: InterpreterState, addr: number, buf: Uint8Array, allo
   if (badPage !== undefined) return triggerFaultWithDetail(s, badPage);
   if (addr < 0 || (addr + buf.length) > s.memory.length) {
     if (DBG) console.log(`[writeBytes:ram] OOB: addr=${addr} + len=${buf.length} > memLen=${s.memory.length}`);
-    return triggerFaultWithDetail(s, addr >>> 16);
+    return triggerFaultWithDetail(s, addr >>> 12);
   }
   s.memory.set(buf, addr);
   if (DBG) console.log(`[writeBytes:ram] success at 0x${addr.toString(16)}`);

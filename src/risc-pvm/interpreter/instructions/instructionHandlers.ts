@@ -89,12 +89,17 @@ export const fallthroughHandler: ExecutionHandler = (s) => ({
 });
 
 export const ecalliHandler: ExecutionHandler = (s, [imm]) => {
-    const additionalGas = 9n; // 10 total - 1 base = 9 additional
-    // ecalli is always 3 bytes in SDK-generated code: 1 opcode + 2 byte immediate
+    // ecalli is 3 bytes in SDK-generated code: 1 opcode + 2 byte immediate
+    // Base instruction cost (1 gas) deducted in executeSingleStep
+    // Additional host call gas (10 total per B.5) deducted in dispatchHostCall
+    // 
+    // IMPORTANT: We do NOT advance PC here - keep PC pointing at ecalli.
+    // This matches reference implementations (Ananas, TypeBerry) via pvm-debugger, which count
+    // the ecalli instruction as a separate step before the host call result.
+    // PC will be advanced by 3 in dispatchHostCall after host call completes.
     return {
         ...s,
-        pc: s.pc + 3,
-        gas: s.gas - additionalGas,
+        // pc: s.pc,  // Keep PC at ecalli (unchanged)
         exit: { type: ExitReasonType.HostCall, id: BigInt(imm) },
     }
 };

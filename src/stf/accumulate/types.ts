@@ -2,28 +2,27 @@ import { Bytes, Codec, u32 } from "scale-ts";
 import { Gas, OpaqueHash, Report, ServicesStatisticsMapEntry } from "../../types";
 import { Entropy } from "../reports/types";
 import { ServiceInfo } from "../types";
-import { Statistics } from "../statistics/types";
 
 export type ServiceId = number; // u32
 export type AccountId = number; // u32
-export type WorkPackageHash = OpaqueHash; 
+export type WorkPackageHash = OpaqueHash;
 export type WorkReportHash = OpaqueHash;
 
 export const AccountIdCodec = u32;
 export const WorkPackageHashCodec = Bytes(32);
 
-export type Reports = Report[]; 
+export type Reports = Report[];
 
-export interface AccumulateInput { 
+export interface AccumulateInput {
     slot: number,
-    reports: Reports, 
+    reports: Reports,
 }
 
-export type AccumulateOutput =  { ok: OpaqueHash | null };
+export type AccumulateOutput = { ok: OpaqueHash | null };
 
 export type ServicesStatistics = ServicesStatisticsMapEntry[];
 
-export interface AccumulateState { 
+export interface AccumulateState {
     slot: number,
     entropy: Entropy, // 32 bytes
     ready_queue: ReadyQueue,
@@ -39,7 +38,7 @@ export interface Privileges {
     assign: AssignArray,
     designate: ServiceId,
     register: ServiceId, // TODO add to accumulate pipeline logic
-    always_acc: AlwaysAccumulateMapEntry[], 
+    always_acc: AlwaysAccumulateMapEntry[],
 }
 
 export interface SingleReportItem {
@@ -53,7 +52,7 @@ export type AlwaysAccumulateMapEntry = {
 }
 
 //------ Ready Queue ------
-export type ReadyQueue = ReadyQueueItem[];  
+export type ReadyQueue = ReadyQueueItem[];
 
 export type ReadyQueueItem = ReadyRecord[];
 
@@ -81,7 +80,7 @@ export interface AccumulateStf {
     post_state: AccumulateState
 }
 
-export type  Accounts = AccountItem[];
+export type Accounts = AccountItem[];
 
 export interface AccountItem {
     id: AccountId;  // u32
@@ -108,12 +107,12 @@ export interface AccountData {
     preimages_status: PreimagesStatus, // TODO apply to accumulate pipeline logic 
 }
 
-export type PreimagesBlob =  PreimagesBlobItem[]; 
+export type PreimagesBlob = PreimagesBlobItem[];
 
 export interface PreimagesBlobItem {
     hash: OpaqueHash,
     blob: Uint8Array,
-} 
+}
 
 export type PreimagesStatus = PreimagesStatusItem[];
 
@@ -150,18 +149,40 @@ export interface StorageWrites {
 }
 
 export interface AccumulateEphemeral {
-    serviceId: number; 
+    serviceId: number;
+    itemCount?: number;              // Number of work items processed in this batch
     newTransfers?: NewTransfer[];
     newServices?: NewService[];
     codeUpgrades?: CodeUpgrade[];
     selfTerminated?: boolean;
-    commitmentHash?: string; 
+    commitmentHash?: string;
     actualGasUsed?: Gas;
-    storageWrites?: StorageWrites[]; 
+    codeUnavailable?: boolean;       // B.9: True if code was unavailable (c = ∅)
+    storageWrites?: StorageWrites[];
     storageDeletes?: Uint8Array[];
-  }
+    storageInsertCount?: number;     // Number of writes to NEW keys (vs updates to existing)
+    storageValueBytesDelta?: number; // Net change in storage value bytes (positive = growth)
+    thresholdBalanceDelta?: bigint;  // 9.8 for protocol overhead
+}
 
 
-  
-  
-  
+export interface ReportContext {
+    packageSpec?: {
+        hash: Uint8Array;
+        length: number;
+        erasure_root: Uint8Array;
+        exports_root: Uint8Array;
+    };
+    authorizerHash?: Uint8Array;
+    authOutput?: Uint8Array;
+    context?: {
+        anchor: Uint8Array;
+        state_root: Uint8Array;
+        beefy_root: Uint8Array;
+        lookup_anchor: Uint8Array;
+        lookup_anchor_slot: number;
+        prerequisites: Uint8Array[];
+    };
+}
+
+

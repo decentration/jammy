@@ -56,11 +56,11 @@ export function checkAccess(
   }
   // Args band: allow reads, deny writes
   if (isInArgsBand(addr, len)) {
-    return isWrite ? ((addr >>> 16) as number) : undefined;
+    return isWrite ? ((addr >>> 12) as number) : undefined;
   }
 
-  const firstPage = addr >>> 16;
-  const lastPage = end >>> 16;
+  const firstPage = addr >>> 12;
+  const lastPage = end >>> 12;
 
   for (let p = firstPage; p <= lastPage; p++) {
     const meta = pageTable[p] ?? { read: false, write: false };
@@ -78,7 +78,7 @@ export function checkAccess(
 
 // We raise a page-fault with the 16-bit page id (detail = addr >> 16).
 const raisePageFault = (addr: number): never => {
-  const page = (addr >>> 16) & 0xffff;
+  const page = (addr >>> 12) & 0xfffff;  // 20-bit page index for 4KiB pages
   const err: any = new Error(`PageFault detail=${page}`);
   err.code = "PAGE_FAULT";
   err.detail = page;

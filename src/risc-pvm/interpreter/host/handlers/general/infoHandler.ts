@@ -15,6 +15,10 @@ export const infoHandler: HostCallHandler = (s, _id, env) => {
   const xsId = env.acc?.allocator?.env?.currentServiceId;
   const targetId = (rawId === NONE ? xsId : rawId);
 
+  if (process.env.JAM_DEBUG_INFO === "1") {
+    console.log(`[infoHandler] ENTRY: rawId=${rawId}, xsId=${xsId}, targetId=${targetId}, dest=${dest}`);
+  }
+
   let acct: ServiceAccount | undefined;
   if (targetId === undefined) {
     acct = undefined;
@@ -23,6 +27,9 @@ export const infoHandler: HostCallHandler = (s, _id, env) => {
   }
 
   if (!acct) {
+    if (process.env.JAM_DEBUG_INFO === "1") {
+      console.log(`[infoHandler] acct undefined, returning NONE`);
+    }
     // wehn v is empty, write nothing to memory
     const r = s.registers.slice();
     r[7] = NONE;
@@ -33,6 +40,9 @@ export const infoHandler: HostCallHandler = (s, _id, env) => {
   // encode service info (80 bytes with our helper)
   const v = (env.encodeInfo ?? encodeInfoHelper)(acct);
   const vLength = v.length;
+  if (process.env.JAM_DEBUG_INFO === "1") {
+    console.log(`[infoHandler] vLength=${vLength} expected=80 hasCustomEncoder=${!!env.encodeInfo}`);
+  }
 
   const f = Math.min(reqF, vLength);
   const l = Math.min(reqL, vLength - f);

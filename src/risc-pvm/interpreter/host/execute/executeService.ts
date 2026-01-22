@@ -17,20 +17,21 @@ export function executeProgram(opts: ExecOpts): InterpreterState {
     console.log("[executeProgram] strictVm in ExecOpts =", opts.strictVm);
   }
 
-  
-  const { init } = prepareProgram(opts.programBlob, opts.memSize ?? (1<<20), opts.args ?? new Uint8Array());
+
+  const { init } = prepareProgram(opts.programBlob, opts.memSize ?? (1 << 20), opts.args ?? new Uint8Array());
   const code = preferCache(opts.codeHash, init.code, opts.preferCachedCode ?? true);
 
   return runBlob(code, opts.initialGas, {
-    env: opts.env, 
-    overrideHost: opts.overrideHost, 
+    env: opts.env,
+    overrideHost: opts.overrideHost,
     strictVm: opts.strictVm ?? true,
     memory: opts.memory,
-    memSize: opts.memSize ?? (1<<20),
-    heapStart: init.heapStart, 
-    heapEnd: init.heapEnd, 
+    memSize: opts.memSize ?? (1 << 20),
+    heapStart: init.heapStart,
+    heapPointer: 'heapPointer' in init ? (init as any).heapPointer : undefined,  // A.42
+    heapEnd: init.heapEnd,
     memInit: init.memInit,
-    registers: init.registers, 
+    registers: opts.registers ? Array.from(opts.registers) : init.registers,
     mapPlan: init.mapPlan,
     args: opts.args, // Pass args to runBlob so they can be copied to args band
     stackSizeBytes: 'stackSizeBytes' in init ? (init as any).stackSizeBytes : undefined, // Pass stack size if available

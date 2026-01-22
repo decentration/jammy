@@ -17,11 +17,11 @@ export interface HostEnvInterface {
   getStorage?: (key: Uint8Array) => Uint8Array | undefined;  // as[k] / ss[k] in ΩR and ΩW 
   putStorage?: (key: Uint8Array, value: Uint8Array) => void; // mutate ΩW
   deleteStorage?: (key: Uint8Array) => void; // delete ΩW
-  lookupPreimage?:  (hash: Uint8Array) => Uint8Array | undefined;  // ΩL provides ap[...] value
-  getInfo?:        (id: bigint) => any; // t in ΩI
-  encodeInfo?:     (info: any) => Uint8Array; // m in ΩI
+  lookupPreimage?: (hash: Uint8Array) => Uint8Array | undefined;  // ΩL provides ap[...] value
+  getInfo?: (id: bigint) => any; // t in ΩI
+  encodeInfo?: (info: any) => Uint8Array; // m in ΩI
   hasService?: (id: bigint) => boolean; // used by various
-  isFull? (): boolean; //  ΩW and ΩE to retrun FULL
+  isFull?(): boolean; //  ΩW and ΩE to retrun FULL
 
   historicalLookup?: (hash: Uint8Array) => Uint8Array | undefined; // ΩH
   exportOffset?: number;  // ΩE offset to export data
@@ -42,6 +42,11 @@ export interface HostEnvInterface {
 
   ioBuffer?: Uint8Array;
 
+  // Structured work items for indexed fetch access (B.5 selectors 5/6)
+  // Each work item is an array of encoded fields
+  workItemsList?: Uint8Array[][];
+  // Current work item index for sel=6
+  currentWorkItemIndex?: number;
 
 }
 
@@ -63,7 +68,9 @@ export interface HostEnvOptions {
 
   ioBuffer?: Uint8Array;
   ioBufferSize?: number;
-  
+  // Structured work items for indexed fetch access (B.5 selectors 5/6)
+  workItemsList?: Uint8Array[][];
+  currentWorkItemIndex?: number;
 }
 
 export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
@@ -81,21 +88,21 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     accounts,
     activationFee = 0n,
     initAcc,
-    
+
   } = opts;
 
   // Convert the vectors object into a Map for fast lookup
   const keyStr = (u8: Uint8Array) => Buffer.from(u8).toString("hex");
-  const keyU8  = (hex: string) => new Uint8Array(Buffer.from(hex, "hex"));
+  const keyU8 = (hex: string) => new Uint8Array(Buffer.from(hex, "hex"));
 
   const map = new Map(Object.entries(vectors) as [FetchVector, Uint8Array][]);
-  const store  = storage ?? new Map<string, Uint8Array>();
+  const store = storage ?? new Map<string, Uint8Array>();
   const stagedWrites: { key: Uint8Array; value: Uint8Array }[] = [];
   const stagedDeletes: Uint8Array[] = [];
-  const images  = preImage ?? new Map<string, Uint8Array>();
-  const infos   = infoMap  ?? new Map<string, Uint8Array>();
+  const images = preImage ?? new Map<string, Uint8Array>();
+  const infos = infoMap ?? new Map<string, Uint8Array>();
   const mTable = machines ?? new Map<number, { p: Uint8Array; u: any; i: number }>();
-  const svcTab  = accounts ?? new Map<bigint, ServiceAccount>();
+  const svcTab = accounts ?? new Map<bigint, ServiceAccount>();
   const initEnv = hydrateAccEnv(initAcc?.allocator?.env);
 
   const ioBuffer = new Uint8Array(0x20000); // 128 KiB, zeroed
@@ -105,8 +112,8 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   store.forEach(v => { used += v.length; });
 
   // get, put, del functions for storage
-  const get  = (k: Uint8Array) => store.get(keyStr(k));
-  const put  = (k: Uint8Array, v: Uint8Array) => { 
+  const get = (k: Uint8Array) => store.get(keyStr(k));
+  const put = (k: Uint8Array, v: Uint8Array) => {
     const s = keyStr(k);
     const old = store.get(s);
     if (old) used -= old.length;
@@ -143,25 +150,25 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     assignCore: new Map(
       [...(initEnv?.assignCore ?? new Map<number, Uint8Array>())]
         .map(([idx, vec]) => [idx, vec.slice()]) // deep copy each Uint8Array
-    ),    
+    ),
     designationEntries: new Map([...(initEnv?.designationEntries ?? new Map())]
       .map(([svcId, entry]) => [svcId, cloneEntry(entry)]))
   };
-  
+
   const acc: AccumulateContext = { // acc(umulator) context
     allocator: {
       index: initAcc?.allocator?.index ?? 0n,
       env: xe,
       transfers: (initAcc?.allocator?.transfers ?? []).map(t => ({
         from: t.from, to: t.to, amount: t.amount, gasLimit: t.gasLimit, memo: t.memo.slice()
-      })),         
+      })),
       providesSeen: new Map(
         [...(initAcc?.allocator?.providesSeen ?? new Map<bigint, Set<string>>())]
           .map(([sid, set]) => [sid, new Set(set)])
       ),
       provides: (initAcc?.allocator?.provides ?? []).map(p => ({ s: p.s, i: p.i.slice() })),
     },
-    session: { 
+    session: {
       yield: initAcc?.session?.yield,
       checkpoint: initAcc?.session?.checkpoint,
     }
@@ -172,16 +179,16 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
   }
 
   const runInnerMachineFinal =
-  runInnerMachine ?? ((p, ic, gas, regs, u) => ({
-    exit: ExitReasonType.Halt,
-    nextIc: ic,
-    gasRemaining: gas,
-    regs,
-    u
-  }));
+    runInnerMachine ?? ((p, ic, gas, regs, u) => ({
+      exit: ExitReasonType.Halt,
+      nextIc: ic,
+      gasRemaining: gas,
+      regs,
+      u
+    }));
 
 
-  
+
   return {
     now: () => now,
 
@@ -190,9 +197,9 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     ioBuffer,
 
     //only used when provided
-    getStorage : get,
-    putStorage : put,
-    deleteStorage : del,
+    getStorage: get,
+    putStorage: put,
+    deleteStorage: del,
 
     getStagedStorageWrites: () => stagedWrites.map(w => ({ key: w.key.slice(), value: w.value.slice() })),
     getStagedStorageDeletes: () => stagedDeletes.map(k => k.slice()),
@@ -200,18 +207,18 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
       Array.from(store.entries()).map(([hex, val]) => ({ key: keyU8(hex), value: val.slice() })),
     clearStaged: () => { stagedWrites.length = 0; stagedDeletes.length = 0; },
 
-    lookupPreimage: h => images.get(keyStr(h)), 
+    lookupPreimage: h => images.get(keyStr(h)),
     historicalLookup: h => images.get(keyStr(h)), // refine
-    getInfo     : (id: bigint) => svcTab.get(id),
+    getInfo: (id: bigint) => svcTab.get(id),
     encodeInfo: encodeInfoHelper,
 
-    isFull     : () => used > capBytes,
+    isFull: () => used > capBytes,
 
-    getService, 
+    getService,
     putService,
     hasService,
 
-    exportOffset : expOff,
+    exportOffset: expOff,
     exportSegments: expSegs ?? [],
     machineTable: mTable,
     runInnerMachine: runInnerMachineFinal,
@@ -226,9 +233,12 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
       );
     },
 
-  
+    // Indexed work items for fetch selectors 5/6
+    workItemsList: opts.workItemsList,
+    currentWorkItemIndex: opts.currentWorkItemIndex,
+
   };
 }
 
 
-  
+

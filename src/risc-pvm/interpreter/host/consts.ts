@@ -57,7 +57,9 @@ import {
   TOTAL_GAS_FOR_WORK_PACKAGE_IS_AUTHORIZED_LOGIC,
   TOTAL_GAS_FOR_WORK_PACKAGE_REFINE_LOGIC,
   VALIDATOR_COUNT,
-  EC_PIECES_PER_SEGMENT
+  EC_PIECES_PER_SEGMENT,
+  WE_OVERRIDE,
+  WP_OVERRIDE
 } from "../../../consts";
 
 export const BI = 10;
@@ -90,14 +92,21 @@ export const V = VALIDATOR_COUNT; // validator count
 export const WA = 64_000 // The maximum size of is-authorized code in octets.
 // WB moved below dependencies
 export const WC = 4_000_000 // The maximum size of service code in octets.
-export const WE = 684 // The basic size of erasure-coded pieces in octets. See equation H.6.
-export const WP = 6 // The number of erasure-coded pieces in a segment.
-export const WG = WP * WE // = 4104 The size of a segment in octets.
+
+// Graypaper I.4 Canonical Erasure-Coding Values (v0.7.2) - for reference
+export const WE_GRAYPAPER = 684;  // The basic size of erasure-coded pieces in octets. (H.4)
+export const WP_GRAYPAPER = 6;    // The number of erasure-coded pieces in a segment.
+export const WG_GRAYPAPER = WP_GRAYPAPER * WE_GRAYPAPER; // = 4104 segment size
+
+// Active erasure-coding values (sourced from chainspec - may differ from Graypaper for conformance testing)
+export const WE = WE_OVERRIDE;  // Graypaper: 684, Tiny: 4
+export const WP = WP_OVERRIDE;  // Graypaper: 6, Tiny: 1026
+export const WG = WP * WE // The size of a segment in octets.
 export const WM = MAX_IMPORTS_EXPORTS_IN_WORK_PACKAGE // max imports
 export const WR = MAX_WORK_SIZE // max work-report output size (octets)
 export const WT = 128 // The size of a transfer memo in octets.
 export const WX = MAX_IMPORTS_EXPORTS_IN_WORK_PACKAGE // max exports
-export const WB = WM * (WG + 1 + 32 * Math.ceil(Math.log2(WT))) + 4096 + 1 // The maximum size of an encoded work-package together with its extrinsic data and import implications, in octets.
+export const WB = 13791360
 export const Y = CONTEST_DURATION // (tiny config uses this as Y)
 export const ZA = 2 // The pvm dynamic address alignment factor. See equation A.18.
 export const ZI = 1 << 24 // The standard pvm program initialization input data size. See equation A.7.
@@ -106,13 +115,17 @@ export const ZZ = 1 << 16 // The standard pvm program initialization zone size. 
 
 
 const U32 = 0x1_0000_0000;                // 2^32
-export const ARGS_BASE = (U32 - ZZ - ZI) >>> 0;          // 0xFEFF0000
-export const STACK_TOP = (U32 - 2 * ZZ - ZI) >>> 0;        // 0xFEFE0000
-export const STACK_SIZE = ZZ;
-export const STACK_START = (STACK_TOP - STACK_SIZE) >>> 0;
+// A.43: r0 = 2^32 - 2^16 = 0xFFFF0000 (stack top)
+// A.43: r1 = 2^32 - 2ZZ - ZI = 0xFEFE0000 (args base)  
+// A.43: r7 = 2^32 - ZZ - ZI = 0xFEFF0000 (args end)
+export const STACK_TOP = (U32 - (1 << 16)) >>> 0;       // 0xFFFF0000 (r0)
+export const ARGS_BASE = (U32 - 2 * ZZ - ZI) >>> 0;     // 0xFEFE0000 (r1) 
+export const ARGS_END = (U32 - ZZ - ZI) >>> 0;         // 0xFEFF0000 (r7)
+export const STACK_START = ARGS_END;                    // Stack: 0xFEFF0000 - 0xFFFF0000
+export const STACK_SIZE = STACK_TOP - STACK_START;      // Should be 0x10000 = 65536
 
 export const isInArgsBand = (addr: number, len = 1) =>
-  addr >= ARGS_BASE && (addr + len) <= (ARGS_BASE + ZI);
+  addr >= ARGS_BASE && (addr + len) <= ARGS_END;
 
 export const isInStackBand = (addr: number, len = 1) =>
   addr >= STACK_START && (addr + len) <= STACK_TOP;
@@ -136,3 +149,8 @@ export const MAX_PAGES = 1 << 20;       // 2^32 / 2^12 = 1,048,576
 export const RING_START = 1n << 8n;
 export const STEP = 1n << 9n;
 export const RING_SPAN = (1n << 32n) - STEP;
+
+
+// ---
+export const STORAGE_ENTRY_OVERHEAD = 34; // Per-entry overhead in storage footprint calculation. Each storage entry includes: 32-byte key hash + 2 bytes for length encoding
+

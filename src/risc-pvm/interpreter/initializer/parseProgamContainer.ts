@@ -5,7 +5,7 @@ import { readN } from "./utils";
 // returns container parts with human readable names 
 // Otherwise returns null and the caller should treat input as raw blob
 export function parseProgramContainer(buf: Uint8Array): ProgramContainerParts | null {
- 
+
   // parse once with a given endianness
   const parseOnce = (le: boolean): ProgramContainerParts | null => {
     let off = 0;
@@ -19,16 +19,20 @@ export function parseProgramContainer(buf: Uint8Array): ProgramContainerParts | 
     if (off4 + roLen + rwLen + 4 > buf.length) return null;
 
     const roStart = off4;
-    const roEnd   = roStart + roLen;
+    const roEnd = roStart + roLen;
     const rwStart = roEnd;
-    const rwEnd   = rwStart + rwLen;
+    const rwEnd = rwStart + rwLen;
 
     const step5 = R(rwEnd, 4, le); if (!step5) return null; const [codeLen, off5] = step5;
     if (off5 + codeLen > buf.length) return null;
 
-    const readOnly  = buf.slice(roStart, roEnd);       // o
+    const readOnly = buf.slice(roStart, roEnd);       // o
     const readWrite = buf.slice(rwStart, rwEnd);       // w
-    const code      = buf.slice(off5, off5 + codeLen); // c
+    const code = buf.slice(off5, off5 + codeLen); // c
+
+    if (process.env.JAM_DEBUG_PARSE === "1") {
+      console.log(`[parseProgramContainer] roLen=${roLen} rwLen=${rwLen} reservePages=${reservePages} stackSizeBytes=${stackSizeBytes} codeLen=${codeLen}`);
+    }
 
     return { readOnly, readWrite, reservePages, stackSizeBytes, code };
   };

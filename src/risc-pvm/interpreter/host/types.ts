@@ -185,4 +185,5 @@ export interface ExecOpts {
   preferCachedCode?: boolean; // default true
   strictVm?: boolean;
   entryPoint?: bigint;  // entry point selector (5=refine, 12=accumulate, 15=on_transfer)
+  registers?: BigInt64Array;
 };

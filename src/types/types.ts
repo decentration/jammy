@@ -1,15 +1,15 @@
-import { Struct, u8, u16, u32, Bytes, Vector, bool, _void, Codec, u64} from 'scale-ts';
+import { Struct, u8, u16, u32, Bytes, Vector, bool, _void, Codec, u64 } from 'scale-ts';
 import { VarLenBytesCodec } from '../codecs';
 import { BITFIELD_LENGTH } from '../consts';
 import { EpochMark } from '../stf/safrole/types';
 import { WorkPackageHashCodec } from '../stf/accumulate/types';
 
-export const BandersnatchRingVrfSignatureCodec = Bytes(784); 
+export const BandersnatchRingVrfSignatureCodec = Bytes(784);
 export const BandersnatchVrfSignaturesCodec = Bytes(96);
 export const BandersnatchPublicCodec = Bytes(32);
 export const OpaqueHashCodec = Bytes(32);
 export const BlsPublicCodec = Bytes(144);
-export const Ed25519SignatureCodec = Bytes(64); 
+export const Ed25519SignatureCodec = Bytes(64);
 export const Ed25519PublicCodec = Bytes(32);
 export const ValidatorMetadataCodec = Bytes(128)
 export const ServiceIdCodec = u32;
@@ -54,7 +54,7 @@ export type TicketsMark = {
 }
 
 export type OffendersMark = Uint8Array; // Bytes(32)
-  
+
 
 export interface Header {
   parent: Uint8Array;             // Hp: Parent hash
@@ -165,7 +165,7 @@ export const PackageSpecCodec = Struct({
   exports_count: u16,
 });
 export interface Context {
-  anchor: Uint8Array; 
+  anchor: Uint8Array;
   state_root: Uint8Array;
   beefy_root: Uint8Array;
   lookup_anchor: Uint8Array;
@@ -191,7 +191,7 @@ export interface Report {
   auth_output: Uint8Array;
   segment_root_lookup: SegmentItem[]; // Array of Bytes(32)
   results: Result[];
-  
+
 }
 
 export interface Signature {
@@ -253,7 +253,7 @@ export interface Fault {
 
 export const FaultCodec = Struct({
   target: Bytes(32),
-  vote: bool, 
+  vote: bool,
   key: Bytes(32),
   // Context: $jam_guarantee (XG)
   signature: Ed25519SignatureCodec,
@@ -290,7 +290,7 @@ export const ReportedPackageCodec = Struct({
   segment_tree_root: Bytes(32),
 });
 
-                         
+
 export interface ImportSpec {
   tree_root: Uint8Array;  // 32 bytes
   index: number;          // u16
@@ -339,27 +339,27 @@ export interface AvailAssignment {
 
 
 
-  export interface CoresActivityRecord {
-    da_load: number, // u32
-    popularity: number /// u16 
-    imports: number, // u16
-    extrinsic_count: number, // u16
-    extrinsic_size: number, //u16
-    exports: number, // u16
-    bundle_size: number, // u32
-    gas_used: Gas // u64,
-  }
+export interface CoresActivityRecord {
+  da_load: number, // u32
+  popularity: number /// u16 
+  imports: number, // u16
+  extrinsic_count: number, // u16
+  extrinsic_size: number, //u16
+  exports: number, // u16
+  bundle_size: number, // u32
+  gas_used: Gas // u64,
+}
 
-  // export const CoreActivityRecordCodec = Struct({
-  //   da_load: u32,
-  //   popularity: u16,
-  //   imports: u16,
-  //   extrinsic_count: u16,
-  //   extrinsic_size: u32,
-  //   exports: u16,
-  //   bundle_size: u32,
-  //   gas_used: u64,
-  // })
+// export const CoreActivityRecordCodec = Struct({
+//   da_load: u32,
+//   popularity: u16,
+//   imports: u16,
+//   extrinsic_count: u16,
+//   extrinsic_size: u32,
+//   exports: u16,
+//   bundle_size: u32,
+//   gas_used: u64,
+// })
 
 
 
@@ -392,14 +392,14 @@ export interface AvailAssignment {
 
 
 export interface ServiceActivityRecord {
-  provided_count: number, 
-  provided_size: number, 
+  provided_count: number,
+  provided_size: number,
   refinement_count: number,
-  refinement_gas_used: Gas, 
+  refinement_gas_used: Gas,
   imports: number,
   extrinsic_count: number,
-  extrinsic_size: number, 
-  exports: number, 
+  extrinsic_size: number,
+  exports: number,
   accumulate_count: number,
   accumulate_gas_used: Gas,
   // on_transfers_count: number, 

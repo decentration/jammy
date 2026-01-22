@@ -43,9 +43,9 @@ function parseRawBlob(blob: Uint8Array): DeconstructedBlob {
   if (process.env.JAM_DEBUG_VM === "1") {
     console.log("deblob: wholeBlob", blob);
   }
-    // const { blob: blob } = deblobMetadata(blob);
+  // const { blob: blob } = deblobMetadata(blob);
 
-    let offset = 0;
+  let offset = 0;
 
   // 1) Jump table length: E(|j|)
   const { value: jCount, bytesRead: jtLenBytes } = decodeProtocolInt(blob.slice(offset));
@@ -129,25 +129,25 @@ function parseRawBlob(blob: Uint8Array): DeconstructedBlob {
 }
 
 
-export function deblobMetadata ( blob: Uint8Array ): {
+export function deblobMetadata(blob: Uint8Array): {
   metadata: Uint8Array;
   blob: Uint8Array;
 } {
   // console.log("deblobMetadata: blob", blob);
   if (blob.length < 1) throw new Error("Blob is too short");
-  
+
   const metadataLength = blob[0]; // first byte is the metadata length
   // decode the byte into decimal
   if (metadataLength < 1 || metadataLength > 255) {
-      throw new Error("Invalid metadata length");
+    throw new Error("Invalid metadata length");
   }
   if (blob.length < metadataLength + 1) {
-      throw new Error("Blob is too short for the given metadata length");
+    throw new Error("Blob is too short for the given metadata length");
   }
   // return metadata without prefix byte and blob without metadata
   return {
-      metadata: blob.slice(1, metadataLength + 1),
-      blob: blob.slice(metadataLength + 1),
+    metadata: blob.slice(1, metadataLength + 1),
+    blob: blob.slice(metadataLength + 1),
   };
 }
 
@@ -156,51 +156,51 @@ export function deblobMetadata ( blob: Uint8Array ): {
 *  Helper that builds a minimal-valid program blob for testing.
 */
 export function buildBlob({
-    meta,
-    // jumpTbl, // raw bytes of jump table
-    z,
-    instr,
-    jumpEntries,
-    bitmaskBits,
-  }: {
-    meta: Uint8Array;
-    // jumpTbl: Uint8Array; // deprecated
-    z: 1 | 2 | 3 | 4;
-    instr: Uint8Array;
-    jumpEntries: Uint8Array[];
-    bitmaskBits: Uint8Array;
-  }): Uint8Array {
+  meta,
+  // jumpTbl, // raw bytes of jump table
+  z,
+  instr,
+  jumpEntries,
+  bitmaskBits,
+}: {
+  meta: Uint8Array;
+  // jumpTbl: Uint8Array; // deprecated
+  z: 1 | 2 | 3 | 4;
+  instr: Uint8Array;
+  jumpEntries: Uint8Array[];
+  bitmaskBits: Uint8Array;
+}): Uint8Array {
 
-    // if (jumpEntries.length !== jumpTbl.length) throw new Error(`jumpEntries.length (${jumpEntries.length}) != |j| (${jumpTbl.length})`);
-  
-    for (const e of jumpEntries) {
-      console.log("e.length and z", e.length, z);
-      if (e.length !== z) throw new Error(`every Ez(j) entry must be ${z}-byte(s)`);
-    }
+  // if (jumpEntries.length !== jumpTbl.length) throw new Error(`jumpEntries.length (${jumpEntries.length}) != |j| (${jumpTbl.length})`);
 
-    if (![1, 2, 3, 4].includes(z)) throw new Error(`Invalid jump index size: ${z}. Must be 1, 2, or 4 bytes.`);
-    const needMask   = Math.ceil(instr.length / 8);
-    console.log("bitmaskBits.length and needMask", bitmaskBits.length, needMask);
-    if (bitmaskBits.length !== needMask) throw new Error(`bit-mask length ${bitmaskBits.length} != ceil(|c|/8) = ${needMask}`);
-  
-    const parts: Uint8Array[] = [];
+  for (const e of jumpEntries) {
+    console.log("e.length and z", e.length, z);
+    if (e.length !== z) throw new Error(`every Ez(j) entry must be ${z}-byte(s)`);
+  }
 
-    parts.push(new Uint8Array([meta.length])); 
-    parts.push(meta);
+  if (![1, 2, 3, 4].includes(z)) throw new Error(`Invalid jump index size: ${z}. Must be 1, 2, or 4 bytes.`);
+  const needMask = Math.ceil(instr.length / 8);
+  console.log("bitmaskBits.length and needMask", bitmaskBits.length, needMask);
+  if (bitmaskBits.length !== needMask) throw new Error(`bit-mask length ${bitmaskBits.length} != ceil(|c|/8) = ${needMask}`);
 
-    // A.2 
-    parts.push(encodeProtocolInt(jumpEntries.length)); // E(|j|)
-    // parts.push(jumpTbl);
-    parts.push(new Uint8Array([z]));               // E1(z)
-    parts.push(encodeProtocolInt(instr.length));   // E(|c|) 
-    for (const je of jumpEntries) parts.push(je); // Ez(j)
-    parts.push(instr);                             // E(c)
+  const parts: Uint8Array[] = [];
 
-    // const needed = Math.ceil(instr.length / 8); // bit-mask k – raw, length must be ceil(|c|/8)
-    // if (bitmaskBits.length !== needed)
-    //   throw new Error(`bitmask length issue: expected ${needed} but got ${bitmaskBits.length}`);
+  parts.push(new Uint8Array([meta.length]));
+  parts.push(meta);
 
-    parts.push(bitmaskBits);                     // E(k)
-      
-    return concatAll(...parts);
+  // A.2 
+  parts.push(encodeProtocolInt(jumpEntries.length)); // E(|j|)
+  // parts.push(jumpTbl);
+  parts.push(new Uint8Array([z]));               // E1(z)
+  parts.push(encodeProtocolInt(instr.length));   // E(|c|) 
+  for (const je of jumpEntries) parts.push(je); // Ez(j)
+  parts.push(instr);                             // E(c)
+
+  // const needed = Math.ceil(instr.length / 8); // bit-mask k – raw, length must be ceil(|c|/8)
+  // if (bitmaskBits.length !== needed)
+  //   throw new Error(`bitmask length issue: expected ${needed} but got ${bitmaskBits.length}`);
+
+  parts.push(bitmaskBits);                     // E(k)
+
+  return concatAll(...parts);
 }

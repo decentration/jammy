@@ -20,6 +20,7 @@ export interface LayoutMemory {
   memInit: Uint8Array;
   mapPlan: MapPlanEntry[];
   heapStart: number;
+  heapPointer: number;  // Initial heap pointer per GP A.42: RW_BASE + P(rwLen) + reservePages*ZP
   heapEnd: number;
 }
 

@@ -225,9 +225,21 @@ export function dispatchHostCall(state: InterpreterState, env: HostEnvInterface)
   dumpHostCallExit(s1, selector, handlerName, ok);
   recordHostCallTrace(state, selector, handlerName, s1, ok);
 
+  // Advance PC by 3 (ecalli instruction length) and deduct host call gas
+  // Without this, PVM loops infinitely on ecalli and exhausts gas
+  // B.5: host calls cost g=10 gas total
+  // executeSingleStep already charged 1 gas for the ecalli instruction,
+  // so here we charge only (GAS_HOST_CALL - 1) = 9 more gas
+  const ECALLI_LENGTH = 3;
+  const hostGasCharge = GAS_HOST_CALL - 1n; // 10 - 1 = 9, since base cost already charged
+  const s2 = {
+    ...s1,
+    pc: s1.pc + ECALLI_LENGTH,
+    gas: s1.gas - hostGasCharge,
+  };
 
-  if (ok && (!s1.exit || s1.exit.type === ExitReasonType.HostCall)) {
-    return { ...s1, exit: { type: ExitReasonType.Continue } };
+  if (ok && (!s2.exit || s2.exit.type === ExitReasonType.HostCall)) {
+    return { ...s2, exit: { type: ExitReasonType.Continue } };
   }
-  return s1;
+  return s2;
 }
