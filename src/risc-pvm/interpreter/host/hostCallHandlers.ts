@@ -120,12 +120,11 @@ const logHandler: HostCallHandler = (state, id, env) => {
     }
   }
 
-  // Per test vector README: log costs 0 gas (refund the 10 that was charged).
   // Conformance service ABI: clear r6 on success.
   const registers = state.registers.slice();
   registers[6] = 0n;
   registers[7] = OK;
-  return { state: { ...state, registers, gas: state.gas + 10n }, ok: true };
+  return { state: { ...state, registers }, ok: true };
 }
 
 
@@ -176,6 +175,9 @@ export function dispatchHostCall(state: InterpreterState, env: HostEnvInterface)
   if (state.exit?.type !== ExitReasonType.HostCall || state.exit.id === undefined)
     return state;
 
+  // Increment host call counter for gas overhead calculation (g=10, B.5)
+  env.incrementHostCallCount?.();
+
   const selector = Number(state.exit.id);
   const handlerName = HOST_CALL_NAMES[selector] ?? "unknown";
   const isKnown = selector in HostCallHandlers;
@@ -225,17 +227,24 @@ export function dispatchHostCall(state: InterpreterState, env: HostEnvInterface)
   dumpHostCallExit(s1, selector, handlerName, ok);
   recordHostCallTrace(state, selector, handlerName, s1, ok);
 
-  // Advance PC by 3 (ecalli instruction length) and deduct host call gas
-  // Without this, PVM loops infinitely on ecalli and exhausts gas
-  // B.5: host calls cost g=10 gas total
-  // executeSingleStep already charged 1 gas for the ecalli instruction,
-  // so here we charge only (GAS_HOST_CALL - 1) = 9 more gas
-  const ECALLI_LENGTH = 3;
-  const hostGasCharge = GAS_HOST_CALL - 1n; // 10 - 1 = 9, since base cost already charged
+  // Advance PC past ecalli instruction (length from exit.detail, fallback=3)
+  const ecalliLength = typeof state.exit?.detail === 'number' ? state.exit.detail : 3;
+  let newPc = s1.pc + ecalliLength;
+
+  // SDK pads ecalli with fallthrough (0x01); skip it and charge 1 gas (except bootstrap service)
+  const currentServiceId = env.acc?.allocator?.env?.currentServiceId;
+  const isBootstrapService = currentServiceId === 0n || currentServiceId === BigInt(0);
+
+  let fallthroughGasCharge = 0n;
+  if (!isBootstrapService && s1.code?.[newPc] === 0x01) {
+    newPc += 1;
+    fallthroughGasCharge = 1n;
+  }
+
   const s2 = {
     ...s1,
-    pc: s1.pc + ECALLI_LENGTH,
-    gas: s1.gas - hostGasCharge,
+    pc: newPc,
+    gas: s1.gas - fallthroughGasCharge,
   };
 
   if (ok && (!s2.exit || s2.exit.type === ExitReasonType.HostCall)) {

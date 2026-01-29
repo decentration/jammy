@@ -39,13 +39,12 @@ const DEBUG_ACC = process.env.JAM_DEBUG_ACC === "1";
  *  - 2) Gather "accumulatable items" (the final set W*) from input.reports & preState.ready_queue 
  *       (12.4)- 12.12)
  *  - 3) Computesblock gas-limit g (12.20)
- *  - 4) TODO: Perform accumulation for each service using pvm-ffi. 
+ *  - 4) Perform accumulation for each service using pvm-ffi. 
  *       Accumulates all relevant services by running their pvm logic
  *      (12.16 - 12.17). Single-service logic (12.19), concurrently.
- *  - 5) TODO: Apply intermediate changes
- *  - 6) TODO: Handle deferred async transfers (12.26 - 12.30)
- *  - 7) TODO: Integrate new preimages (12.34 - 12.39)
- *  - 8) TODO: Build final output (12.15) and (12.21)
+ *  - 6) Apply intermediate changes
+ *  - 7) TODO: Handle deferred async transfers (12.26 - 12.30)
+ *  - 8) TODO: Integrate new preimages (12.34 - 12.39)
  *  - 9) Update state, done!
  * @param preState 
  * @param input 
@@ -131,59 +130,50 @@ export async function applyAccumulateStf(
       // Raw PVM gas: u = initial_gas - remaining_gas
       const rawGas = br.actualGasUsed ?? 0n;
 
-      // B.9: if code was unavailable (c is null, total gas = 0
-      // Use the codeUnavailable flag to distinguish from legitimate 0-gas PVM execution
+      // B.9: if code was unavailable (c is null), total gas = 0
       if (br.codeUnavailable) {
         cur.gas += 0n;  // B.9: u = 0 when c = ∅
         perService.set(sid, cur);
         continue;
       }
 
-      // 12.24 and KI Section 21.2:
-      // - BS (100): Base setup cost for PVM invocation  
-      // - BI × 3 (30): Per-invocation fees (report + item + memo)
-      // - Storage fee: Differs for INSERT vs UPDATE
-      // - 1 × itemCount: Per-item fee for aggregated batches (only when >1 item)
-
+      // Protocol overhead per B.5 spec:
+      // - BS (100): Base setup cost per invocation
+      // - BI (10): Per work item cost
+      // - g (10): Per host call cost (not charged inside PVM)
+      // - Storage write overhead: write(4) + key_length per write
       const numStorageWrites = br.storageWrites?.length ?? 0;
       const numInserts = br.storageInsertCount ?? 0;
       const bytesDelta = br.storageValueBytesDelta ?? 0;
+      const uniqueKeys = br.uniqueKeysWritten ?? 0;
       const isInsertCase = numInserts > 0;
+      const hostCallCount = br.hostCallCount ?? 0;
 
-      const setupCost = BigInt(BS) + BigInt(BI) * 3n;  // 130 gas
+      // Base overhead: BS + BI, plus extra BI for multi-item state serialization
+      const multiItemOverhead = itemCount > 1 ? BigInt(BI) : 0n;
+      const baseCost = BigInt(BS) + BigInt(BI) + multiItemOverhead;
+      const hostCallGas = BigInt(hostCallCount) * 10n;  // g=10 per host call (B.5)
 
-      // Storage fee: INSERT vs UPDATE tracks
-      // INSERT: BI per write (10 gas each - GP (9.8))
-      // UPDATE: Merkle batch amortization - based on Spec Constants
-      //  Formula: ZA + write * N  (where ZA=2, write=4)
-      //  write=4: Defined in ΩW  - Primary marginal cost
-      //  ZA=2: Alignment Factor - Base overhead
-      //  Single write: BI (10), Multiple: 2 + 4*N (fits reference: N=5->22, N=8->34)
-      let storageFee: bigint;
-      if (isInsertCase) {
-        // INSERT: Simple (9.8) cost (BI * count)
-        storageFee = BigInt(numStorageWrites) * BigInt(BI);
-      } else {
-        // UPDATE track: batch discount using spec constants
-        storageFee = numStorageWrites === 1
-          ? BigInt(BI)
-          : 2n + 4n * BigInt(numStorageWrites);
-
-        // Growth penalty: If storage grows, add BI (10)
-        // (Matches reference behavior for wraps-4 test-vector)
-        if (bytesDelta > 0) {
-          storageFee += BigInt(BI);
+      // Storage write overhead: write=4 + key_length for each unique key written
+      // Multiple writes to the same key only count once
+      let storageWriteOverhead = 0n;
+      if (br.storageWrites) {
+        const uniqueKeys = new Set<string>();
+        for (const sw of br.storageWrites) {
+          const keyHex = Buffer.from(sw.key).toString('hex');
+          if (!uniqueKeys.has(keyHex)) {
+            uniqueKeys.add(keyHex);
+            // write=4 base + key length per unique key
+            storageWriteOverhead += 4n + BigInt(sw.key.length);
+          }
         }
       }
 
-      // itemFee only for INSERT batches, not UPDATE batches
-      const itemFee = (isInsertCase && BigInt(itemCount) > 1n) ? BigInt(itemCount) : 0n;
-      const protocolOverhead = setupCost + storageFee + itemFee;
-
+      const protocolOverhead = baseCost + hostCallGas + storageWriteOverhead;
       const totalGas = rawGas + protocolOverhead;
 
       if (process.env.JAM_DEBUG_ACC === '1') {
-        console.log(`[acc:gas] svc=${sid} rawPvmGas=${rawGas} setupCost=${setupCost} storageFee=${storageFee} itemFee=${itemFee} isInsert=${isInsertCase} protocolOverhead=${protocolOverhead} totalGas=${totalGas}`);
+        console.log(`[acc:gas] svc=${sid} rawPvmGas=${rawGas} overhead=${protocolOverhead} totalGas=${totalGas}`);
       }
 
       cur.gas += totalGas;
@@ -256,7 +246,7 @@ export async function applyAccumulateStf(
   postState.slot = slot;
 
 
-  // 6) TODO: apply intermediate changes 
+  // 6) apply intermediate changes 
   applyIntermediateChanges(postState, allOutputs, slot);
 
   if (process.env.JAM_DEBUG_ACC === "1") {
