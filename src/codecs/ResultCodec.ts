@@ -21,7 +21,7 @@ export const ResultCodec: Codec<Result> = [
     const encPayloadHash = Bytes(32).enc(r.payload_hash);
 
     // 4) encode accumulate_gas (u64 -> 8 bytes LE)
-    const encAccumulateGas = u64.enc(coerceU64(r.accumulate_gas)); 
+    const encAccumulateGas = u64.enc(coerceU64(r.accumulate_gas));
 
     // 5) encode result (ResultValueCodec)
     const encResult = ResultValueCodec.enc(r.result);
@@ -41,12 +41,12 @@ export const ResultCodec: Codec<Result> = [
     const out = new Uint8Array(totalLen);
     let offset = 0;
 
-    out.set(encServiceId, offset);       offset += encServiceId.length;
-    out.set(encCodeHash, offset);        offset += encCodeHash.length;
-    out.set(encPayloadHash, offset);     offset += encPayloadHash.length;
-    out.set(encAccumulateGas, offset);   offset += encAccumulateGas.length;
-    out.set(encResult, offset);          offset += encResult.length;
-    out.set(encRefineLoad, offset);      offset += encRefineLoad.length;
+    out.set(encServiceId, offset); offset += encServiceId.length;
+    out.set(encCodeHash, offset); offset += encCodeHash.length;
+    out.set(encPayloadHash, offset); offset += encPayloadHash.length;
+    out.set(encAccumulateGas, offset); offset += encAccumulateGas.length;
+    out.set(encResult, offset); offset += encResult.length;
+    out.set(encRefineLoad, offset); offset += encRefineLoad.length;
 
     return out;
   },
@@ -57,8 +57,8 @@ export const ResultCodec: Codec<Result> = [
       data instanceof Uint8Array
         ? data
         : typeof data === "string"
-        ? new TextEncoder().encode(data)
-        : new Uint8Array(data);
+          ? new TextEncoder().encode(data)
+          : new Uint8Array(data);
 
     let offset = 0;
 

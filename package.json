@@ -37,6 +37,7 @@
     "fp-ts": "^2.16.9",
     "js-sha3": "^0.9.3",
     "node-fetch": "^3.3.2",
+    "pdf-parse": "1.1.1",
     "scale-ts": "^1.6.1",
     "tsconfig-paths": "^4.2.0",
     "tweetnacl": "^1.0.3"

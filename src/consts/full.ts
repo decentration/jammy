@@ -24,8 +24,8 @@ export const TOTAL_GAS_FOR_WORK_PACKAGE_IS_AUTHORIZED_LOGIC = 50000000n  // GI =
 export const MAX_EXTRINSICS_IN_WORK_PACKAGE = 128 // T = 128: The maximum number of extrinsics in a work-package.
 export const MAX_IMPORTS_EXPORTS_IN_WORK_PACKAGE = 3072 // WM = 3, 072: The maximum number of imports and exports in a work-package.
 export const PERIOD_FOR_EXPUNGING_PREIMAGES = 19200 // D = 19, 200: The period in timeslots after which an unreferenced preimage may be expunged.
+export const EC_PIECES_PER_SEGMENT = 6;
 
-// GP I.4 Canonical Erasure-Coding Values (v0.7.2)
-export const EC_PIECES_PER_SEGMENT = 6; // WP = 6: The number of erasure-coded pieces in a segment.
-export const WE_OVERRIDE = 684;  // WE = 684: The basic size of erasure-coded pieces in octets. (H.4)
-export const WP_OVERRIDE = 6;    // WP = 6: The number of erasure-coded pieces in a segment.
+// Erasure-coding
+export const WE_OVERRIDE = 684;   // WE = 684: basic size of erasure-coded pieces
+export const WP_OVERRIDE = 6;     // WP = 6: number of erasure-coded pieces per segment

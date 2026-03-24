@@ -48,6 +48,10 @@ export interface HostEnvInterface {
   // Current work item index for sel=6
   currentWorkItemIndex?: number;
 
+  // Host call counting for gas overhead (g=10 per call, B.5)
+  hostCallCount?: number;
+  incrementHostCallCount?: () => void;
+
 }
 
 // input option parameters
@@ -236,6 +240,10 @@ export function makeHostEnv(opts: HostEnvOptions = {}): HostEnvInterface {
     // Indexed work items for fetch selectors 5/6
     workItemsList: opts.workItemsList,
     currentWorkItemIndex: opts.currentWorkItemIndex,
+
+    // Host call counting for gas overhead (g=10 per call, B.5)
+    hostCallCount: 0,
+    incrementHostCallCount() { this.hostCallCount = (this.hostCallCount ?? 0) + 1; },
 
   };
 }

@@ -11,16 +11,16 @@ export function makeOpcodeBitmask(code: Uint8Array, opcodeOffsets: number[]): Ui
 
 export const le64 = (x: bigint) => [
   Number(x & 0xFFn),
-  Number((x >> 8n) & 0xFFn),
-  Number((x >> 16n) & 0xFFn),
-  Number((x >> 24n) & 0xFFn),
-  Number((x >> 32n) & 0xFFn),
-  Number((x >> 40n) & 0xFFn),
-  Number((x >> 48n) & 0xFFn),
-  Number((x >> 56n) & 0xFFn),
+  Number((x>>8n)&0xFFn),
+  Number((x>>16n)&0xFFn),
+  Number((x>>24n)&0xFFn),
+  Number((x>>32n)&0xFFn),
+  Number((x>>40n)&0xFFn),
+  Number((x>>48n)&0xFFn),
+  Number((x>>56n)&0xFFn),
 ];
 
-export const le32 = (x: number) => [x & 0xFF, (x >>> 8) & 0xFF, (x >>> 16) & 0xFF, (x >>> 24) & 0xFF];
+export const le32 = (x: number) => [x&0xFF,(x>>>8)&0xFF,(x>>>16)&0xFF,(x>>>24)&0xFF];
 
 export function le32ToBigInt(h: Uint8Array): bigint {
   let v = 0n;
@@ -31,6 +31,7 @@ export function le32ToBigInt(h: Uint8Array): bigint {
 export function makeBlob(code: Uint8Array, bitmask: Uint8Array): Uint8Array {
   return buildBlob({
     meta: Uint8Array.of(0),
+    jumpTbl: Uint8Array.of(0),
     z: 1,
     instr: code,
     jumpEntries: [Uint8Array.of(0)],
@@ -62,7 +63,7 @@ export function mkService(
 }
 
 
-export function makePayer(
+export function makePayer (
   _id: bigint, rootCodeHash: bigint, balance: bigint, coresOffset: number = 0
 ): ServiceAccount {
   return {
@@ -82,14 +83,10 @@ export function makePayer(
 }
 
 export const makeAcc = (currentServiceId: bigint): AccumulateContext => ({
-  allocator: {
-    index: 0n, env: {
-      deltas: new Map(),
-      currentServiceId: currentServiceId, root: 0n
-    }
-  },
-  session: {
-
+  allocator: { index: 0n, env: { deltas: new Map(), 
+  currentServiceId: currentServiceId, root: 0n } },
+  session: { 
+   
   },
 });
 
@@ -100,5 +97,5 @@ export const tuple = (...vals: bigint[]) => {
   return out;
 };
 
-export const loadImm = (reg: number, x: number) =>
-  Uint8Array.of(Opcodes.load_imm, reg, x & 255, x >>> 8 & 255, x >>> 16 & 255, x >>> 24 & 255);
+export const loadImm = (reg:number, x:number) =>
+  Uint8Array.of(Opcodes.load_imm, reg, x & 255, x>>>8 & 255, x>>>16 & 255, x>>>24 & 255);

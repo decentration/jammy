@@ -152,7 +152,7 @@ export async function applyAccumulateStf(
       // Base overhead: BS + BI, plus extra BI for multi-item state serialization
       const multiItemOverhead = itemCount > 1 ? BigInt(BI) : 0n;
       const baseCost = BigInt(BS) + BigInt(BI) + multiItemOverhead;
-      const hostCallGas = BigInt(hostCallCount) * 10n;  // g=10 per host call (B.5)
+      const hostCallGas = BigInt(hostCallCount) * 11n;  // g=10 per host call (B.5) + 1 for ecalli PC increment (A.6)
 
       // Storage write overhead: write=4 + key_length for each unique key written
       // Multiple writes to the same key only count once

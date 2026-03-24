@@ -478,6 +478,7 @@ export async function accumulateSingleService(
   const ep: AccumulateEphemeral = {
     serviceId,
     itemCount: serviceItems.length,  // Track number of work items for statistics
+    hostCallCount: env.hostCallCount ?? 0,  // Host call count for g=10 (B.5)
     newTransfers,
     newServices: [],
     codeUpgrades: [],

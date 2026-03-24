@@ -151,6 +151,7 @@ export interface StorageWrites {
 export interface AccumulateEphemeral {
     serviceId: number;
     itemCount?: number;              // Number of work items processed in this batch
+    hostCallCount?: number;          // Number of host calls for g=10 overhead (B.5)
     newTransfers?: NewTransfer[];
     newServices?: NewService[];
     codeUpgrades?: CodeUpgrade[];
